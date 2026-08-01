@@ -231,7 +231,7 @@ namespace Pulsar::Companion
 
     void InteractionManager::DoSpawnDrop(uint32_t a_itemFormID, int32_t a_count)
     {
-        // Other player dropped an item — add it to our player's inventory
+        // Other player dropped an item - add it to our player's inventory
         // 3D world drops will come automatically with World Sync (shared entities)
         auto* player = RE::PlayerCharacter::GetSingleton();
         if (!player) return;
@@ -284,7 +284,7 @@ namespace Pulsar::Companion
             return RE::BSContainer::ForEachResult::kContinue;
         });
 
-        // Compare with last snapshot — find items that decreased
+        // Compare with last snapshot - find items that decreased
         // Cooldown: skip if we just sent a drop recently (prevents spam)
         static uint64_t s_lastDropSend = 0;
         uint64_t dropNow = GetTickCount64();
@@ -368,7 +368,7 @@ namespace Pulsar::Companion
         auto* clone = remoteMgr.GetRemoteActor();
         if (!clone) {
             PLOG_WARN("[PULSAR] RestoreInventory: clone not spawned yet, requeueing {} items"sv, a_items.size());
-            // Requeue — will try again next ProcessPending cycle
+            // Requeue - will try again next ProcessPending cycle
             std::lock_guard lock(m_mutex);
             m_pendingRestoreItems.insert(m_pendingRestoreItems.end(), a_items.begin(), a_items.end());
             return;

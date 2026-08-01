@@ -2,7 +2,7 @@
 
 namespace Pulsar::NPCShipProbe {
 
-    // M.1 V1 — Discovery probe for NPC ships in space cells.
+    // M.1 V1 - Discovery probe for NPC ships in space cells.
     //
     // Goal: confirm we can enumerate non-player ships in the current space
     // cell and identify them reliably. Probes periodically while player is in

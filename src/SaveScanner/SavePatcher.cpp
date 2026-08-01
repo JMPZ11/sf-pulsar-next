@@ -143,7 +143,7 @@ namespace Pulsar::SaveScanner
                              a_compData,
                              static_cast<uLong>(a_compSize));
         if (ret != Z_OK) {
-            // Try with padded size — sometimes the chunk size doesn't
+            // Try with padded size - sometimes the chunk size doesn't
             // match exactly and the padding bytes are zeros that zlib
             // tolerates.
             decompSize = static_cast<uLongf>(a_decompTarget);
@@ -255,7 +255,7 @@ namespace Pulsar::SaveScanner
                 "[PULSAR] [SavePatcher] decompressed size mismatch: got {} expected {}"sv,
                 a_outDecompressed.size(),
                 a_outMeta.totalUncompressedSize);
-            // Not fatal — engine may tolerate small mismatches. Continue.
+            // Not fatal - engine may tolerate small mismatches. Continue.
         }
 
         PLOG_INFO(
@@ -385,7 +385,7 @@ namespace Pulsar::SaveScanner
         }
 
         // Pad to compressedDataOffset with "nexus\0" pattern (matches
-        // engine's own padding bytes — see RE notes).
+        // engine's own padding bytes - see RE notes).
         static constexpr char kPadPattern[6] = { 'n', 'e', 'x', 'u', 's', 0 };
         std::size_t padIdx = 0;
         while (static_cast<std::int64_t>(a_out.size()) < compressedDataOffset) {
@@ -459,7 +459,7 @@ namespace Pulsar::SaveScanner
         return byteMatch;
     }
 
-    // ─── Phase 3 — pilot patcher ─────────────────────────────────────
+    // ─── Phase 3 - pilot patcher ─────────────────────────────────────
 
     bool PatchPilotState(std::vector<std::uint8_t>& a_decompressed)
     {
@@ -514,7 +514,7 @@ namespace Pulsar::SaveScanner
         if (patchedCount == 0) {
             PLOG_INFO(
                 "[PULSAR] [SavePatcher] PatchPilot: no SitSleepPackage marker found "
-                "(host may not have been piloting at save time — that's fine)"sv);
+                "(host may not have been piloting at save time - that's fine)"sv);
             return false;
         }
         PLOG_INFO(
@@ -523,7 +523,7 @@ namespace Pulsar::SaveScanner
         return true;
     }
 
-    // ─── Phase 2 — Diff tool ─────────────────────────────────────────
+    // ─── Phase 2 - Diff tool ─────────────────────────────────────────
 
     // Group consecutive byte differences into runs. Returns ranges
     // [start, end) where every byte in the range differs.
@@ -564,7 +564,7 @@ namespace Pulsar::SaveScanner
                 out.push_back({ s, i });
                 if (out.size() >= a_maxRanges) {
                     PLOG_WARN(
-                        "[PULSAR] [Diff] hit max ranges {} — truncating"sv,
+                        "[PULSAR] [Diff] hit max ranges {} - truncating"sv,
                         a_maxRanges);
                     return out;
                 }
@@ -585,7 +585,7 @@ namespace Pulsar::SaveScanner
     // velocities, quaternions) hit this pattern.
     static bool LooksLikeFloat4(const std::uint8_t* p)
     {
-        // Reject zero (always 00 00 00 00 — clearly not noise).
+        // Reject zero (always 00 00 00 00 - clearly not noise).
         if (p[0] == 0 && p[1] == 0 && p[2] == 0 && p[3] == 0) return false;
         // High byte (sign + upper exponent bits)
         const std::uint8_t hi = p[3];
@@ -630,7 +630,7 @@ namespace Pulsar::SaveScanner
     {
         outRangeCount = 0;
         std::fprintf(fp,
-            "PULSAR Save Diff Tool — Path B Phase 2 (simple mode)\n");
+            "PULSAR Save Diff Tool - Path B Phase 2 (simple mode)\n");
         std::fprintf(fp, "A size: %zu\n", aSize);
         std::fprintf(fp, "B size: %zu\n", bSize);
         std::fprintf(fp, "sizeDelta: %lld\n",
@@ -753,7 +753,7 @@ namespace Pulsar::SaveScanner
             return false;
         }
 
-        // Open output file via plain C stdio — saner threading semantics
+        // Open output file via plain C stdio - saner threading semantics
         // than std::ofstream when invoked from a detached worker.
         FILE* fp = nullptr;
 #ifdef _WIN32

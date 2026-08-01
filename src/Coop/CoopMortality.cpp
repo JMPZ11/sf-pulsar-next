@@ -4,9 +4,9 @@
 #include "Network/PacketTypes.h"
 #include "RemotePlayer/RemotePlayerManager.h"
 #include "WorldSync/WorldSync.h"
-#include "Cell3DAttach.h"   // IsQuiet() — gate anim-graph ops during reloads
+#include "Cell3DAttach.h"   // IsQuiet() - gate anim-graph ops during reloads
 #include "NASLog.h"
-#include "Config.h"         // GetConfig() — dev-hotkey gate for the manual revive
+#include "Config.h"         // GetConfig() - dev-hotkey gate for the manual revive
 
 #include <atomic>
 #include <cstring>
@@ -52,7 +52,7 @@ namespace Pulsar::Coop::Mortality
     // lets its own vanilla reload fire = controlled both-downed game-over.
     static std::atomic<bool> g_remoteDowned{ false };
 
-    // Way A — medpack revive request received from the partner (PKT_PLAYER_REVIVE).
+    // Way A - medpack revive request received from the partner (PKT_PLAYER_REVIVE).
     // Written on the ENet receive thread (OnReviveReceived = queue only), consumed
     // on the game thread (OnGameThreadTick) → ReviveLocalPlayer. Engine actor
     // mutation must never run on the ENet thread.
@@ -83,7 +83,7 @@ namespace Pulsar::Coop::Mortality
     }
 
     // Broadcast our local (debounced) combat state to the peer. Sent both on change
-    // AND on a periodic heartbeat (a_log=false for heartbeats to keep the log quiet) —
+    // AND on a periodic heartbeat (a_log=false for heartbeats to keep the log quiet) -
     // on-change-only was lost to the connect-time load barrier / a post-load reset and
     // never re-asserted, so the downed partner's gate never engaged (confirmed
     // 2026-06-09). A downed partner gates its Way-B combat-end revive on this.
@@ -102,7 +102,7 @@ namespace Pulsar::Coop::Mortality
         if (a_log) PLOG_INFO("[DOWNED] sent combat-state={} to peer"sv, d.inCombat);
     }
 
-    // Way A — tell the downed peer (slot a_targetSlot) to get back up. Reliable.
+    // Way A - tell the downed peer (slot a_targetSlot) to get back up. Reliable.
     static void SendRevive(std::uint8_t a_targetSlot)
     {
         auto& net = Pulsar::Network::GetSingleton();
@@ -118,7 +118,7 @@ namespace Pulsar::Coop::Mortality
     }
 
     // ----------------------------------------------------------------
-    // PLAYER death-reload arm point — REL::ID 102812
+    // PLAYER death-reload arm point - REL::ID 102812
     // FUN_141a5ba50: a PlayerCharacter-ONLY per-frame sub-tick.
     // ABI: void __fastcall(RE::PlayerCharacter* a_this /*RCX*/, float a_dt /*XMM1*/)
     //
@@ -129,9 +129,9 @@ namespace Pulsar::Coop::Mortality
     //       if (countdown < 0)  FUN_141ee3280(DAT_1461e7460);  // <<< SAVE-RELOAD FIRES
     //   else  reset countdown;                   ; no reload
     //
-    // This is THE arm point — keyed only to the +0xF8 death bits, NOT to live
+    // This is THE arm point - keyed only to the +0xF8 death bits, NOT to live
     // Health (so HP-floor clamping could never cancel it), and NOT the
-    // lethal-check virtual (REL::ID 100986 — disproven, never on this path).
+    // lethal-check virtual (REL::ID 100986 - disproven, never on this path).
     //
     // FIX: while downed, temporarily mask the +0xF8 death bits to 0 before
     // calling the original, then restore.  The in-function gate then takes the
@@ -153,11 +153,11 @@ namespace Pulsar::Coop::Mortality
     static constexpr std::uint32_t  kDeathEnum1      = 1u;
     static constexpr std::uint32_t  kDeathEnum2      = 2u;
 
-    // Life-state setter — REL::ID 100787 (FUN_14190e890, Actor vtable+0xB78).
+    // Life-state setter - REL::ID 100787 (FUN_14190e890, Actor vtable+0xB78).
     // ABI: void __fastcall(RE::Actor* this /*RCX*/, uint32 newStateEnum /*EDX*/).
     //
     // KEEP-ALIVE MODEL (2026-06-06 redesign): we HOOK this setter and SWALLOW every
-    // "player -> death" call so the player's life-state stays ALIVE (0) — never death,
+    // "player -> death" call so the player's life-state stays ALIVE (0) - never death,
     // never bleedout. The game-thread tick then clamps HP > 0 (engine stops retrying)
     // and locks controls (frozen). Revive = unfreeze + restore HP (no life-state
     // change). Both-down = force real death via the orig setter -> vanilla reload.
@@ -167,7 +167,7 @@ namespace Pulsar::Coop::Mortality
     using SetLifeStateFn = void(__fastcall*)(RE::Actor*, std::uint32_t);
     static SetLifeStateFn s_origSetLifeState = nullptr;  // MinHook trampoline (orig)
 
-    // DEATH HANDLER (ragdoll source) — FUN_141908af0 (RVA 0x1906250). The big actor
+    // DEATH HANDLER (ragdoll source) - FUN_141908af0 (RVA 0x1906250). The big actor
     // Kill/death dispatcher. Runtime DIAG (2026-06-09) proved THIS is the function that
     // vtable-calls the SetLifeState+notify wrapper and, right after it (Ghidra
     // 0x141908494 CALL [+0xaf8] -> FUN_141ba1dd0), triggers the player ragdoll. The old
@@ -181,7 +181,7 @@ namespace Pulsar::Coop::Mortality
     static DeathHandlerFn s_origDeathHandler = nullptr;
     static constexpr std::uintptr_t kDeathHandlerRVA = 0x1906250ULL;
 
-    // ACTOR::KILL dispatcher — REL::ID(100769) / RVA 0x1906010. EVERY lethal-damage
+    // ACTOR::KILL dispatcher - REL::ID(100769) / RVA 0x1906010. EVERY lethal-damage
     // path funnels here; it runs the kill-decision (vtable[0x182] @0x1A3CC50) which
     // cues the GLOBAL death-mode audio (low-pass muffle via FUN_141b5c710) and THEN
     // calls the death handler (0x1906250). Swallowing only the death handler is too
@@ -191,13 +191,13 @@ namespace Pulsar::Coop::Mortality
     // game-thread HP clamp (OnGameThreadTick) floors HP back to kDownedFloor. Both-down
     // game-over is forced separately (SafeSetLifeStateRaw in OnGameThreadTick), which
     // bypasses this hook. ABI (244 disasm/decomp): rcx=actor, rdx=killer, xmm2=float,
-    // r9b=u8, +3 stack bytes — declaring arg3 as float keeps xmm2 intact on pass-through.
+    // r9b=u8, +3 stack bytes - declaring arg3 as float keeps xmm2 intact on pass-through.
     using ActorKillFn = void(__fastcall*)(RE::Actor*, RE::Actor*, float,
                                           std::uint8_t, char, char, char);
     static ActorKillFn s_origActorKill = nullptr;
     static constexpr std::uintptr_t kActorKillRVA = 0x1906010ULL;
 
-    // Forward decls — defined further below, used earlier (death-tick / setter hooks).
+    // Forward decls - defined further below, used earlier (death-tick / setter hooks).
     static int SafeSetLifeStateRaw(RE::Actor* a_actor, std::uint32_t a_enum);  // orig setter (bypass swallow)
     static int SafeSetPlayerControlsEnabled(bool a_enabled);                   // freeze/unfreeze (Task 1 RE)
 
@@ -213,7 +213,7 @@ namespace Pulsar::Coop::Mortality
     }
 
     // SEH: read the engine combat-state flag (Actor virtual vtable index 0x16C).
-    // NOTE — DISPROVEN for Way B: Actor::IsInCombat() stays true on the masked
+    // NOTE - DISPROVEN for Way B: Actor::IsInCombat() stays true on the masked
     // death-state player even after all enemies are dead (engine never clears the
     // downed player's combat flag). Confirmed in-game (REVIVE-DIAG inCombat=1 with
     // 0 enemies). Kept only for reference; Way B uses SafeHostilesNear instead.
@@ -248,7 +248,7 @@ namespace Pulsar::Coop::Mortality
     }
 
     // Read the raw 32-bit handle value of highActorHandles[i] (POD read of the
-    // array element — BSPointerHandle holds a single uint32 at offset 0). SEH-safe.
+    // array element - BSPointerHandle holds a single uint32 at offset 0). SEH-safe.
     static bool SafeReadRawHandle(RE::ProcessLists* a_pl, std::uint32_t a_i, std::uint32_t& a_h)
     {
         __try {
@@ -282,13 +282,13 @@ namespace Pulsar::Coop::Mortality
     // We do NOT use the engine's ProcessLists::AreHostileActorsNear: CommonLibSF
     // binds it to REL::ID{0} (placeholder), and the versionlib entry (154040 →
     // 0x2DB4870) Ghidra-decompiles to an unrelated lifecycle routine (bit-flag +
-    // list walk, no bool) — calling it would mutate ProcessLists state, not query
+    // list walk, no bool) - calling it would mutate ProcessLists state, not query
     // hostility. Instead we walk highActorHandles (the high-process = nearby
     // actors) and test the same per-actor fields NPCSync uses: kSearchingInCombat
-    // (boolBits 1<<14) or a non-zero combat target — excluding the player, our
+    // (boolBits 1<<14) or a non-zero combat target - excluding the player, our
     // teammates/companions, the dead, and the remote clone. This is the reliable
     // "combat is over" signal for Way B (Actor::IsInCombat stays stuck true on the
-    // masked death-state player — disproven in-game).
+    // masked death-state player - disproven in-game).
     static bool SafeHostilesNear(bool& a_any)
     {
         a_any = false;
@@ -312,7 +312,7 @@ namespace Pulsar::Coop::Mortality
 
         for (std::uint32_t i = 0; i < count; ++i) {
             // Root-cause guard: skip empty (0) and invalid (-1 sentinel) handles
-            // BEFORE resolving — these crash the engine handle manager (the client
+            // BEFORE resolving - these crash the engine handle manager (the client
             // table holds a -1 entry for the downed player / dead clones).
             std::uint32_t rawH = 0;
             if (!SafeReadRawHandle(pl, i, rawH)) continue;
@@ -407,7 +407,7 @@ namespace Pulsar::Coop::Mortality
         // Death-state detected → enter our downed state (race-free: this is the
         // exact tick the engine would start counting down to the reload).
         // NOTE: forcing bleedout (life-state 7) via the engine setter was tried and
-        // REVERTED — the player has no vanilla bleedout, the engine re-sets death
+        // REVERTED - the player has no vanilla bleedout, the engine re-sets death
         // every frame and the death→bleedout flip flings the ragdoll. We keep the
         // stable masked death-ragdoll; the companion downed POSE needs dedicated RE.
         if (inDeath && !g_localDowned) {
@@ -520,7 +520,7 @@ namespace Pulsar::Coop::Mortality
     }
 
     // Hook on the life-state setter (REL::ID 100787). KEEP-ALIVE: swallow every
-    // "player -> death" set so the life-state stays alive (0) — no death, no bleedout,
+    // "player -> death" set so the life-state stays alive (0) - no death, no bleedout,
     // no ragdoll. NPCs and non-death sets pass straight through unchanged.
     static void __fastcall Hooked_SetLifeState(RE::Actor* a_this, std::uint32_t a_newState)
     {
@@ -533,7 +533,7 @@ namespace Pulsar::Coop::Mortality
                 // the life-state is left untouched (stays alive / 0). The game-thread
                 // tick then clamps HP > 0 (engine stops retrying) and locks controls
                 // (frozen). First false→true edge only: flag + notify the peer.
-                // DIAG: log the caller RVA — that is the death-PROCESS that also fires
+                // DIAG: log the caller RVA - that is the death-PROCESS that also fires
                 // the ragdoll (which we don't yet intercept). RE it next to prevent the
                 // ragdoll entirely so the player stays upright-frozen.
                 if (!g_localDowned.exchange(true)) {
@@ -553,7 +553,7 @@ namespace Pulsar::Coop::Mortality
         if (s_origSetLifeState) s_origSetLifeState(a_this, a_newState);
     }
 
-    // SEH: run the ORIGINAL (unhooked) death handler on the player — used by the
+    // SEH: run the ORIGINAL (unhooked) death handler on the player - used by the
     // both-downed game-over in OnGameThreadTick to force a REAL death after we have been
     // swallowing it. Null killer / 0 flags = a plain self-death; the decompile guards
     // every param_2 (killer) use against null. Calls the trampoline → bypasses our hook.
@@ -565,7 +565,7 @@ namespace Pulsar::Coop::Mortality
         } __except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
     }
 
-    // ACTOR::KILL intercept — the ROOT fix for the stuck death-mode audio. By aborting
+    // ACTOR::KILL intercept - the ROOT fix for the stuck death-mode audio. By aborting
     // the kill before the kill-decision runs, the global death-audio muffle is NEVER
     // cued (so there is nothing to clear on revive). This supersedes the death-handler
     // swallow below as the primary downed trigger for lethal damage; the handler hook
@@ -595,11 +595,11 @@ namespace Pulsar::Coop::Mortality
         s_origActorKill(a_this, a_killer, a_p3, a_p4, a_p5, a_p6, a_p7);
     }
 
-    // PRIMARY keep-alive hook — the actor death handler FUN_141908af0 (the ragdoll
+    // PRIMARY keep-alive hook - the actor death handler FUN_141908af0 (the ragdoll
     // source). For the local player we ALWAYS swallow it: enter our downed state, tell
     // the peer, and return BEFORE the vanilla kill runs → no ragdoll, no AI-detach, no
     // death events, no life-state change. The both-downed game-over is NOT decided here
-    // (a per-machine decision at kill-time would desync — the 2nd player to die would
+    // (a per-machine decision at kill-time would desync - the 2nd player to die would
     // game-over while the 1st only stays downed). Instead each machine drives it from
     // OnGameThreadTick when BOTH g_localDowned and g_remoteDowned are set, so both sides
     // converge to the reload. NPCs / non-player actors pass straight through.
@@ -614,7 +614,7 @@ namespace Pulsar::Coop::Mortality
                 }
                 return;  // swallow → player never dies, never ragdolls
             }
-            // The PARTNER's clone must never die independently on this machine — its life
+            // The PARTNER's clone must never die independently on this machine - its life
             // is authoritative on the owning client (kept alive there by the swallow
             // above). Without this the host's engine combat ragdolls the clone into a
             // corpse while the real client is up and walking (observed 2026-06-09).
@@ -688,7 +688,7 @@ namespace Pulsar::Coop::Mortality
         }
     }
 
-    // Cache the Health ActorValueInfo — copied from NPCSync's CombatProbe_HealthAV pattern.
+    // Cache the Health ActorValueInfo - copied from NPCSync's CombatProbe_HealthAV pattern.
     static RE::ActorValueInfo* HealthAV()
     {
         if (!g_healthAV) {
@@ -706,7 +706,7 @@ namespace Pulsar::Coop::Mortality
         return s_av;
     }
 
-    // Player control-lock — MVP STOPGAP via SpeedMult (immobilize). MUST run on the
+    // Player control-lock - MVP STOPGAP via SpeedMult (immobilize). MUST run on the
     // game thread (ActorValue mutation).
     //
     // The PROPER engine mechanism (RE'd 2026-06-07) is the BSInputEnableLayer system:
@@ -716,7 +716,7 @@ namespace Pulsar::Coop::Mortality
     // EnableFastTravel/... methods). Using it cleanly needs a BSInputEnableLayer
     // instance + lifetime management → deferred follow-up. For the MVP we immobilize
     // the player via SpeedMult=0 (no extra RE). This stops movement but NOT camera or
-    // attack — enough to validate the keep-alive core; full lock comes with the layer.
+    // attack - enough to validate the keep-alive core; full lock comes with the layer.
     static int SafeSetPlayerControlsEnabled(bool a_enabled)
     {
         // SpeedMult while downed = 35% (user wants movement for a showcase
@@ -740,7 +740,7 @@ namespace Pulsar::Coop::Mortality
     }
 
     // ----------------------------------------------------------------
-    // downed POSE — anim-archetype switch (Papyrus ChangeAnimArchetype).
+    // downed POSE - anim-archetype switch (Papyrus ChangeAnimArchetype).
     // The player's own archetype (AnimArchetypePlayer) lacks most NPC anims;
     // UNA-type mods prove the engine native ChangeAnimArchetype(keyword) swaps
     // the set live. While downed we put player + partner-clone on the INJURED
@@ -750,33 +750,33 @@ namespace Pulsar::Coop::Mortality
     static constexpr std::uint32_t kKywdAnimArchetypeInjured = 0x000B39B2;
     static constexpr std::uint32_t kKywdAnimArchetypePlayer  = 0x0006B508;
 
-    // downed POSE iteration 3 — the REAL engine enter-bleedout.
+    // downed POSE iteration 3 - the REAL engine enter-bleedout.
     // RE chain (2026-06-10): console "ForceBleedout" handler FUN_140c80370 →
     //   FUN_14197f0f0(Actor*) @ RVA 0x197C840 = start BGSBleedoutActivity +
     //   set life-state **8** via vt[+0xB78] (bleedout = 0x100000 bits, NOT
-    //   enum 7 — the old dead-end used 7!). The life-state setter has a
+    //   enum 7 - the old dead-end used 7!). The life-state setter has a
     //   dedicated PLAYER path: pushes camera state 0x17 (CS_BLEEDOUT) on
     //   enter, pops it on exit ("Player bleedout" @ 0x14190ed98). State 8
     //   does NOT arm the death-reload tick (it checks 0x20000/0x40000 only)
     //   and our setter hook swallows only the death enums → 8 passes through.
     // ForceBleedout also sets actor+0x378 |= 0x100 (NoBleedoutRecovery) to
-    // keep the actor down — we mirror that and clear it on revive.
+    // keep the actor down - we mirror that and clear it on revive.
     // (Iteration 2, ActionBleedoutStart/Stop via PerformAction, was a no-op:
     // the graph transition needs the life-state/activity, not just the action.)
     static constexpr std::uintptr_t kEnterBleedoutRVA = 0x197C840ULL;
     using EnterBleedoutFn = void(__fastcall*)(RE::Actor*);
 
-    // AACT forms (Starfield.esm scan 2026-06-10) — drive the bleedout graph
+    // AACT forms (Starfield.esm scan 2026-06-10) - drive the bleedout graph
     // transition directly on the LOCAL player (see ApplyDownedPose).
     static constexpr std::uint32_t kActionBleedoutStart = 0x00013EC9;
     static constexpr std::uint32_t kActionBleedoutStop  = 0x00013ECA;
     // C downed CRAWL: the Injured action drives the graph's MobilityInjured
-    // locomotion (NPCs move while injured) — unlike bleedout which is idle-only.
+    // locomotion (NPCs move while injured) - unlike bleedout which is idle-only.
     // Firing it alongside bleedout gives a moving downed pose instead of upright
     // walking at 35%. AACT FormIDs from Starfield.esm (2026-06-11).
     static constexpr std::uint32_t kActionInjuredStart = 0x0001E965;
     static constexpr std::uint32_t kActionInjuredStop  = 0x0001E966;
-    // Engine sheathe action — the same dispatcher path the player's manual
+    // Engine sheathe action - the same dispatcher path the player's manual
     // weapon-holster uses. Fired on the down edge to manufacture the
     // weapon-state change the bleedout pose transition needs.
     static constexpr std::uint32_t kActionSheathe = 0x00046BAF;
@@ -830,7 +830,7 @@ namespace Pulsar::Coop::Mortality
     }
 
 
-    // DIRECT engine call — NO Papyrus. Both Papyrus attempts crashed:
+    // DIRECT engine call - NO Papyrus. Both Papyrus attempts crashed:
     // (1) PackVariable(TESForm*) -> stale REL::ID(0) fatal (VehicleSync trap),
     // (2) int-FormID variant -> AV 0x90 synchronously INSIDE DispatchStaticCall
     //     (crash helper FUN_1422cdd10, null arena; suspected on-demand load of
@@ -875,7 +875,7 @@ namespace Pulsar::Coop::Mortality
     //          clone is not input-driven, so the state-8 input lock is moot.
     // PLAYER = GRAPH-ONLY bleedout: life-state 8 looks right but the engine
     //          locks player movement input in that state (in-game 2026-06-10:
-    //          "konnte mich nicht bewegen") — bleedout is a cutscene state for
+    //          "konnte mich nicht bewegen") - bleedout is a cutscene state for
     //          the player. Keep life-state 0 (alive → input works → 10% crawl
     //          speed) and drive only the graph: ActionBleedoutStart/Stop + a
     //          per-tick iSyncBleedout=1 hold (the exact recipe that holds the
@@ -888,7 +888,7 @@ namespace Pulsar::Coop::Mortality
         int ok;
         if (SafeIsLocalPlayer(a_actor)) {
             // No shooting while downed: swallow combat actions in the dispatcher.
-            // NOTE: do NOT force-holster here — DrawWeaponMagicHands plays a
+            // NOTE: do NOT force-holster here - DrawWeaponMagicHands plays a
             // sheathe animation that overrides the bleedout pose, and blocking
             // ActionDraw made the engine spam draw-attempts every frame (log
             // 2026-06-11: 'player combat action BLOCKED: ActionDraw' 1/s) which
@@ -902,7 +902,7 @@ namespace Pulsar::Coop::Mortality
             // iSyncWeaponDrawState=0 every tick (see OnGameThreadTick) so the
             // engine's combat auto-draw can't re-draw it and pop the pose
             // ("will kurz auf den boden gehen aber kommt dann wieder hoch").
-            // Draw is NOT blocked (that spammed retries) — holding the graph var
+            // Draw is NOT blocked (that spammed retries) - holding the graph var
             // keeps it visually sheathed without fighting the dispatcher.
             // Pose trigger via weapon-state change DISABLED for the equip-off
             // isolation test (2026-06-11). The DrawWeaponMagicHands toggle and
@@ -915,7 +915,7 @@ namespace Pulsar::Coop::Mortality
             // Bleedout = the stable idle downed pose (confirmed working with a
             // sheathed weapon). ActionInjured (MobilityInjured) was tried for a
             // moving downed pose but pulled the player back UPRIGHT out of the
-            // bleedout idle ("steht immer wieder auf", 2026-06-11 test) — it's an
+            // bleedout idle ("steht immer wieder auf", 2026-06-11 test) - it's an
             // upright limp, not a ground crawl. Reverted to bleedout-only for a
             // stable pose; a true downed-crawl is a separate harder problem
             // (the player biped graph has no bleedout LOCOMOTION state).
@@ -977,7 +977,7 @@ namespace Pulsar::Coop::Mortality
     //       *healthAV, -d.damage, hostPlayer)   [4-arg overload, source = hostPlayer]
     // ActorValueOwner.h vt[06]: ModActorValue(ACTOR_VALUE_MODIFIER, const ActorValueInfo&,
     //       float, TESObjectREFR* a_ref)
-    // We pass the player itself as a_ref (same pattern — the source actor of the
+    // We pass the player itself as a_ref (same pattern - the source actor of the
     // modifier). No C++ objects with destructors inside __try (C2712 safe).
     static int SafeRaiseHealthTo(RE::Actor* a_actor, RE::ActorValueInfo* a_av, float a_target)
     {
@@ -1008,12 +1008,12 @@ namespace Pulsar::Coop::Mortality
         }
     }
 
-    // Shared revive primitive — used by F10 debug revive, Way A (medpack), and
+    // Shared revive primitive - used by F10 debug revive, Way A (medpack), and
     // Way B (combat-end). Always runs on the downed player's OWN machine.
     // KEEP-ALIVE model: the player was never dead (we swallowed the death-set), so
     // revive is just: clear the downed flag, tell the peer, UNFREEZE controls, and
     // restore Health. No life-state change / Resurrect needed.
-    // g_remoteDowned is intentionally NOT touched here — it mirrors the PEER's state.
+    // g_remoteDowned is intentionally NOT touched here - it mirrors the PEER's state.
     static void ReviveLocalPlayer(RE::PlayerCharacter* a_player,
                                   RE::ActorValueInfo*  a_av,
                                   float                a_hpFraction,
@@ -1024,7 +1024,7 @@ namespace Pulsar::Coop::Mortality
         g_localDowned = false;
         SendDownedState(false);
         SafeSetPlayerControlsEnabled(true);  // unfreeze (we locked controls on entry)
-        // Kill the held death/bleedout audio (muffle + down loop) — the engine
+        // Kill the held death/bleedout audio (muffle + down loop) - the engine
         // can't pop it because we hold the death status. Null-guarded, safe always.
         SafeStopActorAudioActivity(a_player);
 
@@ -1059,7 +1059,7 @@ namespace Pulsar::Coop::Mortality
         if (!av) return;
 
         // ----------------------------------------------------------------
-        // Read current health every tick (NOT throttled) — the clamp must
+        // Read current health every tick (NOT throttled) - the clamp must
         // be responsive enough to outrun the game-over watcher.
         // ----------------------------------------------------------------
         float         health   = 0.0f;
@@ -1070,9 +1070,9 @@ namespace Pulsar::Coop::Mortality
         if (!SafeReadState(player, av, health, dead, rawBits, rawFlags)) return;
 
         // ----------------------------------------------------------------
-        // Way A — consume a queued medpack-revive request (set on the ENet
+        // Way A - consume a queued medpack-revive request (set on the ENet
         // thread by OnReviveReceived). Engine mutation runs here on the game
-        // thread. 50% HP — an item-paid revive.
+        // thread. 50% HP - an item-paid revive.
         // ----------------------------------------------------------------
         if (g_medpackRevivePending.exchange(false, std::memory_order_relaxed)) {
             if (g_localDowned) {
@@ -1087,7 +1087,7 @@ namespace Pulsar::Coop::Mortality
         //
         // The death-tick hook (FUN_141a5ba50) only ticks while the player is in a
         // death life-state, so after a both-downed game-over reload it never runs
-        // again — its auto-recover branch can't fire and g_localDowned stays stuck
+        // again - its auto-recover branch can't fire and g_localDowned stays stuck
         // at 1 (observed: DOWNED-PROBE downed=1 with health 240/dead=0 after the
         // load).  This game-thread tick always runs, so do the recovery here:
         // if we are flagged downed but the +0xF8 life-state reads alive (bits == 0),
@@ -1095,7 +1095,7 @@ namespace Pulsar::Coop::Mortality
         // life-state is still death (masking is transient inside the hook only), so
         // this never fires spuriously.  We also clear g_remoteDowned: a both-downed
         // game-over reloads BOTH sides, and the peer re-asserts downed=1 via packet
-        // if it goes down again — this prevents a stale remoteDowned from turning a
+        // if it goes down again - this prevents a stale remoteDowned from turning a
         // later single death into a false both-downed game-over.
         // ----------------------------------------------------------------
         // Post-load recovery (LOAD-TICK keyed). Under keep-alive the player is ALWAYS
@@ -1107,7 +1107,7 @@ namespace Pulsar::Coop::Mortality
             const std::uint64_t loadTick = Pulsar::WorldSync::GetLastLoadCompletedTick();
             // ALSO recover on a loadMenu close edge. The both-down game-over is a
             // VANILLA death-reload, which does NOT bump GetLastLoadCompletedTick
-            // (that's only the save-bridge LOADED path) — so the load-tick keyed
+            // (that's only the save-bridge LOADED path) - so the load-tick keyed
             // recovery never fired and the client stayed downed/blocked after the
             // reload (2026-06-11: couldn't shoot post-reload). WasInLoadMenu()
             // true→false is the reliable "a load just finished" edge for any load.
@@ -1125,7 +1125,7 @@ namespace Pulsar::Coop::Mortality
                     SafeSetPlayerControlsEnabled(true);
                     Pulsar::RemotePlayer::SetPlayerCombatActionsBlocked(false);
                     SendDownedState(false);
-                    PLOG_INFO("[DOWNED] post-load recovery — cleared downed state + unfroze (loadMenuEdge={})"sv,
+                    PLOG_INFO("[DOWNED] post-load recovery - cleared downed state + unfroze (loadMenuEdge={})"sv,
                               loadMenuClosedEdge ? 1 : 0);
                 }
             }
@@ -1135,7 +1135,7 @@ namespace Pulsar::Coop::Mortality
         // Both-downed game-over (game-thread trigger).
         //
         // Under keep-alive the player is never in a death life-state, so the death-tick
-        // hook (FUN_141a5ba50) is never called and could not trigger the game-over — it
+        // hook (FUN_141a5ba50) is never called and could not trigger the game-over - it
         // MUST live on this always-running tick (the previously KNOWN GAP). When BOTH
         // sides are flagged down, run the REAL vanilla death once (SafeRunDeathHandler →
         // the trampoline, bypassing our swallow). That puts the player in a true death
@@ -1186,7 +1186,7 @@ namespace Pulsar::Coop::Mortality
             }
             // Graph-only player bleedout: re-assert iSyncBleedout=1 every 100ms
             // while downed (the engine's player-graph update can reset it; the
-            // clone needs the same hold — see RemotePlayerManager anim sync).
+            // clone needs the same hold - see RemotePlayerManager anim sync).
             // CRASH FIX (2026-06-11): gate the graph-var hold on !IsQuiet().
             // During the both-down game-over reload, g_localDowned is still set
             // and this hold kept calling SetActorGraphInt on the player whose
@@ -1208,14 +1208,14 @@ namespace Pulsar::Coop::Mortality
                 && poseNowMs - s_poseHoldMs >= 100) {
                 s_poseHoldMs = poseNowMs;
                 Pulsar::RemotePlayer::SetActorGraphInt(player, "iSyncBleedout", 1);
-                // Keep the weapon sheathed — combat auto-draw otherwise re-draws
+                // Keep the weapon sheathed - combat auto-draw otherwise re-draws
                 // it and pops the bleedout pose (user-confirmed: a drawn weapon
                 // blocks the pose). Force-holster every 100ms AND hold the graph
                 // var; log the weapon bits so we can see if the holster sticks.
                 Pulsar::RemotePlayer::SetActorGraphInt(player, "iSyncWeaponDrawState", 0);
                 const std::uint8_t weapBits =
                     static_cast<std::uint8_t>(player->actorState2 & 0x3);
-                // Only re-holster when the weapon is actually out (bits != 0) —
+                // Only re-holster when the weapon is actually out (bits != 0) -
                 // calling DrawWeaponMagicHands(false) every tick would restart
                 // the sheathe anim endlessly. weapBits != 0 = combat auto-draw
                 // pulled it back; force it down again.
@@ -1231,7 +1231,7 @@ namespace Pulsar::Coop::Mortality
         // downed pose on the PARTNER-CLONE (helper side): mirror the injured
         // archetype so the downed partner reads as hurt instead of upright-frozen.
         // Reset (None = clone's default archetype) when the partner revives.
-        // Gate clone-pose graph ops on !IsQuiet() too — during the both-down
+        // Gate clone-pose graph ops on !IsQuiet() too - during the both-down
         // reload the clone is mid-teardown; ApplyDownedPose's graph/engine calls
         // on it would pure-virtual-call (same crash class as the player hold).
         if (!Pulsar::Cell3DAttach::IsQuiet()) {
@@ -1255,14 +1255,14 @@ namespace Pulsar::Coop::Mortality
         }
 
         // ----------------------------------------------------------------
-        // Combat scan + broadcast (always while connected) — feeds Way-B on BOTH sides.
+        // Combat scan + broadcast (always while connected) - feeds Way-B on BOTH sides.
         // ONE SafeHostilesNear scan per 250 ms drives:
         //   (1) our broadcast: the DEBOUNCED "active fight near me" state, so a downed
         //       partner can gate its revive on OUR (the fighter's) combat. SafeHostilesNear
         //       is reliable on the FIGHTING machine (real enemies carry the combat flags);
         //       the downed player's own scan is not (its enemies disengage instantly), so
         //       the downed side leans on this remote signal. Sent on change AND on a
-        //       500 ms HEARTBEAT — on-change-only was lost to the connect-time load barrier
+        //       500 ms HEARTBEAT - on-change-only was lost to the connect-time load barrier
         //       / a post-load reset and never re-asserted (confirmed 2026-06-09).
         //   (2) Way-B below, which reuses s_localHostiles / s_localHostilesOk.
         // We suppress our own broadcast while WE are downed (we are not the fighter).
@@ -1283,7 +1283,7 @@ namespace Pulsar::Coop::Mortality
                 bool hostiles = true;
                 s_localHostilesOk = SafeHostilesNear(hostiles);
                 s_localHostiles   = hostiles;
-                // SafeHostilesNear proved UNRELIABLE — it returns 0 hostiles even
+                // SafeHostilesNear proved UNRELIABLE - it returns 0 hostiles even
                 // mid-fight on the fighting machine (downed=0, in active combat;
                 // confirmed 2026-06-09). Use the engine's own player combat flag
                 // (IsInCombat) as the broadcast signal instead. Suppressed while WE
@@ -1320,11 +1320,11 @@ namespace Pulsar::Coop::Mortality
         }
 
         // ----------------------------------------------------------------
-        // Way B — combat-end auto-revive. While downed, once BOTH our local hostiles
+        // Way B - combat-end auto-revive. While downed, once BOTH our local hostiles
         // scan AND the partner's broadcast report no combat for kCombatClearMs
         // continuously, stand back up at 25% HP. The remote gate is essential: the
         // downed player's own enemies disengage the moment it goes down, so its local
-        // SafeHostilesNear reads "clear" mid-fight — without the partner's signal it
+        // SafeHostilesNear reads "clear" mid-fight - without the partner's signal it
         // pops up in the middle of the host's ongoing fight (confirmed 2026-06-09).
         // Reuses the shared scan above (s_localHostiles / s_localHostilesOk).
         // ----------------------------------------------------------------
@@ -1356,10 +1356,10 @@ namespace Pulsar::Coop::Mortality
         }
 
         // ----------------------------------------------------------------
-        // Way A — medpack revive (helper side), v2: proximity + Activate TAP.
+        // Way A - medpack revive (helper side), v2: proximity + Activate TAP.
         // If a peer is downed and we are NOT downed, a rising-edge press of the
         // Activate key within kReviveRadius of the downed clone sends the revive.
-        // (v1 required a 2 s continuous hold — disproven in-game: the tester
+        // (v1 required a 2 s continuous hold - disproven in-game: the tester
         // tapped E expecting an interact, so the hold never completed. Tap is the
         // natural "interact" gesture.) Item check + consume = next iteration.
         // ----------------------------------------------------------------
@@ -1399,7 +1399,7 @@ namespace Pulsar::Coop::Mortality
         }
 
         // ----------------------------------------------------------------
-        // HP-floor MAINTAIN clamp — DISABLED for the bleedout model. Bleedout is
+        // HP-floor MAINTAIN clamp - DISABLED for the bleedout model. Bleedout is
         // HP-linked: raising Health > 0 while downed can make the engine auto-recover
         // the player out of bleedout uncontrolled. We deliberately leave Health low
         // so bleedout stays stable until an explicit revive (which raises HP itself).
@@ -1407,7 +1407,7 @@ namespace Pulsar::Coop::Mortality
         // (intentionally no HP clamp while downed)
 
         // ----------------------------------------------------------------
-        // Debug manual-revive (dev-only) — edge-triggered, configurable VK.
+        // Debug manual-revive (dev-only) - edge-triggered, configurable VK.
         // Gated behind devHotkeys so it doesn't fire/collide for normal players.
         // ----------------------------------------------------------------
         if (Pulsar::GetConfig().devHotkeys) {
@@ -1423,7 +1423,7 @@ namespace Pulsar::Coop::Mortality
         }
 
         // ----------------------------------------------------------------
-        // Diagnostic probe — throttled to ~4 Hz (250 ms).
+        // Diagnostic probe - throttled to ~4 Hz (250 ms).
         // Always log at low HP; also log when downed regardless of HP.
         // ----------------------------------------------------------------
         static std::uint64_t s_lastLogMs = 0;
@@ -1470,12 +1470,12 @@ namespace Pulsar::Coop::Mortality
     // ship destruction → both-down game-over. When the (shared) ship's hull
     // reaches 0 the ship explodes, but that does NOT kill the on-foot/piloting
     // player (verified from logs: no death-handler, no reload). So there is no
-    // death to intercept — instead route the local player into the downed state
+    // death to intercept - instead route the local player into the downed state
     // directly, exactly as the keep-alive death-handler does on a lethal hit
     // (set g_localDowned + notify the peer). Both machines call this (host on its
     // own hull-read, client on the mirrored PKT_SHIP_AV), so both flag down + tell
     // the other → OnGameThreadTick's both-downed trigger runs the real death and
-    // reloads BOTH sides — the proven both-down scheme. We deliberately do NOT
+    // reloads BOTH sides - the proven both-down scheme. We deliberately do NOT
     // force the life-state here: the both-down handler calls SafeRunDeathHandler
     // itself once both flags are set, and an early forced death would fight the
     // keep-alive HP-clamp/control-lock and fling the ragdoll. Idempotent.
@@ -1488,7 +1488,7 @@ namespace Pulsar::Coop::Mortality
         }
     }
 
-    // ENet receive thread — mirror the peer's debounced combat state. The game-thread
+    // ENet receive thread - mirror the peer's debounced combat state. The game-thread
     // Way-B revive gate reads g_remoteCombatActive so a downed player stays down while
     // the (non-downed) partner is still fighting.
     void OnCombatStatusReceived(const std::uint8_t* a_data, std::size_t a_len)
@@ -1501,7 +1501,7 @@ namespace Pulsar::Coop::Mortality
         PLOG_INFO("[DOWNED] peer combat-state received = {} (slot {})"sv, d.inCombat, d.playerSlot);
     }
 
-    // ENet receive thread — queue only (engine mutation happens on the game
+    // ENet receive thread - queue only (engine mutation happens on the game
     // thread in OnGameThreadTick). The partner sends this with the DOWNED
     // player's slot; we act only if that is us and we are actually downed.
     void OnReviveReceived(const std::uint8_t* a_data, std::size_t a_len)
@@ -1519,9 +1519,9 @@ namespace Pulsar::Coop::Mortality
         PLOG_INFO("[DOWNED] medpack revive request received (slot {})"sv, d.playerSlot);
     }
 
-    // Way A — robust trigger via the engine Activate core (REL::ID 63380, hooked in
+    // Way A - robust trigger via the engine Activate core (REL::ID 63380, hooked in
     // LootSync). Fires when the local player activates the downed partner-clone via
-    // the real interact input (key, rebind, controller — anything the engine maps),
+    // the real interact input (key, rebind, controller - anything the engine maps),
     // unlike the GetAsyncKeyState('E') tap which never registered on the client
     // machine. The clone activation is consumed so the talk dialog never opens.
     bool OnActivateMaybeRevive(RE::TESObjectREFR* a_self, RE::TESObjectREFR* a_activator)
@@ -1532,7 +1532,7 @@ namespace Pulsar::Coop::Mortality
         if (!SafeIsLocalPlayer(reinterpret_cast<RE::Actor*>(a_activator))) return false;
 
         // DIAG: while the partner is downed, log what the player's interact actually
-        // hits — tells us whether the clone produces Activate calls at all.
+        // hits - tells us whether the clone produces Activate calls at all.
         const bool isClone = SafeIsRemoteClone(reinterpret_cast<RE::Actor*>(a_self));
         PLOG_INFO("[REVIVE-DIAG] wayA activate self=0x{:X} isClone={}"sv,
                   reinterpret_cast<std::uintptr_t>(a_self), isClone ? 1 : 0);

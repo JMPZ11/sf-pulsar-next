@@ -10,14 +10,14 @@ namespace Pulsar::NPCSync {
 
     // Host-driven locomotion frame for a non-owned Actor.
     //
-    //  targetPos   — world-space target (cm).
-    //  targetRotZ  — world yaw in radians.
-    //  speed       — host forward speed (Starfield units/s, matches the "Speed"
+    //  targetPos   - world-space target (cm).
+    //  targetRotZ  - world yaw in radians.
+    //  speed       - host forward speed (Starfield units/s, matches the "Speed"
     //                graph var scale).
-    //  direction   — body-relative heading offset in radians, matches the
+    //  direction   - body-relative heading offset in radians, matches the
     //                "Direction" graph var ([-pi, pi]).
-    //  moveFlags   — bit 0 = moving, bit 1 = sprinting.
-    //  weaponDrawn — host weapon-draw state; retained for future use (sprint
+    //  moveFlags   - bit 0 = moving, bit 1 = sprinting.
+    //  weaponDrawn - host weapon-draw state; retained for future use (sprint
     //                overrides etc.), currently informational.
     struct LocomotionInput {
         RE::NiPoint3 targetPos;
@@ -50,7 +50,7 @@ namespace Pulsar::NPCSync {
     // this, remote-driven NPCs visibly teleport at packet rate (5-30 Hz)
     // because nothing moves them between incoming updates.
     //
-    //   factor — fraction of the remaining delta to consume this tick
+    //   factor - fraction of the remaining delta to consume this tick
     //            (e.g. 0.25 gives ~75 % convergence over 5 ticks at 60 Hz).
     //
     // A no-op for actors with no stored target (i.e. not tracked by us).
@@ -70,7 +70,7 @@ namespace Pulsar::NPCSync {
     // formID isn't a DirectControl puppet.
     void ReleaseNpcDirectControl(uint32_t formID);
 
-    // #ragdoll — mark an NPC kill-pending for durationMs. The engine kill is async
+    // #ragdoll - mark an NPC kill-pending for durationMs. The engine kill is async
     // (IsDead lags several frames); while pending, ApplyLocomotion + TickLerp stop
     // driving/pinning it so the body stays free and ragdolls when death lands. Call
     // right after SafeKillActor on a host-synced NPC.
@@ -101,7 +101,7 @@ namespace Pulsar::NPCSync {
 
     // Dispatch animation-graph state-transition events (moveStart / moveStop
     // / runStart / sprintStart). Graph vars alone don't commit the walk
-    // state for native NPCs whose local AI isn't dispatching events — the
+    // state for native NPCs whose local AI isn't dispatching events - the
     // engine's state-machine gate waits for an explicit transition signal.
     // Tracks last state per-actor so events fire only on state change.
     void NotifyMovementEvent(RE::Actor* actor, float speed, uint8_t moveFlags);

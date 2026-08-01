@@ -5,7 +5,7 @@ using namespace std::string_view_literals;
 
 namespace Pulsar::Debug
 {
-    // Debug hooks disabled — PlaceAtMe found at RVA 0x2079E10
+    // Debug hooks disabled - PlaceAtMe found at RVA 0x2079E10
     // It's a Papyrus latent function, can't hook safely with MinHook.
     // Solution: use Papyrus PlaceAtMe via GLOBs for 3D item drops.
 

@@ -1,4 +1,4 @@
-# Co-op Kill-XP-Sharing — Design + RE (Task)
+# Co-op Kill-XP-Sharing - Design + RE (Task)
 
 > Status: DESIGN / RE COMPLETE. **No code yet** (user: "Schau einfach mal plan das revers aber code noch nichts").
 > Engine: Starfield 1.16.236. RE verified in Ghidra (StarfieldRE.gpr).
@@ -21,7 +21,7 @@ handler **only to whoever dealt the killing blow on the LOCAL copy** (a natural 
 ## Engine RE (all verified, 1.16.236)
 
 ### Kill-XP award chain
-- Death handler **`FUN_141908af0`** (RVA `0x1908af0`) — we already hook it (CoopMortality
+- Death handler **`FUN_141908af0`** (RVA `0x1908af0`) - we already hook it (CoopMortality
   `Hooked_DeathHandler`, `kDeathHandlerRVA=0x1908af0`; ABI `void(Actor* victim=param_1, Actor* killer=param_2, void*, void*, byte, char)`).
   Internally it awards kill XP:
   ```c
@@ -29,7 +29,7 @@ handler **only to whoever dealt the killing blow on the LOCAL copy** (a natural 
                 victim /*param_5*/, victim /*param_6*/, killerCtx /*param_7*/);
   ```
 
-### The engine XP-award primitive — `FUN_141962310` (RVA `0x1962310`)
+### The engine XP-award primitive - `FUN_141962310` (RVA `0x1962310`)
 ```c
 uint64_t FUN_141962310(Actor* target, float xp /*XMM1*/, int source, char applyMult,
                        void* p5, void* victim /*p6*/, void* p7);
@@ -45,16 +45,16 @@ uint64_t FUN_141962310(Actor* target, float xp /*XMM1*/, int source, char applyM
 - **Return value (RAX low 32 bits) = the final awarded XP** (post-multiplier, rounded).
 
 ### XP source enums (3rd arg) observed across the 10 callers
-`2`,`3`(quantity/skill),`4`(location discovery),`7`(**KILL** — death handler),`8`,`0xc`(generic `Game.RewardPlayerXP`).
+`2`,`3`(quantity/skill),`4`(location discovery),`7`(**KILL** - death handler),`8`,`0xc`(generic `Game.RewardPlayerXP`).
 - **`source==7` = kill XP.** Filtering on it isolates kills cleanly.
 - `Game.RewardPlayerXP(uint xp, bool)` Papyrus native → handler `FUN_142013030` → `FUN_141962310(player, xp, 0xc, !skip, 0,0,0)`. We award shares with **`source=0xc`** so our own capture hook (which filters `source==7`) never re-captures them → no echo / no recursion.
 
 ### Experience AV
 Read today in ClientProfile.cpp / DirectRestore.cpp via `LookupByEditorID<ActorValueInfo>("Experience")` + `GetActorValue`. We do NOT need a delta measurement (see "value source").
 
-## Design — `KillXpSync` module (layered on top, does NOT touch combat-mirror)
+## Design - `KillXpSync` module (layered on top, does NOT touch combat-mirror)
 
-### Capture (both host & client) — hook `FUN_141962310` @ `0x1962310`
+### Capture (both host & client) - hook `FUN_141962310` @ `0x1962310`
 1. Call original → `ret` (final awarded XP).
 2. If `coopShareKillXp` && connected && `source==7` && `target==PlayerCharacter::GetSingleton()`
    && `param_6` is a valid Actor that is **not** the player:
@@ -65,24 +65,24 @@ Read today in ClientProfile.cpp / DirectRestore.cpp via `LookupByEditorID<ActorV
    - Broadcast **`PKT_KILL_XP { uint32 hostRefFormID; float xp; }`** (reliable).
 - Verify-first: read the prologue bytes of `0x1962310` at install (codebase practice; raw RVA like the kill fn / death handler, no clean REL::ID expected).
 
-### Apply (receiver) — on `PKT_KILL_XP{ hostRef, xp }`
+### Apply (receiver) - on `PKT_KILL_XP{ hostRef, xp }`
 - If `!coopShareKillXp` → ignore.
 - If `g_myNaturalKills` contains `hostRef` → **skip** (I already earned natural XP for this NPC). (erase to bound memory)
 - Else → queue a **game-thread** award:
-  `FUN_141962310(player, xp, 0xc, /*applyMult=*/0, 0, 0, 0)` — SEH-wrapped.
+  `FUN_141962310(player, xp, 0xc, /*applyMult=*/0, 0, 0, 0)` - SEH-wrapped.
   Gives the exact same XP the killer got, plus the HUD "+XP" and level-up check.
 
 ### Why the `g_myNaturalKills` (host-ref keyed) guard prevents double-counting
 - One kills: non-participant has no entry → awards once. ✓
 - Both kill (each their own copy): each records the **host-ref** in its own set, each sends
   `PKT_KILL_XP{hostRef}`; each receiver finds the host-ref in its own set → skips → both keep
-  only their natural XP. ✓  (Key must be host-canonical on BOTH sides — client remaps before
+  only their natural XP. ✓  (Key must be host-canonical on BOTH sides - client remaps before
   record AND before send.)
 - Residual race (an in-flight bullet lands a natural kill a few ms after a shared award was
   applied) → tiny double; **accepted for Alpha** (user is XP-tolerant). Optional hardening:
   a short "suppress-natural" window per host-ref.
 
-## Interaction with host-shared level (/) — IMPORTANT
+## Interaction with host-shared level (/) - IMPORTANT
 - closed "by design": in co-op the client takes the **host's level** (loads host save);
   Level/XP are **not** DB-round-tripped. Kill-XP-sharing is a **live-session** feature: it makes
   both players gain XP together during play. It does **not** change the persistence decision.

@@ -54,7 +54,7 @@ namespace Pulsar::Lobby
         return 0;
     }
 
-    // Real Scaleform heap — CLibSF's ID::Scaleform::MemoryHeapPT::Singleton is {0}
+    // Real Scaleform heap - CLibSF's ID::Scaleform::MemoryHeapPT::Singleton is {0}
     // (stale), so its operator new derefs garbage and freezes. REL::ID 820297 is
     // the real singleton for 1.16.236.
     static RE::Scaleform::MemoryHeapPT* RealScaleformHeap()
@@ -78,7 +78,7 @@ namespace Pulsar::Lobby
 
     // initFunc: the engine calls this when opening the menu. Build a LobbyMenu and
     // point its 3 vtable pointers at the engine-real vtables (patched primary).
-    // (Refcount: reset() AddRefs; a leftover ctor ref may leak on close — tolerable
+    // (Refcount: reset() AddRefs; a leftover ctor ref may leak on close - tolerable
     // for now, never crashes.)
     static RE::Scaleform::Ptr<RE::IMenu>* LobbyMenuCreator(RE::Scaleform::Ptr<RE::IMenu>* a_out)
     {
@@ -87,7 +87,7 @@ namespace Pulsar::Lobby
         // Recipe from decompiling MessageBoxMenu's creator (FUN_141edde50): allocate
         // a real-menu-sized buffer (0x3c8; use 0x400 to be safe), run the engine's
         // BASE IMenu ctor FUN_142553970 (RVA 0x25516B0) to init the common members
-        // (uiMovie/flags/movie-context — what our zero-init object lacked), then
+        // (uiMovie/flags/movie-context - what our zero-init object lacked), then
         // overwrite the primary vtable with our patched copy + set the menu flags.
         void* m = std::malloc(0x400);
         if (!m) { PLOG_WARN("[PULSAR] [LobbyMenu] open: malloc failed"sv); return a_out; }
@@ -104,7 +104,7 @@ namespace Pulsar::Lobby
         // our GetName/GetRootPath/GetUnk05). Sub-vtables (0x10/0x50) keep what the
         // base ctor set (the real IMenu input/event-sink vtables).
         *reinterpret_cast<std::uintptr_t*>(base + 0x00) = reinterpret_cast<std::uintptr_t>(g_vtblPrimary);
-        *reinterpret_cast<std::uint32_t*>(base + 0xC0) |= 0x40483u; // menu flags (from LoadingMenu —
+        *reinterpret_cast<std::uint32_t*>(base + 0xC0) |= 0x40483u; // menu flags (from LoadingMenu -
         *reinterpret_cast<std::uint8_t*>(base + 0xD2)  = 1;         // passive full-screen, not the
                                                                     // data-driven MessageBox 0x2293)
         a_out->reset(reinterpret_cast<RE::IMenu*>(m));
@@ -136,7 +136,7 @@ namespace Pulsar::Lobby
         if (s_done) return;
 
         auto* ui = RE::UI::GetSingleton();
-        if (!ui) return;   // UI singleton not up yet — retry next tick
+        if (!ui) return;   // UI singleton not up yet - retry next tick
         s_done = true;
 
         InitVtbl();
@@ -150,11 +150,11 @@ namespace Pulsar::Lobby
             PLOG_WARN("[PULSAR] [LobbyMenu] register FAULTED (game safe)"sv);
             return;
         }
-        PLOG_INFO("[PULSAR] [LobbyMenu] registered (real creator) — HUDMenu={}, LobbyMenu={}, vtbl={}"sv,
+        PLOG_INFO("[PULSAR] [LobbyMenu] registered (real creator) - HUDMenu={}, LobbyMenu={}, vtbl={}"sv,
                   hud, lobby, g_vtblReady);
 
         // PROBE: log existing menus' creator (initFunc) + live menu ptr, so we can
-        // statically decompile a concrete menu's CONSTRUCTION — the recipe we need
+        // statically decompile a concrete menu's CONSTRUCTION - the recipe we need
         // to init our object properly (the engine crashed on our zero-init object).
         // Reads the confirmed menuMap; only existing keys (no insert). Safe.
         if (hud) {

@@ -50,7 +50,7 @@ namespace {
 
     // ---- K.2 Auto-Follow state -----------------------------------------
     static std::atomic<bool> g_followEnabled{ true };
-    // Pending follow destination — set when peer's transit arrives, drained
+    // Pending follow destination - set when peer's transit arrives, drained
     // by TickFollowApply on the game thread.
     struct PendingFollow {
         std::atomic<bool>          armed{ false };
@@ -92,7 +92,7 @@ namespace {
 
     // Most-recently locally activated door + tick. Captured by LootSync's
     // HookedActivate; consumed by OnLocalTransit when a transit fires
-    // shortly after. 30s window — verified that activation→loadMenu
+    // shortly after. 30s window - verified that activation→loadMenu
     // CLOSED can take 2..8s (UI prompts, slow loads). The door is
     // CLEARED inside ConsumeRecentDoorActivation, so a generous window
     // doesn't risk leaking old doors into unrelated later transits.
@@ -113,18 +113,18 @@ namespace {
         } __except (EXCEPTION_EXECUTE_HANDLER) {}
     }
 
-    // K.2 V3 — direct C++ vt[0x54] Activate call on a door, with re-entry
+    // K.2 V3 - direct C++ vt[0x54] Activate call on a door, with re-entry
     // guard so our own LootSync hook doesn't capture the resulting
     // door-activate as a fresh local transit-trigger.
     thread_local bool t_inAutoFollowActivate = false;
 
-    // K.2 V5 (2026-04-27) — ExtraDataList::GetByType resolver. Same primitive
+    // K.2 V5 (2026-04-27) - ExtraDataList::GetByType resolver. Same primitive
     // LockSync uses to read REFR_LOCK; we read ExtraTeleport (kTeleport=0x29)
     // from a door REFR to extract its destinationRef for cross-cell follow.
     using GetExtraByTypeFn = void* (__fastcall*)(void* extraList, std::uint32_t type);
     static GetExtraByTypeFn g_getExtraByType = nullptr;
 
-    // Lazy-resolve at first use. REL::ID 37878 — verified in LockSync.
+    // Lazy-resolve at first use. REL::ID 37878 - verified in LockSync.
     static GetExtraByTypeFn ResolveGetExtraByType()
     {
         if (g_getExtraByType) return g_getExtraByType;
@@ -151,7 +151,7 @@ namespace {
     // Access path: door+0xC8 → GetByType(0x29) → +0x18 → +0x00 → REFR*
     constexpr std::uint32_t kExtraType_Teleport = 0x29;
 
-    // Diagnostic — lets caller log which step failed.
+    // Diagnostic - lets caller log which step failed.
     enum class TeleportDestResult : std::uint8_t {
         kOK = 0,
         kNoExtraList,
@@ -258,7 +258,7 @@ namespace {
     }
 
     // Classify a transit based on cell-flag + worldspace-change observations.
-    // Best-effort heuristic — not perfect, but distinguishes the major cases
+    // Best-effort heuristic - not perfect, but distinguishes the major cases
     // we care about for downstream auto-follow logic.
     std::uint8_t Classify(std::uint32_t prevWS, std::uint32_t newWS,
                            bool destIsInterior)
@@ -305,7 +305,7 @@ void OnLocalTransit(std::uint32_t prevCellFormID,
     if (newCellFormID == 0) return;  // skip transit-to-null-cell intermediates
     if (!IsHostOrClientConnected()) return;
 
-    // De-dupe within window — same dest cell.
+    // De-dupe within window - same dest cell.
     std::uint64_t now = ::GetTickCount64();
     std::uint32_t lastDest = g_lastSendDestCell.load(std::memory_order_acquire);
     std::uint64_t lastTick = g_lastSendTick.load(std::memory_order_acquire);
@@ -326,7 +326,7 @@ void OnLocalTransit(std::uint32_t prevCellFormID,
     td.destRotZ = rotZ;
     td.sourceDoorFormID  = ConsumeRecentDoorActivation();
 
-    // Reliable: must not be lost — receiver decides what to do based on it.
+    // Reliable: must not be lost - receiver decides what to do based on it.
     std::uint8_t buf[64]{};
     Pulsar::Network::PacketWriter w(Pulsar::Network::PKT_TRANSIT, buf, sizeof(buf));
     w.Write(td);
@@ -343,16 +343,16 @@ void OnLocalTransit(std::uint32_t prevCellFormID,
            td.isInterior ? 1u : 0u);
 
     // K.6 V0: enumerate the cell's REFRs after the transit broadcast. Logs
-    // only — no batch packet yet. CellContentSync filters host-only itself.
+    // only - no batch packet yet. CellContentSync filters host-only itself.
     Pulsar::CellContentSync::OnHostCellChanged(prevCellFormID, newCellFormID);
 }
 
 void NoteLocalDoorActivation(std::uint32_t a_doorFormID)
 {
     if (a_doorFormID == 0) return;
-    // K.2 V3 — re-entry guard: while we're servicing peer's auto-follow by
+    // K.2 V3 - re-entry guard: while we're servicing peer's auto-follow by
     // calling Activate ourselves, our own LootSync hook fires on that same
-    // door. Don't capture it as a fresh local transit — that would broadcast
+    // door. Don't capture it as a fresh local transit - that would broadcast
     // back to peer and ping-loop.
     if (t_inAutoFollowActivate) return;
     g_lastLocalDoor.store(a_doorFormID, std::memory_order_release);
@@ -410,7 +410,7 @@ void Tick()
     for (const auto& p : drained) {
         PLOG_INFO(
             "[PULSAR] TransitSync RECV type={} src=0x{:08X} dst=0x{:08X} "
-            "ws=0x{:08X} interior={} pos=({:.0f},{:.0f},{:.0f}) — peer transitioned"sv,
+            "ws=0x{:08X} interior={} pos=({:.0f},{:.0f},{:.0f}) - peer transitioned"sv,
             p.data.transitType, p.data.sourceCellFormID, p.data.destCellFormID,
             p.data.worldspaceFormID, p.data.isInterior ? 1 : 0,
             p.data.destX, p.data.destY, p.data.destZ);
@@ -418,13 +418,13 @@ void Tick()
                p.data.transitType, p.data.destCellFormID,
                p.data.worldspaceFormID, p.data.isInterior ? 1u : 0u);
 
-        // K.2 — arm pending auto-follow with the most recent peer dest.
+        // K.2 - arm pending auto-follow with the most recent peer dest.
         // The actual teleport happens in TickFollowApply on game thread.
         //
         // HOST never auto-follows: the host is the world anchor; the client
         // co-locates to the host via the bridge + PKT_POSITION teleport. If the
         // host follows the client's transits it gets teleported away whenever
-        // the client transitions — most visibly during the client's JOIN/bridge
+        // the client transitions - most visibly during the client's JOIN/bridge
         // sequence, which broadcasts transits. Observed 2026-06-18 17:43:51:
         // host yanked from its outpost (cell 0xFF01C2E3 -499,363) to 0xFF013AE1
         // (-682,534) the moment the client joined ("host an den Cell-Rand
@@ -499,7 +499,7 @@ void TickFollowApply()
 {
     if (!g_pendingFollow.armed.load(std::memory_order_acquire)) return;
 
-    // Don't teleport while we are mid-loadMenu / cell-stream — Cell3DAttach
+    // Don't teleport while we are mid-loadMenu / cell-stream - Cell3DAttach
     // tracks that. Wait for quiet, then apply.
     if (Pulsar::Cell3DAttach::IsQuiet() || Pulsar::Cell3DAttach::WasInLoadMenu()) {
         return;
@@ -509,7 +509,7 @@ void TickFollowApply()
     g_pendingFollow.armed.store(false, std::memory_order_release);
 
     if (!g_followEnabled.load(std::memory_order_acquire)) {
-        // User toggled off between arm and apply — drop.
+        // User toggled off between arm and apply - drop.
         return;
     }
 
@@ -523,17 +523,17 @@ void TickFollowApply()
     std::uint32_t dst       = g_pendingFollow.destCell.load(std::memory_order_acquire);
     std::uint32_t doorForm  = g_pendingFollow.sourceDoor.load(std::memory_order_acquire);
 
-    // K.2 V5 (2026-04-27) — preferred path: read door's ExtraTeleport,
+    // K.2 V5 (2026-04-27) - preferred path: read door's ExtraTeleport,
     // extract destination door REFR (= door on the OTHER side), call
     // Player.MoveTo(destRef) via Papyrus shim. MoveTo handles:
     // exterior cell-grid streaming (engine moves player to dest pos)
     // interior cell-load (engine loads dest cell, places player at
     //     dest door's position)
-    // MoveTo is NativeFunction6 (NOT latent) — verified RE.
+    // MoveTo is NativeFunction6 (NOT latent) - verified RE.
     //
     // Skip-V5 when:
     // doorForm is 0 (transit was UI-driven, e.g. StarMap board-ship)
-    // doorForm is FF-prefix (procedural door, per-machine layout —
+    // doorForm is FF-prefix (procedural door, per-machine layout -
     //     destDoorRef on our side points to OUR proc-cell's door, not peer's)
     bool doorIsProcedural = ((doorForm >> 24) & 0xFFu) == 0xFFu;
     if (doorForm != 0 && !doorIsProcedural) {
@@ -555,24 +555,24 @@ void TickFollowApply()
                        doorForm, destFormID);
                 bool ok = DispatchPlayerFollowMoveTo(destRef);
                 if (ok) {
-                    PLOG_INFO("[PULSAR] AutoFollow: V5 dispatch returned true — engine queued MoveToFunctor"sv);
+                    PLOG_INFO("[PULSAR] AutoFollow: V5 dispatch returned true - engine queued MoveToFunctor"sv);
                     return;  // engine handles cell-load + teleport on next frame
                 }
                 PLOG_WARN(
-                    "[PULSAR] AutoFollow: V5 dispatch returned false — falling through"sv);
+                    "[PULSAR] AutoFollow: V5 dispatch returned false - falling through"sv);
             } else {
                 PLOG_INFO(
-                    "[PULSAR] AutoFollow: V5 — door 0x{:08X} extraTeleport extract FAILED ({}), falling through"sv,
+                    "[PULSAR] AutoFollow: V5 - door 0x{:08X} extraTeleport extract FAILED ({}), falling through"sv,
                     doorForm, TeleportDestResultStr(tdr));
             }
         } else {
             PLOG_WARN(
-                "[PULSAR] AutoFollow: door 0x{:08X} not resolvable — fall through"sv,
+                "[PULSAR] AutoFollow: door 0x{:08X} not resolvable - fall through"sv,
                 doorForm);
         }
     }
 
-    // K.2 V6 (2026-04-27) — Worldspace-mismatch follow (takeoff / landing).
+    // K.2 V6 (2026-04-27) - Worldspace-mismatch follow (takeoff / landing).
     // Takeoff and landing keep the player in the same cockpit cell
     // (e.g. 0x05100136) but change worldspace (planet ↔ space). Position-
     // sync alone makes the clones look like they're in same cell, but
@@ -581,7 +581,7 @@ void TickFollowApply()
     //
     // Detection: peer's worldspaceFormID (from PKT_TRANSIT) != our local
     // player's parentCell.cellWorldspace formID. If different and the
-    // remote actor is a valid REFR, MoveTo it — engine swaps client to
+    // remote actor is a valid REFR, MoveTo it - engine swaps client to
     // peer's worldspace alongside the cell-load.
     {
         std::uint32_t peerWS = 0;
@@ -595,13 +595,13 @@ void TickFollowApply()
             localWS = localPlayer->parentCell->cellWorldspace->formID;
         }
         if (peerWS != 0 && localWS != 0 && peerWS != localWS) {
-            // (2026-06-23) — do NOT follow the host INTO space on takeoff.
+            // (2026-06-23) - do NOT follow the host INTO space on takeoff.
             // The takeoff signature is an interior dest reached via fast-travel
             // (ship cockpit, no door). Following it (here via clone MoveTo, or
             // the bridge further below) drags the client into space, where
             // the only co-location mechanism (save-load bridge) hits an engine
             // null-lock CTD and, once aborted, strands the client (every later
-            // bridge aborts too — observed 2026-06-23: client never followed
+            // bridge aborts too - observed 2026-06-23: client never followed
             // back on landing/F8). Landing (exterior dest) is unaffected.
             const bool takeoffIntoSpace =
                 g_pendingFollow.isInterior.load(std::memory_order_acquire) != 0 &&
@@ -637,29 +637,29 @@ void TickFollowApply()
                 PLOG_WARN("[PULSAR] AutoFollow: V6 dispatch returned false"sv);
             } else {
                 PLOG_INFO(
-                    "[PULSAR] AutoFollow: V6 ws-change but no clone available — fall through"sv);
+                    "[PULSAR] AutoFollow: V6 ws-change but no clone available - fall through"sv);
             }
         }
     }
 
-    // K.2 V1 fallback — SetPosition to peer's destination coordinates.
+    // K.2 V1 fallback - SetPosition to peer's destination coordinates.
     //
     // Three SKIP conditions:
-    //   1. Peer dest is INTERIOR — SetPosition can't load interior cells.
-    //   2. WE are currently in an INTERIOR cell — SetPosition to outdoor
+    //   1. Peer dest is INTERIOR - SetPosition can't load interior cells.
+    //   2. WE are currently in an INTERIOR cell - SetPosition to outdoor
     //      coords does NOT unload the interior; the engine keeps us in the
     //      same cell at impossible coords → we fall through floor / out
     //      of bounds for ~30s until we walk to a door manually.
     //      (Verified 2026-04-27 22:26-22:27: client teleported from inside
     //      ship to outdoor coords, stayed in ship cell, fell through floor
     //      until user walked to door manually 32s later.)
-    //   3. Peer dest is PROCEDURAL (FF-prefix) — coordinates are valid only
+    //   3. Peer dest is PROCEDURAL (FF-prefix) - coordinates are valid only
     //      inside peer's procedural-cell instance. SetPosition does not
     //      switch cells across procedural boundaries; we'd plop into our
     //      own different proc-cell at coords that mean nothing physically.
     //      (Verified 2026-04-28 18:24: host cell=0xFF0195AE, client cell=
     //      0xFF0196AD, both at host-coords (-557,389,9) but in different
-    //      proc-instances — sahen sich NICHT.)
+    //      proc-instances - sahen sich NICHT.)
     //
     // SetPosition only safely works when BOTH sides are exterior AND the
     // dest cell is a static (non-FF) FormID.
@@ -683,9 +683,9 @@ void TickFollowApply()
     std::uint32_t peerWS = g_lastPeerDestWorldspace.load(std::memory_order_acquire);
     if (destIsInterior) {
         // (2026-06-21): an interior reached via a DOOR (srcDoor != 0) is
-        // walkable — the client can use the same door (and V5 MoveTo already
+        // walkable - the client can use the same door (and V5 MoveTo already
         // tried it above). But an interior reached via FAST-TRAVEL/teleport
-        // (srcDoor == 0 — e.g. the host map-fast-travels into a SHIP COCKPIT in
+        // (srcDoor == 0 - e.g. the host map-fast-travels into a SHIP COCKPIT in
         // space, cell 0x05100136) is NOT walkable: "walk over manually" strands
         // the client and forces a manual F8. Fall back to the host save-bridge
         // for auto co-location, exactly like the procedural case below.
@@ -693,20 +693,20 @@ void TickFollowApply()
         // fast-travels never auto-followed.
         std::uint32_t srcDoor = g_pendingFollow.sourceDoor.load(std::memory_order_acquire);
         if (srcDoor == 0) {
-            // (2026-06-23) — interior-via-fast-travel is the takeoff/space
+            // (2026-06-23) - interior-via-fast-travel is the takeoff/space
             // signature. Off for alpha: bridging the client here drags it into
             // space, where the save-load CTDs / strands (see V6 note above and
             // reference_crash_22ce9c6.md). Stay put; the client follows once the
             // host is back on foot in an exterior cell.
             if (!Pulsar::GetConfig().coopSpaceFollow) {
                 PLOG_INFO(
-                    "[PULSAR] AutoFollow: SKIP — interior fast-travel dest 0x{:08X} "
+                    "[PULSAR] AutoFollow: SKIP - interior fast-travel dest 0x{:08X} "
                     "(takeoff/space); coopSpaceFollow=0, staying put."sv, dst);
                 NASLOG("AutoFollow: skip interior-fasttravel (space-follow off) dst=0x%08X", dst);
                 return;
             }
             PLOG_INFO(
-                "[PULSAR] AutoFollow: SKIP — peer dest 0x{:08X} is interior via "
+                "[PULSAR] AutoFollow: SKIP - peer dest 0x{:08X} is interior via "
                 "fast-travel (no door); not walkable. Requesting host bridge "
                 "(F8 = manual fallback)."sv,
                 dst);
@@ -715,7 +715,7 @@ void TickFollowApply()
             return;
         }
         PLOG_INFO(
-            "[PULSAR] AutoFollow: SKIP — peer dest 0x{:08X} is interior (door=0x{:08X}); "
+            "[PULSAR] AutoFollow: SKIP - peer dest 0x{:08X} is interior (door=0x{:08X}); "
             "SetPosition can't load interior cells. Walk over manually."sv,
             dst, srcDoor);
         NASLOG("AutoFollow: skip interior dst=0x%08X", dst);
@@ -728,13 +728,13 @@ void TickFollowApply()
         // manual "regroup at host". coopPlanetFastTravelFollow=1 restores the old auto-co-location.
         if (!Pulsar::GetConfig().coopPlanetFastTravelFollow) {
             PLOG_INFO(
-                "[PULSAR] AutoFollow: SKIP — peer dest 0x{:08X} is a planet surface (proc); "
+                "[PULSAR] AutoFollow: SKIP - peer dest 0x{:08X} is a planet surface (proc); "
                 "client stays independent on planets (F8 = manual regroup)."sv, dst);
             NASLOG("AutoFollow: planet dest -> independent (no drag) dst=0x%08X", dst);
             return;
         }
         PLOG_INFO(
-            "[PULSAR] AutoFollow: SKIP — peer dest 0x{:08X} is procedural "
+            "[PULSAR] AutoFollow: SKIP - peer dest 0x{:08X} is procedural "
             "(FF-prefix); cross-instance coords meaningless (each player has "
             "own proc-cell instance). Requesting host bridge (F8 = manual "
             "fallback)."sv,
@@ -745,16 +745,16 @@ void TickFollowApply()
     }
     if (localIsInterior) {
         PLOG_INFO(
-            "[PULSAR] AutoFollow: SKIP — we're in an interior cell; cannot "
+            "[PULSAR] AutoFollow: SKIP - we're in an interior cell; cannot "
             "SetPosition cross-cell to outdoor (would fall through floor). "
             "Walk to a door manually."sv);
         NASLOG("AutoFollow: skip local-interior dst=0x%08X", dst);
         return;
     }
-    ///(2026-06-20) — WE are in a PROCEDURAL cell (our parentCell is an
+    ///(2026-06-20) - WE are in a PROCEDURAL cell (our parentCell is an
     // FF-prefix proc instance) while the peer's dest is a STATIC cell. A raw
     // SetPosition to the static cell's absolute coords gets resolved INSIDE our
-    // own procedural worldspace — the engine then streams us across proc tiles
+    // own procedural worldspace - the engine then streams us across proc tiles
     // (observed Y jumping -13413..+31625) and dumps us at the cell EDGE, never
     // at the host. SetPosition cannot cross a proc-instance → static-cell
     // boundary. Only the save-bridge (F8 / host auto-bridge) co-locates here.
@@ -768,13 +768,13 @@ void TickFollowApply()
         // restores the old auto-co-location.
         if (!Pulsar::GetConfig().coopPlanetFastTravelFollow) {
             PLOG_INFO(
-                "[PULSAR] AutoFollow: SKIP — we're on a planet (proc 0x{:08X}); "
+                "[PULSAR] AutoFollow: SKIP - we're on a planet (proc 0x{:08X}); "
                 "client stays independent on planets (F8 = manual regroup)."sv, localCellID);
             NASLOG("AutoFollow: on-planet -> independent (no drag) local=0x%08X", localCellID);
             return;
         }
         PLOG_INFO(
-            "[PULSAR] AutoFollow: SKIP — we're in a PROCEDURAL cell 0x{:08X}; "
+            "[PULSAR] AutoFollow: SKIP - we're in a PROCEDURAL cell 0x{:08X}; "
             "SetPosition to static dst 0x{:08X} would resolve in our proc "
             "worldspace and fling us to the cell edge. Requesting host bridge "
             "(F8 = manual fallback)."sv,
@@ -788,10 +788,10 @@ void TickFollowApply()
     // worldspace-relative; teleporting to peer coords while we are in a
     // different worldspace lands us at the wrong physical spot. (V6 above
     // already tries a clone MoveTo for this case; if it fell through there is
-    // no safe SetPosition — defer to the save-bridge.)
+    // no safe SetPosition - defer to the save-bridge.)
     if (peerWS != 0 && localWS != 0 && peerWS != localWS) {
         PLOG_INFO(
-            "[PULSAR] AutoFollow: SKIP — cross-worldspace (peerWS=0x{:08X} "
+            "[PULSAR] AutoFollow: SKIP - cross-worldspace (peerWS=0x{:08X} "
             "localWS=0x{:08X}); SetPosition coords are worldspace-relative and "
             "would land us wrong. Requesting host bridge (F8 = manual fallback)."sv,
             peerWS, localWS);
@@ -801,14 +801,14 @@ void TickFollowApply()
         return;
     }
 
-    // Skip if we already happen to be at peer's destination — within a
-    // generous 30u radius — avoids unnecessary teleport pops if both walked
+    // Skip if we already happen to be at peer's destination - within a
+    // generous 30u radius - avoids unnecessary teleport pops if both walked
     // to the same exterior cell normally.
     auto& cur = player->data.location;
     float dx = cur.x - x, dy = cur.y - y, dz = cur.z - z;
     if ((dx*dx + dy*dy + dz*dz) < (30.0f * 30.0f)) {
         PLOG_INFO(
-            "[PULSAR] AutoFollow: skip — already near peer ({:.0f},{:.0f},{:.0f})"sv,
+            "[PULSAR] AutoFollow: skip - already near peer ({:.0f},{:.0f},{:.0f})"sv,
             x, y, z);
         return;
     }

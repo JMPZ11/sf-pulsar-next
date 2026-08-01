@@ -1,7 +1,7 @@
-# Lobby Password — Design Spec (secure)
+# Lobby Password - Design Spec (secure)
 
 **Datum:** 2026-06-16
-**Ziel:** Optionales Passwort pro Lobby — **echter** Schutz: ohne korrektes
+**Ziel:** Optionales Passwort pro Lobby - **echter** Schutz: ohne korrektes
 Passwort bekommt man die Relay-Session nicht und kann sich nicht verbinden.
 
 ## Kernidee (warum „echt")
@@ -83,7 +83,7 @@ die Maschine.
   join richtig → ack ok + Handoff trägt Session (aus my_relay).
 - **Regression:** offene Relay-Lobby (kein PW) join → Co-op-Flow weiter ok
   (Session jetzt aus my_relay statt öffentlicher Tabelle).
-- GUI: baut; manuell — PW-Feld, 🔒-Marker, Join-Prompt.
+- GUI: baut; manuell - PW-Feld, 🔒-Marker, Join-Prompt.
 
 ## Out of Scope
 - Rate-Limit auf Fehlversuche, Passwort-Stärke, PW-Reset (Tier-2).

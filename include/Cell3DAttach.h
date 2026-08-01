@@ -7,7 +7,7 @@ namespace RE { class Actor; }
 
 namespace Pulsar::Cell3DAttach {
 
-    // Phase H — Direct fix for the empty-NiNode-after-cell-transition bug.
+    // Phase H - Direct fix for the empty-NiNode-after-cell-transition bug.
     //
     // Two cooperating mechanisms:
     //
@@ -41,11 +41,11 @@ namespace Pulsar::Cell3DAttach {
 
     // Manual one-shot biped-attach. Public so RemotePlayerManager can call
     // it after a fresh DoSpawn if it wants to pre-attach. Always runs on
-    // the calling thread — call from the game thread only.
+    // the calling thread - call from the game thread only.
     void ManualAttachBiped(RE::Actor* clone);
 
     // ---------------------------------------------------------------------
-    // Phase I — Cell-transition position-sync quiet window.
+    // Phase I - Cell-transition position-sync quiet window.
     //
     // Logs 2026-04-27 showed that during cell transitions, lagged network
     // PKT_POSITION updates (containing host's mid-stream / pre-transition
@@ -66,6 +66,6 @@ namespace Pulsar::Cell3DAttach {
 
     void SetLoadMenuState(bool a_inLoadMenu);
     bool IsQuiet();
-    bool WasInLoadMenu();  // last observed state — for callers that don't poll directly
+    bool WasInLoadMenu();  // last observed state - for callers that don't poll directly
 
 }  // namespace Pulsar::Cell3DAttach

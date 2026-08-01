@@ -13,7 +13,7 @@ Detail-Belege: `local RE notes + `FINDINGS_agent.md`.
 - **Wurzel:** Der Carry eines im Schiff STEHENDEN Spielers braucht auf 244 den expliziten Havok-**World-Commit**:
   body `vt[0x260]` = SetTransform → schreibt [body+0x4D0]+0x50.. und committet via FUN_14235DCE0 →
   hknp-world `world_vt[0x88]` unter Write-Lock (+0xB20). Unser Sync macht NUR (a) Render-Cache-Override (vt[8] +0xa0)
-  und (b) `SafeWriteHavokState` memcpy [body+0x4D0]+0x50 — **nie den World-Commit**. → Schiff-Node rotiert,
+  und (b) `SafeWriteHavokState` memcpy [body+0x4D0]+0x50 - **nie den World-Commit**. → Schiff-Node rotiert,
   Physik trägt den stehenden Spieler nicht. Zusätzlich stoppt der PMO-Hijack bei Unseat (Engine feuert das
   PMO-Event nur solange der Spieler den aktiven bhkCharacterStateSpaceship hält = seated/pilot).
   Auf 236 propagierte die Engine den Cache noch an stehende Chars; 244 verlangt den Commit.
@@ -22,7 +22,7 @@ Detail-Belege: `local RE notes + `FINDINGS_agent.md`.
   `(*(void(__fastcall**)(void*,const float*))((*(void***)body)[0x260/8]))(body, transform16)`.
   vtable-Slot-Index 0x260 ist versionsunabhängig (kein RVA). Translation=0 lassen (Cockpit-Anker), nur Rotation.
   active-pilot-Gate behalten (nur passive Seite treibt). Neue Fn `SafeCommitHavokTransform(body,t16)` statt/zus.
-  zum memcpy in `SafeWriteHavokState` (FlightSync.cpp:1244). Option B (PMO-Hijack breiter) geht NICHT —
+  zum memcpy in `SafeWriteHavokState` (FlightSync.cpp:1244). Option B (PMO-Hijack breiter) geht NICHT -
   unseated Client erzeugt kein PMO-Event.
 - **Risiko:** vt[0x260] nimmt den Havok-Write-Lock; aus Game-Thread-Tick rufen, nicht während Engine-Step.
   In-Game-Iteration nötig (Concurrency/Jitter). Config-gated, SEH-safe bauen. Build [space-bodycommit-v1].
@@ -51,7 +51,7 @@ auf 236 ohne Probleme.
    → Das `seated=0` des Clients ist ECHT, kein Misread.
 
 4. **FlightSync DUMP (Diagnose, NICHT der Sync-Pfad):** Client liest Garbage
-   (`reticleX=2.6e12`, `aimX=48`, `spd=0`) weil Client nicht pilotiert — irrelevant für den Bug.
+   (`reticleX=2.6e12`, `aimX=48`, `spd=0`) weil Client nicht pilotiert - irrelevant für den Bug.
 
 ## Root Cause
 
@@ -92,7 +92,7 @@ Sitz-/Verankerungs-Zustand kommt aus dem Save-Bridge-Load auf 244 nicht mehr dur
    Sobald verankert → Rotation läuft wieder.
 3. Host sendet seinen Sitz-FormID im PKT_SHIP_TRANSFORM (oder separat) mit, damit der Client
    denselben Sitz per FormID auflösen kann (robuster als Nearest-Scan). Host furn war
-   `0x000D87EA` — prüfen ob das ein stabiler Form/Ref ist, der auf dem Client per
+   `0x000D87EA` - prüfen ob das ein stabiler Form/Ref ist, der auf dem Client per
    `LookupByID` denselben Sitz liefert; sonst Nearest-FURN-Scan.
 
 **Risiko / Vorsicht:** Sitzen/Aufstehen ist ein dokumentiertes Minenfeld (L.5 hat viele
@@ -108,7 +108,7 @@ PILOT-Sitz kann dem Client einen Flug-Controller/HUD geben → Konflikt. Daher:
 User-Report neu: „nur der Quest-Marker bewegt sich, den Fehler hatten wir schon einmal";
 besteht auf Port-Regression → „vergleich alte mit jetziger Version".
 
-**Code-Vergleich PORT  durchgeführt — Flug-RVAs sind KORREKT.**
+**Code-Vergleich PORT  durchgeführt - Flug-RVAs sind KORREKT.**
 Per `port_map.py` (Oracle) verifiziert, alle 6 flight/marker-Swaps stimmen (code-244-RVA ==
 port_map(236-RVA via REL::ID)):
 - BhkSpaceshipVt8 0x23BA880→0x23B8270 (ID 125837), MarkerNotifyFn 0x1A1ED40→0x1A1C2F0 (102598),
@@ -121,11 +121,11 @@ ist NICHT regressed. Rotation synct weiter korrekt (V3 tick-apply trackt Host ro
 
 **Timeline-Befund Client (00:36, beweist die Wurzel):**
 - 00:36:18 Client in Space (seated=0).
-- 00:36:20 Client SITZT (seated=1, furn=0x000D87EA == HOST-furn, detPilot=1, active=1) —
+- 00:36:20 Client SITZT (seated=1, furn=0x000D87EA == HOST-furn, detPilot=1, active=1) -
   erbt Host-Pilot-State aus Save-Bridge.
-- 00:36:22.695 **feuert**: „client seated post-load — 1-shot clear" → HUD+TakeoffMenu kHide,
+- 00:36:22.695 **feuert**: „client seated post-load - 1-shot clear" → HUD+TakeoffMenu kHide,
   8s FlightInput-LOCKOUT, „user must hold E ~2s to unseat".
-- 00:36:23–28 Client seated=1 **active=0** (Lockout nullt Input) = **EXAKT der korrekte
+- 00:36:23-28 Client seated=1 **active=0** (Lockout nullt Input) = **EXAKT der korrekte
   Passagier-Zustand**: verankert + Host pilotiert.
 - Danach (bis 00:37:29) Client seated=0 → User hat E gehalten (wie vom Flow verlangt) →
   **unverankert** → „nur Marker bewegt sich"/Drift.
@@ -136,10 +136,10 @@ läuft. Der Sitz-FormID **0x000D87EA ist auf beiden Maschinen identisch** (stati
 → direkt wiederverwendbar. KEINE Adress-Regression; der „Trigger" durchs Update war ein
 geänderter Post-Bridge-Sitz-Zustand, nicht eine Adresse.
 
-**Fix (verfeinert) — Passagier bleibt sitzen statt aufstehen:**
+**Fix (verfeinert) - Passagier bleibt sitzen statt aufstehen:**
 1. Bevorzugt: Flow für den Same-Ship-Passagier-Fall NICHT mehr zum Aufstehen drängen.
    Client im seated-passive Zustand HALTEN (Lockout/Yield aktiv solange Host PKT_SHIP_TRANSFORM
-   sendet, statt fix 8s). Das ist genau der korrekte Zustand 00:36:23–28.
+   sendet, statt fix 8s). Das ist genau der korrekte Zustand 00:36:23-28.
 2. Robust: wenn Client trotzdem seated=0 (User hält E) → `TickClientCockpitAnchor` re-seatet via
    `SafeSnapInto` in den Cockpit-Sitz (Ref via stabilem furn-FormID 0x000D87EA / LookupByID,
    Fallback Nearest-FURN). Config `coopSpaceKeepPassengerSeated` default an, SEH-safe.

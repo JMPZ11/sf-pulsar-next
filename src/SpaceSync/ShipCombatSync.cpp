@@ -14,7 +14,7 @@
 // hull-AV form = *(FUN_14049acc0() + 0x108)  (ship-AV/damage registry).
 //
 // The client clamps the mirror target above 0 so it never DESTROYS the local
-// ship — real ship-destruction (host hull -> 0 triggers the player Downed
+// ship - real ship-destruction (host hull -> 0 triggers the player Downed
 // system) is a separate death-edge handled later.
 
 #include "PCH.h"
@@ -40,7 +40,7 @@ namespace Pulsar::ShipCombatSync {
 namespace {
     using namespace std::string_view_literals;
 
-    // FUN_14049acc0 — ship-AV / damage-type registry getter; +0x108 = hull AV.
+    // FUN_14049acc0 - ship-AV / damage-type registry getter; +0x108 = hull AV.
     constexpr std::uintptr_t kRVA_ShipAvRegistry = 0x49A430;
     constexpr std::size_t    kHullAvFormOffset   = 0x108;
     // ActorValueOwner sub-object offset on the ship REFR (verified slice 1).
@@ -80,7 +80,7 @@ namespace {
         void* a_extra, RE::NiPoint3* a_pos, RE::NiPoint3* a_rot, std::int32_t* a_refcount);
     constexpr std::uintptr_t kRVA_SpawnRef = 0xB68F10;
     // LookupReferenceByHandle (REL::ID 72986). Writes the REFR into a NiPointer;
-    // we pass a raw TESObjectREFR** (leaks one refcount per shot — negligible
+    // we pass a raw TESObjectREFR** (leaks one refcount per shot - negligible
     // for cosmetic bolts that despawn shortly).
     using LookupRefFn = bool (__fastcall*)(const std::uint32_t* a_handle, void* a_nipOut);
     constexpr std::uint32_t kID_LookupRefByHandle = 72986;
@@ -162,7 +162,7 @@ namespace {
     }
 
     // Game-thread: drain queued remote shots and spawn them. Plain C++ (no __try
-    // here — SpawnShot owns the SEH frame).
+    // here - SpawnShot owns the SEH frame).
     void DrainFires()
     {
         std::vector<PendingFire> local;
@@ -229,7 +229,7 @@ namespace {
             auto* player = RE::PlayerCharacter::GetSingleton();
             auto* ship   = player ? player->GetSpaceship(true) : nullptr;
             if (!ship) {
-                status = 2;  // client not in a ship — nothing to mirror
+                status = 2;  // client not in a ship - nothing to mirror
             } else {
                 auto regGetter = reinterpret_cast<void* (*)()>(
                     REL::Offset{ kRVA_ShipAvRegistry }.address());
@@ -274,7 +274,7 @@ void Tick()
     if (net.IsHost()) {
         // ---- Host: read hull; broadcast on change + heartbeat. ----
         // falling-edge guard (game-thread only): only treat hull=0 as a real
-        // destruction once we have seen THIS ship healthy — rejects a cold/transient
+        // destruction once we have seen THIS ship healthy - rejects a cold/transient
         // 0 (max>0) read on ship spawn/load. Disarmed on trigger so a post-reload
         // transient 0 cannot loop the game-over.
         static bool s_hostHullSeenHealthy = false;
@@ -321,7 +321,7 @@ void Tick()
         std::uint8_t buf[Pulsar::Network::HEADER_SIZE + sizeof(Pulsar::Network::ShipAvData)]{};
         Pulsar::Network::PacketWriter w(Pulsar::Network::PKT_SHIP_AV, buf, sizeof(buf));
         if (w.Write(d)) {
-            // Destruction (hull=0) MUST reach the client so it also goes downed —
+            // Destruction (hull=0) MUST reach the client so it also goes downed -
             // send it reliable; the wreck may despawn before the next 1 Hz
             // heartbeat could retry. Normal hull updates stay unreliable.
             net.Send(w.Data(), w.Size(), /*reliable=*/shipDestroyed);
@@ -336,7 +336,7 @@ void Tick()
     }
 
     // ---- Client ----
-    // slice 3 — spawn any queued remote ship shots (client only; the host
+    // slice 3 - spawn any queued remote ship shots (client only; the host
     // fires its own real weapons and must never replay-spawn duplicates).
     DrainFires();
 
@@ -358,7 +358,7 @@ void Tick()
         Pulsar::Coop::Mortality::TriggerShipDowned();
     }
 
-    // death-edge — mirror the host hull EXACTLY, incl. 0. When the host
+    // death-edge - mirror the host hull EXACTLY, incl. 0. When the host
     // ship is destroyed (hull→0) the client ship must ALSO be destroyed so BOTH
     // players die in space → coordinated both-down game-over (the CoopMortality
     // ship-death gate then runs vanilla explosion + reload on each machine). The
@@ -369,7 +369,7 @@ void Tick()
 
     float     localCur = -1.0f, applied = 0.0f;
     const int st = ApplyLocalHull(target, localCur, applied);
-    if (st == 2) return;  // client not in a ship — nothing to mirror, no log
+    if (st == 2) return;  // client not in a ship - nothing to mirror, no log
 
     if ((now - g_lastLogMs.load(std::memory_order_relaxed)) >= 1000) {
         g_lastLogMs.store(now, std::memory_order_relaxed);
@@ -378,7 +378,7 @@ void Tick()
                 "[PULSAR] ShipAV RX hostHull={:.1f}/{:.1f} localWas={:.1f} "
                 "applied={:.1f} target={:.1f} ship=0x{:08X}{}"sv,
                 hostCur, hostMax, localCur, applied, target, hostShip,
-                hostCur <= 0.0f ? " (host ship DESTROYED — mirroring 0 → client ship dies too)" : "");
+                hostCur <= 0.0f ? " (host ship DESTROYED - mirroring 0 → client ship dies too)" : "");
         } else {
             PLOG_INFO(
                 "[PULSAR] ShipAV apply FAULT (hostHull={:.1f} ship=0x{:08X})"sv,

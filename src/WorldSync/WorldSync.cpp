@@ -38,9 +38,9 @@ namespace Pulsar::WorldSync {
     static std::chrono::steady_clock::time_point g_triggerAfter;
     static std::chrono::steady_clock::time_point g_loadedAfter;  // fallback: declare LOADED after this time
     static std::atomic<std::uint64_t> g_lastLoadCompletedTick{ 0 };
-    static std::uint32_t g_loadDeferCount{ 0 };  // L.7 D2 — load-safe gate deferrals
+    static std::uint32_t g_loadDeferCount{ 0 };  // L.7 D2 - load-safe gate deferrals
 
-    // L.7 V13j — rotating save filename. Engine appears to cache the parsed
+    // L.7 V13j - rotating save filename. Engine appears to cache the parsed
     // save state per-filename across loads, so reading the SAME PULSAR_Session
     // path twice in one session ends up applying stale state and the load
     // fails with cell=0. Use a fresh filename for each bridge save so the
@@ -48,26 +48,26 @@ namespace Pulsar::WorldSync {
     static std::atomic<uint32_t> g_saveSequence{ 0 };
     static std::string           g_lastSaveBaseName;
 
-    // L.7 V13n — bridge auto-retry. The FIRST bridge after connect sometimes
+    // L.7 V13n - bridge auto-retry. The FIRST bridge after connect sometimes
     // completes without the engine ever starting the real load (load-start
     // signalled by taskBitCleared but initFired=false → no teardown → player
     // stays in the pre-load cell). The 2nd attempt always fires initFired and
     // tears down. We detect the non-switch at LOADED (cur cell == pre-load
     // cell while host is elsewhere) and re-trigger the load ONCE with a fresh
-    // rotated filename (same bytes copied — reusing the old filename hits the
+    // rotated filename (same bytes copied - reusing the old filename hits the
     // engine parse-state cache and fails, see V13j). Reset per new bridge.
     static std::uint32_t         g_bridgeRetryCount{ 0 };
 
-    // L.7 V13f / V13f.1 / V13k load-progression gates — see LOADING-state.
-    //   start          — engine begun the load (any of: probe-counter
+    // L.7 V13f / V13f.1 / V13k load-progression gates - see LOADING-state.
+    //   start          - engine begun the load (any of: probe-counter
     //                     advance, mgrTasks bit-0x4 cleared, parentCell
     //                     null, timeout)
-    //   cellGone       — parentCell observed null (engine torn down).
+    //   cellGone       - parentCell observed null (engine torn down).
     //                     V13k: also satisfied by loadMenu CLOSED if we
     //                     saw it OPEN earlier (engine reuses same cell
-    //                     when both saves are in same interior — Jump 2's
+    //                     when both saves are in same interior - Jump 2's
     //                     load completes WITHOUT cell wipe).
-    //   loadMenuOpened — V13k addition. Tracked via UI::IsMenuOpen.
+    //   loadMenuOpened - V13k addition. Tracked via UI::IsMenuOpen.
     static std::atomic<bool>     g_loadStartObserved{ false };
     static std::atomic<bool>     g_cellGoneObserved{ false };
     static std::atomic<bool>     g_loadMenuOpenedSeen{ false };
@@ -111,8 +111,8 @@ namespace Pulsar::WorldSync {
         PLOG_INFO("[PULSAR] WorldSync: reset"sv);
     }
 
-    // L.7 V11 — engine native QuitToMainMenu handler. RVA 0x14200F4A0 (the
-    // Papyrus *.QuitToMainMenu native — registers FadeThenMainMenuCallback,
+    // L.7 V11 - engine native QuitToMainMenu handler. RVA 0x14200F4A0 (the
+    // Papyrus *.QuitToMainMenu native - registers FadeThenMainMenuCallback,
     // calls the engine's UI-transition function FUN_141EE5D50). Calling it
     // directly schedules the fade-to-main-menu transition; engine fully
     // resets state on the way and we can re-trigger Load PULSAR_Session
@@ -145,7 +145,7 @@ namespace Pulsar::WorldSync {
     }
 
     namespace detail_ {
-        // V13k — SEH-safe LoadingMenu open check, kept in its own fn so
+        // V13k - SEH-safe LoadingMenu open check, kept in its own fn so
         // ProcessPending doesn't trip C2712 (__try with destructable
         // locals).
         bool IsLoadMenuOpen_Impl()
@@ -161,7 +161,7 @@ namespace Pulsar::WorldSync {
             __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
         }
 
-        // L.7 D2 — is the client in a state where force-loading the bridge
+        // L.7 D2 - is the client in a state where force-loading the bridge
         // save is safe? Force-loading while the player is SEATED in a ship
         // (cockpit/pilot seat) or piloting / mid-takeoff crashes the engine on
         // the load path: a null BSReadWriteLock acquire (write at 0x24,
@@ -192,7 +192,7 @@ namespace Pulsar::WorldSync {
             __except (EXCEPTION_EXECUTE_HANDLER) { return false; }  // fault → unsafe
         }
 
-        // L.7 D2.2 (, 2026-06-23) — is the load-block specifically the
+        // L.7 D2.2 (, 2026-06-23) - is the load-block specifically the
         // HARD case (seated in a ship / piloting / in space)? Force-loading the
         // bridge save here hits the null-lock takeoff CTD (Ghidra 0x1422CC350
         // family; reference_crash_22ce9c6.md). The merely-transient block
@@ -217,7 +217,7 @@ namespace Pulsar::WorldSync {
             __except (EXCEPTION_EXECUTE_HANDLER) { return true; }  // fault → assume hard, abort
         }
 
-        // SEH-wrapped player +0x113c flag clear — kept in its own function
+        // SEH-wrapped player +0x113c flag clear - kept in its own function
         // so the caller (ProcessPending) doesn't trip C2712.
         void ClearPlayerPreLoadFlag_Impl(RE::PlayerCharacter* a_player)
         {
@@ -291,8 +291,8 @@ namespace Pulsar::WorldSync {
         return r != 0;
     }
 
-    // L.7 Path A.4 — engine's full pilot-binding release.
-    // FUN_141aeb6f0 ("ReleasePilotIfInVehicle") — checks actor+0x37c bit 4,
+    // L.7 Path A.4 - engine's full pilot-binding release.
+    // FUN_141aeb6f0 ("ReleasePilotIfInVehicle") - checks actor+0x37c bit 4,
     // fetches pilot binding context via FUN_142119780, then calls the
     // 673-byte release fn FUN_14211cbf0 which performs:
     // BGSActionData fire (unbinds input action map)
@@ -301,7 +301,7 @@ namespace Pulsar::WorldSync {
     // HUD/menu close cascade
     // Verified via Ghidra _PilotReleaseFn_decomp.txt.
     //
-    // CRITICAL: must be called BEFORE we clear actor+0x37c bit 4 — the
+    // CRITICAL: must be called BEFORE we clear actor+0x37c bit 4 - the
     // wrapper at FUN_141aeb6f0 gates on that bit. Once cleared, the
     // wrapper short-circuits and ship-controls stay bound.
     namespace pilot_release_detail {
@@ -321,7 +321,7 @@ namespace Pulsar::WorldSync {
     {
         auto* p = RE::PlayerCharacter::GetSingleton();
         if (!p) {
-            PLOG_WARN("[PULSAR] [L.7] TriggerEnginePilotRelease — PC null"sv);
+            PLOG_WARN("[PULSAR] [L.7] TriggerEnginePilotRelease - PC null"sv);
             return false;
         }
         const std::uint64_t r =
@@ -341,7 +341,7 @@ namespace Pulsar::WorldSync {
         }
         auto* tasks = reinterpret_cast<volatile LONG*>(
             reinterpret_cast<uintptr_t>(mgr) + 0x50);
-        // 0x1 = kAutoSave, 0x8 = kQuickSave — set both. FUN_141852ab0 will
+        // 0x1 = kAutoSave, 0x8 = kQuickSave - set both. FUN_141852ab0 will
         // dispatch to whichever path is currently allowed.
         InterlockedOr(tasks, 0x1 | 0x8);
         PLOG_INFO("[PULSAR] WorldSync: host autosave triggered (bits 0x1+0x8 set)"sv);
@@ -356,7 +356,7 @@ namespace Pulsar::WorldSync {
     // Use case: post-bridge save-load on client leaves the engine UI/control
     // layer in pilot mode even after Path A clears actor bits and Path B
     // patches the save. A full save-load cycle on the client (not the
-    // engine's bridge load — a fresh quicksave + quickload) resets the
+    // engine's bridge load - a fresh quicksave + quickload) resets the
     // input/HUD state machines completely.
     bool TriggerQuickLoad()
     {
@@ -390,7 +390,7 @@ namespace Pulsar::WorldSync {
     //   FUN_141851790(mgr, buf)            // engine generates next save name
     //   FUN_14183ed20(mgr, buf, -1, 0)     // do save with type=0
     // CRASH-DANGER: bit 0x1000 actually triggers UI list-rebuild
-    // (kBuildSaveGameList in CommonLibSF) — when set right after a
+    // (kBuildSaveGameList in CommonLibSF) - when set right after a
     // load complete, host teleports to cell 0x0 and gets stuck.
     // Use TriggerHostCustomSaveDirect instead.
     bool TriggerHostFullSave()
@@ -435,8 +435,8 @@ namespace Pulsar::WorldSync {
     }
 
     // Bypasses the FUN_141843BF0 wrapper (which has a swi(3) crash trap
-    // when DAT_145e794dc>1 && DAT_145f4a4a0==1 — the "-relaunch" branch).
-    // Calls FUN_1418436E0 directly (REL::ID 98638) — the "real" save
+    // when DAT_145e794dc>1 && DAT_145f4a4a0==1 - the "-relaunch" branch).
+    // Calls FUN_1418436E0 directly (REL::ID 98638) - the "real" save
     // implementation that builds a BSService cmd + waits for completion.
     // Same signature as the wrapper.
     using SaveLoadImpl_t = void(*)(void* mgr, const char* filename,
@@ -499,21 +499,21 @@ namespace Pulsar::WorldSync {
         // cell pointers, so this must run while the world is still live.
         CapturePreLoadSnapshot();
 
-        // L.7 V3 — arm pre-bridge-snapshot flag BEFORE Suspend so the
+        // L.7 V3 - arm pre-bridge-snapshot flag BEFORE Suspend so the
         // engine chunk-reader hook drops player BFCB during the upcoming
         // bridge load. Fires for EVERY save receipt (initial bridge,
-        // F8-from-host, planet landing, etc.) — TickPreBridgeSnapshot only
+        // F8-from-host, planet landing, etc.) - TickPreBridgeSnapshot only
         // covers the very first bridge of an MP session.
         Pulsar::InventorySync::ArmForBridge();
 
-        // L.7 Plan B — capture current inventory while the world is
+        // L.7 Plan B - capture current inventory while the world is
         // still live (pre-Suspend). Same execution context as the
         // CapturePreLoadSnapshot call above. Covers F8 / GravJump / planet
         // landing bridges where TickPreBridgeSnapshot would not fire
         // (state goes LOADED → SAVE_RECEIVED without WAITING_FOR_SAVE).
         Pulsar::InventorySync::DirectRestore::CaptureClientState();
 
-        // V3.3 — freeze the cache from this point until RestoreClientState
+        // V3.3 - freeze the cache from this point until RestoreClientState
         // completes. The bridge load below will replace the player's live
         // inventory with host's; without the lock, the periodic capture
         // (Main.cpp game-thread tick) fires every 5s and overwrites the
@@ -528,15 +528,15 @@ namespace Pulsar::WorldSync {
         // Resume happens automatically once we reach LOADED + settle window.
         Pulsar::HookGuard::Suspend();
 
-        // Reset NPCSync state immediately on save receipt — clears all stale
+        // Reset NPCSync state immediately on save receipt - clears all stale
         // remote-actor pointers from the pre-save session.
         Pulsar::NPCSync::Reset();
-        // L.7 V13g — same for VehicleSync. Without this, s_seatedByCloneID
+        // L.7 V13g - same for VehicleSync. Without this, s_seatedByCloneID
         // keeps stale FURN pointers across the save-load and post-load
         // ticks call SafeSetMotionType on freed memory → pure-virtual-call
         // crash (observed 2026-05-04 V13f.1 test).
         Pulsar::VehicleSync::Reset();
-        // L.7 V13g — RemotePlayerManager caches RE::Actor* m_remoteActor +
+        // L.7 V13g - RemotePlayerManager caches RE::Actor* m_remoteActor +
         // RE::TESObjectREFR* m_lookMarker pointing at engine objects that
         // get destroyed during the save-load. CellDiag's snapshot tick
         // and other readers go through GetRemoteActor() and read freed
@@ -553,7 +553,7 @@ namespace Pulsar::WorldSync {
         if (!player || !player->parentCell) {
             std::lock_guard lock(g_preLoadSnapMutex);
             g_preLoadSnap.valid = false;
-            PLOG_INFO("[L.7] Snapshot skipped — player or parentCell null"sv);
+            PLOG_INFO("[L.7] Snapshot skipped - player or parentCell null"sv);
             return;
         }
 
@@ -579,7 +579,7 @@ namespace Pulsar::WorldSync {
         const RE::NiPoint3&  a_hostPos,
         float                a_hostRotZ)
     {
-        // Default: offset behind host. Always safe — covers first-connect
+        // Default: offset behind host. Always safe - covers first-connect
         // (snap-invalid: client at main-menu / solo-save), cell-mismatch
         // (client was on planet while host took off), and any other "we
         // don't have a same-cell match" case. Avoids chair-overlap when
@@ -606,7 +606,7 @@ namespace Pulsar::WorldSync {
         // pilot-binding state corruption → "stuck behind host" symptom
         // (verified 2026-05-07 21:26:09 logs). Cure: even without a
         // pre-load snap, if the engine's load placed us in the same cell
-        // that host is currently broadcasting from, skip teleport — both
+        // that host is currently broadcasting from, skip teleport - both
         // ended up in the same ship interior, same-chair overlap risk
         // applies, user holds E to unseat just like the second-bridge
         // path. Outdoor-cell case is also benign: no pilot binding, no
@@ -623,13 +623,13 @@ namespace Pulsar::WorldSync {
         // Same persistent cell (pre↔post OR post↔host-broadcast) → DON'T
         // teleport. Engine's load already placed the client on host's
         // saved pos (typically host's pilot chair). User unseats manually
-        // by holding E for ~2s — engine's own press-and-hold unseat
+        // by holding E for ~2s - engine's own press-and-hold unseat
         // handler runs the proper anim + state-machine transition
         // (verified L.7, 2026-05-07). Earlier SAME-CELL-RESTORE
         // teleport (snap.pos) corrupted the engine UI/input layer when
         // fired while the actor was still in pilot-sit pose: cockpit HUD
         // stayed visible, WASD steered the ship.
-        // M.3 — when client just loaded their own solo save before the
+        // M.3 - when client just loaded their own solo save before the
         // MP-bridge (Handshake-gate flow), the pre-load snapshot represents
         // the solo cell. The freshSoloLoad flag tells us this state.
         const bool freshSoloLoad =
@@ -643,7 +643,7 @@ namespace Pulsar::WorldSync {
         // placed us correctly (on host's pos / pilot chair)" assumption ONLY
         // holds if we actually ended up NEAR host. Fast-travel to a proc planet
         // drops the client at the cell's DEFAULT spawn (far from host's landing)
-        // while still reporting the same (proc-equivalent) cell — skipping there
+        // while still reporting the same (proc-equivalent) cell - skipping there
         // strands the client at the cell edge (verified 2026-06-20: ~32m apart,
         // host pos (-517,429,6) vs client (-539,405,8)). So validate by distance:
         // skip only when genuinely co-located; otherwise teleport to host.
@@ -657,7 +657,7 @@ namespace Pulsar::WorldSync {
             if (dist <= kCoLocatedMax) {
                 plan.mode = RestoreMode::kNone;
                 PLOG_INFO(
-                    "[L.7] Same-cell + co-located (dist {:.1f}m, path={}) — "
+                    "[L.7] Same-cell + co-located (dist {:.1f}m, path={}) - "
                     "skip teleport. User holds E ~2s to unseat manually."sv,
                     dist, hostMatch ? "host-broadcast" : "snap");
                 NASLOG("L7-299 SAME-CELL skip cell=0x%08X dist=%.1f", newCellID, dist);
@@ -666,7 +666,7 @@ namespace Pulsar::WorldSync {
             // Same cell but FAR from host → engine didn't co-locate us (proc default
             // spawn / cell edge). Teleport to host via the default kOffsetBehindHost.
             PLOG_INFO(
-                "[L.7] Same-cell BUT far from host (dist {:.1f}m, path={}) — "
+                "[L.7] Same-cell BUT far from host (dist {:.1f}m, path={}) - "
                 "engine didn't co-locate; teleport to host (kOffsetBehindHost)."sv,
                 dist, hostMatch ? "host-broadcast" : "snap");
             NASLOG("L7-299 SAME-CELL-FAR teleport cell=0x%08X dist=%.1f", newCellID, dist);
@@ -677,12 +677,12 @@ namespace Pulsar::WorldSync {
         // client loaded their solo save and we then bridged host's save
         // bytes. If after the bridge the cell is STILL the solo cell
         // (snapMatch) and the host is broadcasting from a DIFFERENT cell
-        // (!hostMatch), the engine save-load did not switch cells —
+        // (!hostMatch), the engine save-load did not switch cells -
         // typically because Phase B 10s timeout force-completed Phase C
         // without the engine actually replaying the file (see L.7 V13k).
         // In that state the engine has no notion of host's cell loaded.
         // Doing kOffsetBehindHost would SetPosition the player to host's
-        // X/Y but still inside the solo (ship-interior) cell — outside
+        // X/Y but still inside the solo (ship-interior) cell - outside
         // its floor mesh → ActionFall and Z drifts to -infinity (verified
         // 2026-05-11 21:14 logs). Suppress teleport. Player stays in
         // solo cell, items synced via M.3 .psprof apply, host's world
@@ -692,12 +692,12 @@ namespace Pulsar::WorldSync {
             // player (state byte 0x84 path, no PerformGameReset). Engine RE
             // pass identified: PerformGameReset (FUN_141898AB0) only runs on
             // state 0x85, which bridge load never sets. Rather than invoke
-            // that function ourselves (high crash risk — destroys + recreates
+            // that function ourselves (high crash risk - destroys + recreates
             // player REFR, all PULSAR caches go UAF), do a manual TP:
             //   1. Resolve hostCellID -> TESObjectCELL via TESForm::LookupByID
             //   2. Pin hostClone->parentCell = hostCell  (existing pattern)
-            //   3. EngineMoveTo(player, hostClone) — cell-streamer aware
-            //   4. SetPosition(player, hostPos) — exact host coords
+            //   3. EngineMoveTo(player, hostClone) - cell-streamer aware
+            //   4. SetPosition(player, hostPos) - exact host coords
             // Main.cpp dispatcher executes steps 2-4. If cell lookup fails
             // (host cell not in client's plugin list), it falls back to kNone.
             //
@@ -706,18 +706,18 @@ namespace Pulsar::WorldSync {
             // host's instance. For these, engine bridge's GravJump path
             // naturally cell-switches into client's own proc-instance (see
             // log 22:23:08 cell-change to 0xFF07451B parallel to host's
-            // 0xFF019640). Skip detector — fall through to default
+            // 0xFF019640). Skip detector - fall through to default
             // kOffsetBehindHost on the OWN proc-instance.
             const bool isProcCell =
                 (hostCellID & 0xFF000000u) == 0xFF000000u;
             if (isProcCell) {
                 PLOG_INFO(
-                    "[L.7] Host cell 0x{:08X} is proc — skip manual TP "
+                    "[L.7] Host cell 0x{:08X} is proc - skip manual TP "
                     "(engine bridge cross-cells via GravJump path on its own; "
                     "client lands in own proc-instance, see OFFSET-BEHIND-HOST)."sv,
                     hostCellID);
                 NASLOG("L7-302 SKIP proc-cell host=0x%08X", hostCellID);
-                // Fall through — keep computed kOffsetBehindHost default.
+                // Fall through - keep computed kOffsetBehindHost default.
                 return plan;
             }
 
@@ -727,7 +727,7 @@ namespace Pulsar::WorldSync {
             plan.targetCellID = hostCellID;
             PLOG_INFO(
                 "[L.7] Bridge load did not switch cells "
-                "(solo=0x{:08X} host=0x{:08X}) — manual TP via "
+                "(solo=0x{:08X} host=0x{:08X}) - manual TP via "
                 "EngineMoveTo+SetPosition queued."sv,
                 newCellID, hostCellID);
             NASLOG("L7-302 BRIDGE-FAILED manual-TP (local=0x%08X host=0x%08X)",
@@ -735,7 +735,7 @@ namespace Pulsar::WorldSync {
             return plan;
         }
 
-        // FUTURE (dual-ship) — when host+client own different ships and the
+        // FUTURE (dual-ship) - when host+client own different ships and the
         // non-pilot's pre-load cell is their OWN ship interior, MoveTo that
         // cell and restore pos. Requires:
         // module that registers per-player ship cells
@@ -777,22 +777,22 @@ namespace Pulsar::WorldSync {
                 return;
             }
 
-            // L.7 V13j — rotating filename. Each save gets PULSAR_Session_NNN
+            // L.7 V13j - rotating filename. Each save gets PULSAR_Session_NNN
             // so the engine doesn't reuse cached parse state from the
-            // previous load (counter clear in V13i alone wasn't enough —
+            // previous load (counter clear in V13i alone wasn't enough -
             // FUN_1418436E0 still failed on 2nd load with same filename).
-            g_bridgeRetryCount = 0;  // V13n — fresh bridge, reset retry budget
-            g_loadDeferCount = 0;    // L.7 D2 — fresh bridge, reset load-safe deferrals
+            g_bridgeRetryCount = 0;  // V13n - fresh bridge, reset retry budget
+            g_loadDeferCount = 0;    // L.7 D2 - fresh bridge, reset load-safe deferrals
 
-            // L.7 V13o — robust save write. The Saves dir can live under
+            // L.7 V13o - robust save write. The Saves dir can live under
             // OneDrive (observed %USERPROFILE%\OneDrive\...\Saves), which locks
             // recently-synced files. The per-session sequence resets to 0, so
             // PULSAR_Session_001.sfs from a prior session is often still
             // OneDrive-locked → ofstream open fails → the WHOLE bridge aborts
             // (state IDLE, HookGuard stuck suspended, no LOAD_COMPLETE, host
-            // never spawns the client clone — observed 2026-05-24 23:14:53
+            // never spawns the client clone - observed 2026-05-24 23:14:53
             // "can't write ...PULSAR_Session_001.sfs", host didn't see client).
-            // Fix: skip locked names — try successive sequence numbers until
+            // Fix: skip locked names - try successive sequence numbers until
             // one opens. A not-yet-existing name can't be OneDrive-locked.
             std::ofstream file;
             std::string   savePath;
@@ -820,7 +820,7 @@ namespace Pulsar::WorldSync {
                 if (!file.is_open()) {
                     PLOG_WARN(
                         "[PULSAR] WorldSync: can't write any PULSAR_Session_NNN "
-                        "in {} (all locked?) — aborting bridge + resuming hooks"sv,
+                        "in {} (all locked?) - aborting bridge + resuming hooks"sv,
                         savesDir);
                     Pulsar::HookGuard::Resume();  // don't leave hooks frozen
                     g_state = State::IDLE;
@@ -853,7 +853,7 @@ namespace Pulsar::WorldSync {
             PLOG_INFO("[PULSAR] WorldSync: ENet timeout extended to 120s for loading"sv);
 
             // Short delay to let ENet settle, then queue the load.
-            // IMPORTANT: keep this short — any longer and the user might manually
+            // IMPORTANT: keep this short - any longer and the user might manually
             // load their own save, which puts the game in-world and triggers the
             // E-key "cancel load" confirmation dialog that blocks our auto-load.
             g_triggerAfter = std::chrono::steady_clock::now() + std::chrono::seconds(2);
@@ -862,7 +862,7 @@ namespace Pulsar::WorldSync {
             NASLOG("WorldSync: save written, queuing load in 2s");
         }
 
-        // L.7 V11.1 — V11 routed 2nd+ loads through TriggerEngineQuitToMainMenu,
+        // L.7 V11.1 - V11 routed 2nd+ loads through TriggerEngineQuitToMainMenu,
         // but the post-main-menu bit-0x4 load trigger doesn't fire at main
         // menu state (queue processor inactive or different code path needed
         // for "Continue" button). 1st jump regressed to cell=0x00000000.
@@ -873,9 +873,9 @@ namespace Pulsar::WorldSync {
         // Wait until game is at main menu, then trigger load
         if (state == State::PENDING_TRIGGER) {
             if (std::chrono::steady_clock::now() >= g_triggerAfter) {
-                // L.7 D2 — don't force the engine-load while the client is
+                // L.7 D2 - don't force the engine-load while the client is
                 // seated in a ship / piloting / a load is already underway. That
-                // crashes the engine on the load path (null lock-acquire — the
+                // crashes the engine on the load path (null lock-acquire - the
                 // 2026-05-25 takeoff CTD). On-foot planet joins are safe and
                 // pass first try. If the player is flying it won't become
                 // load-safe until it lands, so defer only briefly (~8s, hooks
@@ -886,14 +886,14 @@ namespace Pulsar::WorldSync {
                         if (g_loadDeferCount == 1 || (g_loadDeferCount % 4) == 0) {
                             PLOG_INFO(
                                 "[PULSAR] [L.7 D2] client not load-safe "
-                                "(seated/in-space/loadMenu) — deferring bridge-load "
+                                "(seated/in-space/loadMenu) - deferring bridge-load "
                                 "(defer #{}/16)"sv, g_loadDeferCount);
                         }
                         g_triggerAfter = std::chrono::steady_clock::now()
                             + std::chrono::milliseconds(500);
                         return;  // stay in PENDING_TRIGGER, re-check next tick
                     }
-                    // L.7 D2.3 (, 2026-06-24) — D2.2 ABORT REVERTED.
+                    // L.7 D2.3 (, 2026-06-24) - D2.2 ABORT REVERTED.
                     // D2.2 aborted the load when the client was seated/in-space, to
                     // dodge the null-lock takeoff CTD (Ghidra 0x1422CC350). But that
                     // STRANDED an in-space client: every bridge aborted, so it could
@@ -901,12 +901,12 @@ namespace Pulsar::WorldSync {
                     // fresh 2.1 MB save, client in-space → never loaded). The CTD is
                     // now neutralised at the ENGINE level by CrashGuard Guard #5
                     // (shields the slim-RW lock FUN_1422ce9b0 against null/dangling
-                    // lock pointers — the actual fault site), so it is safe to
+                    // lock pointers - the actual fault site), so it is safe to
                     // FORCE-PROCEED again from any unsafe state. Force-loading in
                     // space no longer crashes; the load co-locates the client.
                     PLOG_WARN(
                         "[PULSAR] [L.7 D2.3] client not load-safe after {} "
-                        "deferrals — FORCE-PROCEEDING (in-space CTD shielded by "
+                        "deferrals - FORCE-PROCEEDING (in-space CTD shielded by "
                         "CrashGuard Guard #5)"sv,
                         g_loadDeferCount);
                     NASLOG("D2.3 force-proceed bridge after defer window");
@@ -923,14 +923,14 @@ namespace Pulsar::WorldSync {
                 // Reset glob-resolved flag so we can detect re-resolution after the load finishes
                 RemotePlayer::GetRemotePlayerManager().ResetGlobsResolved();
 
-                // L.7 V13i — counter-only clear (V12 minus guard+flag).
+                // L.7 V13i - counter-only clear (V12 minus guard+flag).
                 //
                 // V13e Ghidra found the smoking gun: FUN_141843BF0 (called
                 // when bit-0x4 fires) does this:
                 //
                 //   iVar3 = DAT_145e794dc;     // the counter
                 //   if (1 < iVar3 && DAT_145f4a4a0 == 1) {
-                //       // BUILT-IN PROCESS-RESTART path —
+                //       // BUILT-IN PROCESS-RESTART path -
                 //       FUN_141858fa0(local_1008);    // relaunch with -relaunch
                 //       swi(3);                        // int3 breakpoint
                 //       return;
@@ -943,7 +943,7 @@ namespace Pulsar::WorldSync {
                 // through to a no-op leaving cell=0.
                 //
                 // V13a proved engine handles "stuck state" (guard=0x01,
-                // slots, p113c=0x01) fine — these don't matter. So we ONLY
+                // slots, p113c=0x01) fine - these don't matter. So we ONLY
                 // need to keep the counter ≤ 1 to force the safe-load
                 // branch. Don't touch guard byte or player flag.
                 {
@@ -954,18 +954,18 @@ namespace Pulsar::WorldSync {
                         *reinterpret_cast<volatile std::uint32_t*>(counterAddr) = 0;
                         PLOG_INFO(
                             "[PULSAR] [L.7 V13i] cleared FUN_141843BF0 "
-                            "relaunch-counter (RVA 0x5E6D6DC: {} → 0) — "
+                            "relaunch-counter (RVA 0x5E6D6DC: {} → 0) - "
                             "forces engine into safe in-process load branch"sv,
                             prevCnt);
                         NASLOG("L.7 V13i counter cleared (relaunch trigger)");
                     } else {
                         PLOG_WARN(
                             "[PULSAR] [L.7 V13i] counter addr unresolved "
-                            "— relaunch-trigger may fire"sv);
+                            "- relaunch-trigger may fire"sv);
                     }
                 }
 
-                // L.7 V13j — load with the rotating filename written above.
+                // L.7 V13j - load with the rotating filename written above.
                 const std::string& loadName = g_lastSaveBaseName.empty()
                     ? std::string("PULSAR_Session")
                     : g_lastSaveBaseName;
@@ -981,7 +981,7 @@ namespace Pulsar::WorldSync {
                 // pre-load init handler.
                 Pulsar::WorldSync::StateProbe::DumpManual("PRE-BIT4");
 
-                // L.7 V13f — arm the load-start gate. We must NOT declare
+                // L.7 V13f - arm the load-start gate. We must NOT declare
                 // LOADED until the engine has actually started loading.
                 // Earlier versions hit a race: globsReady && parentCell were
                 // both true 1ms after we set bit-0x4 (engine queue
@@ -1015,7 +1015,7 @@ namespace Pulsar::WorldSync {
         // klomann save can keep PULSAR.esp forms resolved even when our load was cancelled
         // by the E-key confirmation dialog.
         if (state == State::LOADING) {
-            // L.7 V13f — Phase A: gate completion check on a load-start
+            // L.7 V13f - Phase A: gate completion check on a load-start
             // signal. Without this gate, globsReady && inWorld (which were
             // BOTH true the instant we set bit-0x4) caused premature LOADED
             // declaration → race torched the engine load. We observe ANY of:
@@ -1045,18 +1045,18 @@ namespace Pulsar::WorldSync {
                     g_loadStartObserved.store(true);
                     if (cellGone) g_cellGoneObserved.store(true);
                 }
-                // Phase A still active — do NOT fall through to completion
+                // Phase A still active - do NOT fall through to completion
                 // check this tick. globsReady/inWorld may both be true
                 // because the engine hasn't actually started loading yet.
                 return;
             }
 
-            // L.7 V13f.1 / V13k — Phase B: gate completion until the
+            // L.7 V13f.1 / V13k - Phase B: gate completion until the
             // engine has actually committed to the load. Two valid
             // signals:
             //   (a) parentCell observed null at least once (cross-cell
-            //       load — engine destroys + recreates the world)
-            //   (b) loadMenu OPENED then CLOSED (same-cell load —
+            //       load - engine destroys + recreates the world)
+            //   (b) loadMenu OPENED then CLOSED (same-cell load -
             //       engine refreshes save state without tearing down
             //       the cell, e.g. Jump 2 from ship interior to ship
             //       interior in different system)
@@ -1065,7 +1065,7 @@ namespace Pulsar::WorldSync {
             // → CLOSED 0x05100136 (cell never went null). Without (b),
             // V13f.1 waited the full 60s timeout before Phase C.
             //
-            // 10s timeout for Phase B (was 60s — way too long for UX).
+            // 10s timeout for Phase B (was 60s - way too long for UX).
             if (!g_cellGoneObserved.load()) {
                 auto* pPhB = RE::PlayerCharacter::GetSingleton();
                 bool cellGoneNow = (!pPhB || pPhB->parentCell == nullptr);
@@ -1087,10 +1087,10 @@ namespace Pulsar::WorldSync {
                     std::chrono::steady_clock::now() - s_phaseBStart >
                     std::chrono::seconds(10);
 
-                // L.7 V13m — only accept the loadMenu OPENED→CLOSED shortcut
+                // L.7 V13m - only accept the loadMenu OPENED→CLOSED shortcut
                 // for a TRUE same-cell load (host target cell == our pre-load
-                // cell). For a cross-cell load — different cells, or host in a
-                // proc cell whose per-instance FF-ID can never equal ours — a
+                // cell). For a cross-cell load - different cells, or host in a
+                // proc cell whose per-instance FF-ID can never equal ours - a
                 // brief loadMenu flash can fire BEFORE the engine's real
                 // teardown. Accepting it completed Phase B prematurely, the
                 // engine never tore down, and the player stayed in their own
@@ -1128,7 +1128,7 @@ namespace Pulsar::WorldSync {
                         std::chrono::steady_clock::time_point::min();
                 } else if (phaseBTimeout) {
                     PLOG_WARN(
-                        "[PULSAR] [L.7 V13k] Phase B 10s timeout — "
+                        "[PULSAR] [L.7 V13k] Phase B 10s timeout - "
                         "forcing Phase C (load may be stuck)"sv);
                     g_cellGoneObserved.store(true);
                     s_phaseBStart =
@@ -1141,7 +1141,7 @@ namespace Pulsar::WorldSync {
                         !s_v13mFlashLogged) {
                         s_v13mFlashLogged = true;
                         PLOG_INFO(
-                            "[PULSAR] [L.7 V13m] loadMenu flash IGNORED — "
+                            "[PULSAR] [L.7 V13m] loadMenu flash IGNORED - "
                             "cross-cell load expected (host=0x{:08X} != "
                             "pre=0x{:08X}); waiting for cellGone teardown"sv,
                             hostCellPhB, preCellPhB);
@@ -1156,21 +1156,21 @@ namespace Pulsar::WorldSync {
             bool timeoutHit = std::chrono::steady_clock::now() >= g_loadedAfter;
             if ((globsReady && inWorld) || timeoutHit) {
                 if (timeoutHit && !(globsReady && inWorld)) {
-                    PLOG_WARN("[PULSAR] WorldSync: 60s load timeout hit — forcing LOADED (globs={} inWorld={})"sv,
+                    PLOG_WARN("[PULSAR] WorldSync: 60s load timeout hit - forcing LOADED (globs={} inWorld={})"sv,
                         globsReady, inWorld);
                 }
 
-                // L.7 V13n — auto-retry on bridge non-switch (first-bridge
+                // L.7 V13n - auto-retry on bridge non-switch (first-bridge
                 // failure). If the player is still in the pre-load cell while
                 // the host broadcasts from a different cell, the engine load
                 // never relocated us (the initFired=false path observed
                 // 2026-05-24: F8#1 fails, F8#2 works). Re-trigger the load
-                // ONCE with a fresh rotated filename — reusing the old name
+                // ONCE with a fresh rotated filename - reusing the old name
                 // hits the engine parse-state cache and fails again (V13j).
                 {
-                    // V13n.1 — detect non-switch via initFired, NOT the host
+                    // V13n.1 - detect non-switch via initFired, NOT the host
                     // cell. The host cell (GetRemoteCellID) is frequently still
-                    // 0 over the network at this instant — that made the
+                    // 0 over the network at this instant - that made the
                     // original host-cell check miss the exact case it targets
                     // (the initial bridge: observed 2026-05-24 18:35:09
                     // "host=0x00000000" → no retry → "did not switch" 5s later).
@@ -1227,7 +1227,7 @@ namespace Pulsar::WorldSync {
                             g_state = State::PENDING_TRIGGER;
                             PLOG_WARN(
                                 "[PULSAR] [L.7 V13n.1] bridge did NOT switch "
-                                "(initFired=false, cur=0x{:08X} == pre) — "
+                                "(initFired=false, cur=0x{:08X} == pre) - "
                                 "auto-retry #1 with fresh save '{}'"sv,
                                 curCell, g_lastSaveBaseName);
                             NASLOG("L.7 V13n.1 auto-retry (cur=0x%08X)", curCell);
@@ -1238,7 +1238,7 @@ namespace Pulsar::WorldSync {
 
                 // Restore normal ENet timeout now that we're in the world.
                 // 2026-06-11: 5000 → 8000 (×2 max inside SetPeerTimeout = 16s),
-                // matching the relaxed host-side OnConnect timeout — transient
+                // matching the relaxed host-side OnConnect timeout - transient
                 // hiccups no longer drop the link (clone-flicker fix).
                 Pulsar::Network::GetSingleton().SetPeerTimeout(8000);
                 // Reset teleport flag so client teleports to host's current position
@@ -1253,7 +1253,7 @@ namespace Pulsar::WorldSync {
 
                 g_state = State::LOADED;
                 g_lastLoadCompletedTick.store(::GetTickCount64());
-                // L.7 V11 — count completed loads. The 1st (initial connect)
+                // L.7 V11 - count completed loads. The 1st (initial connect)
                 // is the "fresh" mid-game load that always works; the 2nd+
                 // need QuitToMainMenu pre-step to avoid the engine bug.
                 ++s_loadCount;
@@ -1267,11 +1267,11 @@ namespace Pulsar::WorldSync {
                 }
                 NASLOG("WorldSync: host save loaded");
 
-                // L.6 V3 Phase 3i v17 — clear DockSync forward-bridge wait flag
+                // L.6 V3 Phase 3i v17 - clear DockSync forward-bridge wait flag
                 // so client's cockpit-hatch activates resume normal flow.
                 Pulsar::DockSync::OnLocalSaveLoaded();
 
-                // L.7 V8 — tell host the client is now in a stable in-world
+                // L.7 V8 - tell host the client is now in a stable in-world
                 // state. Host gates further save-bridge fires on this ack so
                 // we can't double-trigger during an in-flight load.
                 Pulsar::SpaceSync::FastTravel::NotifyClientLoadComplete(

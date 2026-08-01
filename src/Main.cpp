@@ -69,7 +69,7 @@
 #include <windows.h>
 #include <MinHook.h>
 
-// noexcept helper — C2712 forbids __try in functions with C++ unwind objects.
+// noexcept helper - C2712 forbids __try in functions with C++ unwind objects.
 // BSFixedString constructed/passed OUTSIDE __try to avoid the same restriction.
 // Used to gate teleport / SetPosition while the engine's loading screen is open.
 static bool RawIsMenuOpen(RE::UI* ui, const RE::BSFixedString& name) noexcept
@@ -92,7 +92,7 @@ static bool SafeIsLoadMenuOpen()
 //
 // L.7 note: an earlier attempt did `ForceThirdPerson(); ForceFirstPerson();`
 // to simulate a mouse-wheel toggle, on the theory that scrolling cleans up
-// extra state. User reported that made things WORSE — even mouse-wheel
+// extra state. User reported that made things WORSE - even mouse-wheel
 // stopped working. Reverted back to single ForceFirstPerson.
 // L.7 cross-cell guard helper for the post-load teleport path.
 // Engine MoveTo (RVA 0x14191EFB0, see memory/reference_engine_moveto.md)
@@ -151,16 +151,16 @@ static void ForceFirstPersonSafe()
     if (!cam) return;
     __try { cam->ForceFirstPerson(); }
     __except (EXCEPTION_EXECUTE_HANDLER) {
-        PLOG_WARN("[PULSAR] ForceFirstPerson threw — camera state untouched");
+        PLOG_WARN("[PULSAR] ForceFirstPerson threw - camera state untouched");
     }
 }
 
-// L.7 diag — dump engine pilot/UI state so we can see what's actually
+// L.7 diag - dump engine pilot/UI state so we can see what's actually
 // keeping the client locked post-load. Empirical 11:54-11:55: menu count
 // stayed 0 and cam-state stayed 0 throughout the "stuck" window, so the
 // lock isn't menu- or camera-state. Adding actorState1/2 (bit-flags),
 // spaceship pointer, and IsInSpace to find the engine's "I'm piloting"
-// flag we're missing. Compare values BEFORE the user presses E vs AFTER —
+// flag we're missing. Compare values BEFORE the user presses E vs AFTER -
 // the bit that flips on E is likely the lock.
 //
 // SEH-guarded because UI::menuStack and player ptrs can be mid-mutation
@@ -179,10 +179,10 @@ static void DumpOpenMenus_Impl(const char* a_tag)
         }
     }
 
-    // Player engine state — actorState1/2 are bit-flags incl sit/getup,
+    // Player engine state - actorState1/2 are bit-flags incl sit/getup,
     // weapon-drawn, etc. spaceshipPtr non-null + inSpace==1 means player
     // is INSIDE a spaceship cell (not necessarily piloting). pilotFID is
-    // the spaceship's *active* pilot Actor — that's the binding we need
+    // the spaceship's *active* pilot Actor - that's the binding we need
     // to clear when client is locked. furnH is the furniture handle from
     // AIProcess (player+0x228 → +0x8 → +0x428).
     std::uint32_t actorS1 = 0, actorS2 = 0;
@@ -190,9 +190,9 @@ static void DumpOpenMenus_Impl(const char* a_tag)
     std::uint32_t furnH = 0;
     // L.7 RE'd 2026-05-06 via Ghidra:
     //   actor+0x98 → sub-process; if +0x2e=='A' (0x41), +0x20 bit6 = pilot
-    //     (per FUN_142119910 — the pilot-validation gate)
+    //     (per FUN_142119910 - the pilot-validation gate)
     //   actor+0x37c bit4 = "in vehicle" flag
-    //     (per FUN_141aeb6f0 — vehicle-release wrapper)
+    //     (per FUN_141aeb6f0 - vehicle-release wrapper)
     void*         subProc = nullptr;
     std::uint8_t  subKind = 0;
     std::uint32_t subFlags = 0;
@@ -204,7 +204,7 @@ static void DumpOpenMenus_Impl(const char* a_tag)
         actorS2 = p->actorState2;
         if (auto* ship = p->GetSpaceship(true)) {
             spaceshipFID = ship->formID;
-            // NOTE — GetSpaceshipPilot is REL::ID(0) placeholder in
+            // NOTE - GetSpaceshipPilot is REL::ID(0) placeholder in
             // CommonLibSF AND per memory feedback_commonlibsf_zero_id_lookup
             // the actual ID 173834 (RVA 0x341FF20) is a 4-arg BSComponentDB2
             // query, NOT a simple zero-arg getter. Calling via raw RVA with
@@ -268,7 +268,7 @@ static void DumpOpenMenus(const char* a_tag = "apply")
 
 // Periodic post-apply menu probe. Arms when teleport applies; runs once
 // per second for kPostApplyDumpWindowMs and clears. Catches any menu the
-// engine re-opens after our ForceCloseSpaceshipHud — that re-open is the
+// engine re-opens after our ForceCloseSpaceshipHud - that re-open is the
 // suspected root cause of the "stuck in ship UI" symptom.
 static std::atomic<std::uint64_t> g_postApplyDumpStartMs{ 0 };
 static std::atomic<std::uint64_t> g_postApplyDumpLastMs { 0 };
@@ -293,7 +293,7 @@ static void TickPostApplyMenuDump()
     DumpOpenMenus(tag);
 }
 
-// L.7 partial — even after unseat clears the chair binding and
+// L.7 partial - even after unseat clears the chair binding and
 // ForceFirstPerson breaks the camera state, the SpaceshipHud menu layer
 // stays open. That menu routes player input to ship-controls and renders
 // the cockpit/steering overlay. Symptom: pilotDiag shows seated=0, furn=0,
@@ -334,7 +334,7 @@ static void ClearPilotBindingImpl(RE::Actor* a)
     const std::uint32_t nextS2 = prevS2 & ~static_cast<std::uint32_t>(0x1000);
     a->actorState2 = nextS2;
 
-    PLOG_INFO("[PULSAR] [L.7] cleared lock bits — a37c: 0x{:08X}->0x{:08X}, actS2: 0x{:08X}->0x{:08X}",
+    PLOG_INFO("[PULSAR] [L.7] cleared lock bits - a37c: 0x{:08X}->0x{:08X}, actS2: 0x{:08X}->0x{:08X}",
               prev37c, next37c, prevS2, nextS2);
 }
 static void ClearPilotBindingSafe(RE::Actor* a)
@@ -355,7 +355,7 @@ static void ClearPilotBindingSafe(RE::Actor* a)
 namespace Pulsar::Diag293 {
     void OnHostCloneUnseated()
     {
-        PLOG_INFO("[PULSAR] [L.7] === HOST UNSEATED — capturing diag triplet ===");
+        PLOG_INFO("[PULSAR] [L.7] === HOST UNSEATED - capturing diag triplet ===");
         DumpOpenMenus("host-unseat-pre");
         // The unseat may settle over a few ticks. Capture once now, then
         // schedule two more in the periodic diag system at +250ms and +500ms.
@@ -375,15 +375,15 @@ static std::thread g_networkThread;
 static Pulsar::Config g_config;
 namespace Pulsar { const Config& GetConfig() { return g_config; } }   // accessor for other modules
 
-// Phase I — Cell-transition position-sync quiet window.
+// Phase I - Cell-transition position-sync quiet window.
 // State lives in Pulsar::Cell3DAttach so RemotePlayerManager + others can
 // query it. Main.cpp drives the loadMenu open/close observations from the
 // permanent task tick.
 
-// Player pitch — read from MovementHandlerAgentPlayerControls via interface lookup
+// Player pitch - read from MovementHandlerAgentPlayerControls via interface lookup
 // Hook on MovementHandlerAgentPlayerControls::Update (REL::ID 49491)
 // Reads param_1+0x20 as accumulated pitch candidate
-std::atomic<float> g_playerPitch{0.0f};  // global — read by NetworkHost.cpp
+std::atomic<float> g_playerPitch{0.0f};  // global - read by NetworkHost.cpp
 
 using PlayerCtrlUpdate_t = void(__fastcall*)(void*, void*);
 static PlayerCtrlUpdate_t s_origPlayerCtrlUpdate = nullptr;
@@ -464,7 +464,7 @@ SFSE_PLUGIN_VERSION = []() noexcept {
     return data;
 }();
 
-// Plain-C helper — raw SEH-safe read of occupiedFurniture handle. Can't live
+// Plain-C helper - raw SEH-safe read of occupiedFurniture handle. Can't live
 // inside FillAnimationData (C2712: __try vs BSFixedString destructors).
 static uint32_t ReadPlayerFurnHandle(RE::Actor* act)
 {
@@ -538,15 +538,15 @@ static void FillAnimationData(RE::Actor* a_actor, Pulsar::Network::PositionData&
     a_pos.vars.iSyncGunDown    = gunDown;
 
     // T124 cleanup 2026-04-25: removed reads for FacingBackward, IsBoostPack*,
-    // IsTurning, FullBodyTurn, TurnDeltaSmoothed, iSyncStrafeState — host-diag
+    // IsTurning, FullBodyTurn, TurnDeltaSmoothed, iSyncStrafeState - host-diag
     // confirmed these are NOT BOUND on the player graph. Boost is driven by
-    // iSyncJumpState=3, backward by Direction angle. iSyncTurnState kept —
+    // iSyncJumpState=3, backward by Direction angle. iSyncTurnState kept -
     // confirmed flipping 0/1/2.
     RE::BSFixedString turnStateVar("iSyncTurnState");
     a_actor->GetGraphVariableImplInt(turnStateVar, a_pos.vars.iSyncTurnState);
 
     // 2026-04-25: host aim state for weapon ADS pose sync. Bound on player
-    // only when weapon is drawn — flips to 1 on RMB-aim, 0 when released.
+    // only when weapon is drawn - flips to 1 on RMB-aim, 0 when released.
     RE::BSFixedString sightedVar("iSyncSighted");
     int32_t hostSighted = 0;
     a_actor->GetGraphVariableImplInt(sightedVar, hostSighted);
@@ -582,7 +582,7 @@ static void FillAnimationData(RE::Actor* a_actor, Pulsar::Network::PositionData&
         relax = 1;  // Weapon drawn (standing)
     }
 
-    // Player pitch — captured by PlayerCameraHandler hook (REL::ID 82252)
+    // Player pitch - captured by PlayerCameraHandler hook (REL::ID 82252)
     float foundPitch = g_playerPitch.load();
     a_pos.vars.lookPitch = foundPitch;
     a_pos.rotX = foundPitch;
@@ -597,11 +597,11 @@ static void FillAnimationData(RE::Actor* a_actor, Pulsar::Network::PositionData&
             a_pos.speed, a_pos.direction, weaponState, relax, isSneaking, seatedDiag, foundPitch);
     }
 
-    // Seated flag — bit 10. Non-zero occupiedFurniture handle = seated.
+    // Seated flag - bit 10. Non-zero occupiedFurniture handle = seated.
     bool localSeated = (ReadPlayerFurnHandle(a_actor) != 0);
 
     // Bits 11-13 reclaimed 2026-04-25 (T124): FacingBackward/IsBoostPack* not
-    // bound on player graph — always 0. Boost now signalled via jumpState=3.
+    // bound on player graph - always 0. Boost now signalled via jumpState=3.
     // Bit 11 reused for hostSighted (aim/ADS state) so clone can mirror pose
     // even when host is aiming without firing.
     a_pos.animFlags =
@@ -613,7 +613,7 @@ static void FillAnimationData(RE::Actor* a_actor, Pulsar::Network::PositionData&
         (static_cast<uint16_t>(s_weaponDrawnSticky ? 1 : 0) << 9) |
         (static_cast<uint16_t>(localSeated ? 1 : 0) << 10) |
         (static_cast<uint16_t>(hostSighted != 0 ? 1 : 0) << 11) |
-        // bit 12 — helmet flashlight on (player+0xEB0 != null)
+        // bit 12 - helmet flashlight on (player+0xEB0 != null)
         (static_cast<uint16_t>(Pulsar::FlashlightSync::IsLocalOn() ? 1 : 0) << 12);
 
     // Fill AnimVarSnapshot with all graph variables
@@ -668,7 +668,7 @@ static void ClientSendPosition()
     if (now - s_lastSend < kMinIntervalMs) return;
     s_lastSend = now;
 
-    // Phase I — same gate as the host broadcast path. Skip while client's
+    // Phase I - same gate as the host broadcast path. Skip while client's
     // own loadMenu is open + grace. Otherwise stale transition coords
     // get pushed to host → host applies → host's clone-of-client pingpongs.
     if (Pulsar::Cell3DAttach::IsQuiet()) return;
@@ -689,7 +689,7 @@ static void ClientSendPosition()
     posData.rotX = ang.x;
     posData.rotY = ang.y;
     posData.rotZ = ang.z;
-    // Phase I — sender parentCell for cross-cell detection at receiver.
+    // Phase I - sender parentCell for cross-cell detection at receiver.
     posData.cellFormID = player->parentCell ? player->parentCell->formID : 0u;
     FillAnimationData(player, posData);
 
@@ -706,19 +706,19 @@ static std::atomic<bool> g_handshakeSent{ false };
 static void ClientSendHandshake()
 {
     if (g_handshakeSent) return;
-    // L.7 V9.4 — wait for ENet's OnConnect callback (peer fully established).
+    // L.7 V9.4 - wait for ENet's OnConnect callback (peer fully established).
     // IsConnected() returns true the moment enet_host_connect creates a peer
     // even though it's still CONNECTING; sends in that window get silently
     // dropped, which broke handshake on auto-reconnect after the L.7 V9.3
     // resync flow.
     if (!Pulsar::Network::GetSingleton().IsFullyConnected()) return;
 
-    // M.3 — wait until client has loaded a save (player exists in a cell)
+    // M.3 - wait until client has loaded a save (player exists in a cell)
     // before sending handshake. This achieves two things:
     //   1. M.3 pre-bridge snapshot has player state to capture (solo items)
     //   2. L.7 pre-load snapshot has player+cell to capture (position TP)
     // Without this gate, auto-connect fires handshake from main-menu within
-    // ~5s of plugin init, well before the user can pick their save —
+    // ~5s of plugin init, well before the user can pick their save -
     // resulting in client running with host's items + missed snapshots.
     {
         auto* p = RE::PlayerCharacter::GetSingleton();
@@ -726,7 +726,7 @@ static void ClientSendHandshake()
             static std::atomic<bool> s_waitingLogged{ false };
             if (!s_waitingLogged.exchange(true)) {
                 PLOG_INFO(
-                    "[PULSAR] Handshake holding — waiting for client to load a save "
+                    "[PULSAR] Handshake holding - waiting for client to load a save "
                     "(player.parentCell == null). Load your save from the main menu."sv);
             }
             return;
@@ -749,7 +749,7 @@ static void ClientSendHandshake()
     g_handshakeSent = true;
     Pulsar::WorldSync::BeginWaitingForSave();
     // M.3 pre-bridge snapshot is driven by TickPreBridgeSnapshot which
-    // observes (state=WAITING_FOR_SAVE + player loaded) — fires whether
+    // observes (state=WAITING_FOR_SAVE + player loaded) - fires whether
     // the player loaded before or after this handshake send.
     PLOG_INFO("[PULSAR] Client handshake sent (name='{}')"sv, name);
     NASLOG("Client handshake sent (name=%s)", name);
@@ -775,20 +775,20 @@ static void ClientSendProfile()
     // We cannot snapshot the current player here because after WorldSync loads
     // the host save, the "current player" is the HOST character, not the client.
     // The profile on disk reflects the client playing as themselves (captured
-    // periodically while not in host's world — see below).
+    // periodically while not in host's world - see below).
     Pulsar::Profile::ProfileData profile{};
     bool loaded = false;
     if (!g_config.playerName.empty()) {
         loaded = Pulsar::Profile::Load(g_config.playerName, profile);
     }
     if (!loaded) {
-        // First-time connect (no disk profile yet) — fall back to current player snapshot.
+        // First-time connect (no disk profile yet) - fall back to current player snapshot.
         // This only works if the user loaded their own save before PULSAR connected;
         // otherwise the profile will be empty and the host clone starts without items.
         auto* player = RE::PlayerCharacter::GetSingleton();
         if (!player) return;
         // #poison-guard (overnight 2026-06-24): NEVER snapshot the live player once a
-        // bridge has applied the host's save this session — the "current player" is
+        // bridge has applied the host's save this session - the "current player" is
         // then the HOST character, so the snapshot would send the host's loadout to
         // the host as "the client's profile" and poison the host's clone-of-client.
         // Send an empty profile instead (clone starts itemless, recoverable) rather
@@ -796,7 +796,7 @@ static void ClientSendProfile()
         // real source once it exists.
         if (Pulsar::InventorySync::DirectRestore::HasBridgedThisSession()) {
             PLOG_WARN("[PULSAR] ClientProfile: no disk profile AND bridged this session "
-                      "— refusing live snapshot (would be HOST items); sending empty "
+                      "- refusing live snapshot (would be HOST items); sending empty "
                       "[#poison]"sv);
         } else {
             profile = Pulsar::Profile::SnapshotFromPlayer();
@@ -847,7 +847,7 @@ static void ClientSendProfile()
 // transition (engine writes to same array concurrently → race). Reverted to rely
 // on the esp's "Start Game Enabled" DNAM flag instead. If we need runtime force-
 // start in the future, use IVirtualMachine::SendEvent to trigger a custom event
-// on an already-bound script — that's safer than touching BGSStoryTeller directly.
+// on an already-bound script - that's safer than touching BGSStoryTeller directly.
 
 static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
 {
@@ -857,7 +857,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
         s_hooksInstalled = true;
         MH_Initialize();  // safe to call multiple times
 
-        // BISECT FIX 2026-05-06 15:25 — VehicleSync's SafeSetMotionType(2/Dynamic)
+        // BISECT FIX 2026-05-06 15:25 - VehicleSync's SafeSetMotionType(2/Dynamic)
         // calls were the local-sit blocker. State-map updates kept (so
         // RemotePlayer's seated-skip-position-apply works), motionType change
         // skipped. FlightSync still OFF (separate bisect; broke 2nd-player sit).
@@ -885,7 +885,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
         Pulsar::TakeoffProbe::Init();
         Pulsar::DockSync::Init();
         Pulsar::SpaceFlightProbe::Init();
-        // BISECT — re-enabled 15:40 to test if VehicleSync's fix also unbreaks
+        // BISECT - re-enabled 15:40 to test if VehicleSync's fix also unbreaks
         // FlightSync's 2nd-player-sit regression (likely same root cause).
         Pulsar::FlightSync::Init();
         Pulsar::ShipCombatSync::Init();   // ship-combat sync (slice1 read/log)
@@ -895,7 +895,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
         Pulsar::InventorySync::Init();
         Pulsar::Coop::Mortality::Init();
         Pulsar::Coop::KillXp::Init();   // co-op kill-XP-sharing
-        // ImGui overlay disabled — using external launcher instead
+        // ImGui overlay disabled - using external launcher instead
         // Pulsar::UI::InitOverlay();
     }
     if (a_msg->type == SFSE::MessagingInterface::kPostLoad) {
@@ -905,7 +905,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
             taskInterface->AddPermanentTask([]() {
                 // Deferred hooks (need player to exist)
                 Pulsar::Debug::InstallDeferredHooks();
-                // LootSync TryLateInit removed 2026-04-25 — REL::ID(107155)
+                // LootSync TryLateInit removed 2026-04-25 - REL::ID(107155)
                 // crashes whether called at kPostLoad or game-thread tick.
                 // PlayerCharacter-exists gate was insufficient; singleton is
                 // never reliably ready. Switching to Actor::PickUpObject
@@ -924,7 +924,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                     }
                 }
 
-                // Phase I — drive Cell3DAttach loadMenu observation. Cheap.
+                // Phase I - drive Cell3DAttach loadMenu observation. Cheap.
                 {
                     const bool curLoadMenu = SafeIsLoadMenuOpen();
                     Pulsar::Cell3DAttach::SetLoadMenuState(curLoadMenu);
@@ -971,7 +971,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                         // can't be poisoned by a host-state capture.
                         Pulsar::Profile::NotifySaveLoadStarted();
                     }
-                    // Phase C robustness — on the client loadMenu FALLING edge schedule a
+                    // Phase C robustness - on the client loadMenu FALLING edge schedule a
                     // re-apply of the client's captured profile so his items overwrite the
                     // host-bridged save. The normal OnLoadCompleted path only fires when the
                     // WorldSync load tick ADVANCES (network save-bridge). A LOCAL both-down
@@ -1010,7 +1010,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                 }
 
                 // Host: send own position + animation state to client (moved here
-                // from NetworkHost::Update — FillAnimationData touches the animation
+                // from NetworkHost::Update - FillAnimationData touches the animation
                 // graph which is not thread-safe off the game thread). Rate-limited
                 // to ~60Hz to match the client-side rate.
                 //
@@ -1035,7 +1035,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                                 Pulsar::Network::PositionData pos{};
                                 pos.x = loc.x; pos.y = loc.y; pos.z = loc.z;
                                 pos.rotX = ang.x; pos.rotY = ang.y; pos.rotZ = ang.z;
-                                // Phase I — sender's parentCell so receiver
+                                // Phase I - sender's parentCell so receiver
                                 // can detect cross-cell + suppress apply.
                                 pos.cellFormID = player->parentCell ? player->parentCell->formID : 0u;
                                 FillAnimationData(player, pos);
@@ -1049,12 +1049,12 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                     }
                 }
 
-                // Client: apply pending teleport to host position (moved here — SetPosition
+                // Client: apply pending teleport to host position (moved here - SetPosition
                 // triggers physics-settle which is game-thread-only).
                 // GUARD: defer SetPosition while engine's LoadingMenu is open.
                 // Crash 2026-04-26 22:21: post-save-resync teleport fired DURING
                 // loadMenu OPEN → SetPosition mid-cell-stream crashed client.
-                // For connect-time this also helps — never teleport while engine
+                // For connect-time this also helps - never teleport while engine
                 // is actively streaming a cell.
                 if (!g_config.isHost) {
                     bool inLoadMenu   = SafeIsLoadMenuOpen();
@@ -1103,7 +1103,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                                 if (plan.mode == Pulsar::WorldSync::RestoreMode::kNone) {
                                     PLOG_INFO(
                                         "[PULSAR] [TELE-DIAG] SKIP teleport (kNone) "
-                                        "— same-cell, engine load placed us; user "
+                                        "- same-cell, engine load placed us; user "
                                         "must hold E ~2s to unseat. cell=0x{:08X} "
                                         "pos=({:.0f},{:.0f},{:.0f})"sv,
                                         prevCell, prevX, prevY, prevZ);
@@ -1115,7 +1115,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                                     // clone is in a different cell than ours,
                                     // SetPosition alone places us at host's
                                     // X/Y but inside our OLD cell (typically
-                                    // client's ship interior) — no floor
+                                    // client's ship interior) - no floor
                                     // mesh → player falls through. Engine
                                     // MoveTo(self, dest) switches cell via
                                     // the cell-streamer first; then we
@@ -1135,7 +1135,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                                     // EngineMoveTo(player, hostClone) actually
                                     // crosses to host's cell. If cell lookup
                                     // fails, abort TP entirely (fall back to
-                                    // kNone semantics — no fall through floor).
+                                    // kNone semantics - no fall through floor).
                                     bool abortTP = false;
                                     if (plan.mode == Pulsar::WorldSync::
                                             RestoreMode::kBridgeFailedManualTP &&
@@ -1165,7 +1165,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                                         if (!hostCell) {
                                             PLOG_WARN(
                                                 "[PULSAR] [L.7] cell "
-                                                "0x{:08X} unresolved — "
+                                                "0x{:08X} unresolved - "
                                                 "abort TP, fallback kNone."sv,
                                                 plan.targetCellID);
                                             NASLOG("L7-302 cell-unresolved fallback-kNone");
@@ -1236,13 +1236,13 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                 Pulsar::Lobby::TickCleanProfileCapture(); // A unification: maintain clean DB profile pre-bridge
                 // Native Scaleform LobbyMenu removed: blocked (no loadable SWF),
                 // replaced by the external PulsarLobby.exe companion tool. The
-                // TryRegisterMenuOnce()/ToggleLobbyMenu()/F7 path is dead — dropped.
+                // TryRegisterMenuOnce()/ToggleLobbyMenu()/F7 path is dead - dropped.
                 TickPostApplyMenuDump();
                 Pulsar::TransitSync::TickFollowHotkey(g_config.hotkeyAutoFollow);
                 Pulsar::TransitSync::TickFollowApply();
                 Pulsar::SpaceSync::FastTravel::TickManualBridgeHotkey(g_config.hotkeyManualBridge);
 
-                // Teil 1 profile — F10 = save loadout snapshot, F11 = restore it.
+                // Teil 1 profile - F10 = save loadout snapshot, F11 = restore it.
                 // (edge-triggered). Demo: F10, drop/sell items, F11 -> items return.
                 {
                     static bool s_f10Down = false;
@@ -1263,7 +1263,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                     s_f11Down = now;
                 }
 
-                // DIAG (dev-only) — F6 dumps player headlamp vs clone light fields.
+                // DIAG (dev-only) - F6 dumps player headlamp vs clone light fields.
                 if (g_config.devHotkeys) {
                     static bool s_f6Down = false;
                     const bool now = (GetAsyncKeyState(g_config.hotkeyDevFlashlightDump) & 0x8000) != 0;
@@ -1271,7 +1271,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                     s_f6Down = now;
                 }
 
-                // L.7 Path B Phase 1 — F9 round-trip test on the
+                // L.7 Path B Phase 1 - F9 round-trip test on the
                 // newest save. Decompresses + recompresses + writes
                 // sidecar "<savename>_pulsar_rt.sfs" so the user can
                 // load it from the in-game save menu and verify it
@@ -1293,7 +1293,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                                 if (Pulsar::SaveScanner::RecompressToBcps(decomp, meta, recomp)) {
                                     // Engine's save-list parser expects:
                                     //   Save{N}_{hash}_{num}_{YYYYMMDDhhmmss}_{slot}_{major}_{minor}.sfs
-                                    // Save9999 didn't show — try with a
+                                    // Save9999 didn't show - try with a
                                     // smaller N (highest existing + 1) and
                                     // also bump the date+saveNumber to
                                     // current time so the engine doesn't
@@ -1376,7 +1376,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                     }
                 }
 
-                // L.7 Path B Phase 2 — F11 diff the two newest
+                // L.7 Path B Phase 2 - F11 diff the two newest
                 // manual saves on a background thread so the engine
                 // watchdog doesn't kill us during the ~hundreds-of-ms
                 // diff computation. Edge-triggered, single-shot per
@@ -1428,7 +1428,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                                 if (delta > 5) {
                                     PLOG_WARN(
                                         "[PULSAR] [SaveDiff] two newest manual saves "
-                                        "are {} min apart — diff will be NOISY. "
+                                        "are {} min apart - diff will be NOISY. "
                                         "Make a fresh STAND+PILOT pair within 1 min "
                                         "of each other."sv,
                                         delta);
@@ -1452,7 +1452,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                                         if (Pulsar::SaveScanner::DiffTwoSaves(
                                                 aPath, bPath, outStr)) {
                                             PLOG_INFO(
-                                                "[PULSAR] [SaveDiff bg] DONE — see {}"sv,
+                                                "[PULSAR] [SaveDiff bg] DONE - see {}"sv,
                                                 outStr);
                                         } else {
                                             PLOG_WARN("[PULSAR] [SaveDiff bg] FAILED"sv);
@@ -1480,21 +1480,21 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                 Pulsar::Forms::DrainPending();
                 Pulsar::InventorySync::TickPreBridgeSnapshot();
                 Pulsar::InventorySync::DrainPending();
-                // L.7 V3 — periodic capture (rate-limited 5s) so the
+                // L.7 V3 - periodic capture (rate-limited 5s) so the
                 // cache is always fresh when OnSaveReceived fires. Also
                 // force-captures on the false→true player-ready transition
                 // so a connect attempted right after save-load already has
                 // a populated cache. Cheap when player not ready.
                 Pulsar::InventorySync::DirectRestore::TickPeriodicCapture();
-                // V4.2 — deferred post-restore inventory diff (+5s/+10s).
+                // V4.2 - deferred post-restore inventory diff (+5s/+10s).
                 // No-op until a restore arms it. Catches other sync modules
                 // re-applying host state after our restore completes.
                 Pulsar::InventorySync::DirectRestore::TickPostRestoreWatch();
-                // V4.5 — F9 diagnostic: dump live inventory (formIDs + counts +
+                // V4.5 - F9 diagnostic: dump live inventory (formIDs + counts +
                 // raw dataSize) on demand. Fire while the inventory menu shows
                 // host "ghosts" to prove whether they are in the container or
                 // a UI-cache artifact. Edge-triggered (one fire per press).
-                // (Was F12 but Steam grabs F12 for screenshots — moved to F9.)
+                // (Was F12 but Steam grabs F12 for screenshots - moved to F9.)
                 if (g_config.devHotkeys) {   // dev-only: live-inventory dump
                     static bool s_dumpKeyDown = false;
                     const bool dn = (GetAsyncKeyState(g_config.hotkeyDevDiag) & 0x8000) != 0;
@@ -1535,7 +1535,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                 Pulsar::DialogSync::DrainPending();
                 Pulsar::SpawnSync::DrainPending();   // enable host-spawned NPCs
 
-                // BISECT TEST DISABLED — C++-spawned clone writes PulsarSpawn=2.0
+                // BISECT TEST DISABLED - C++-spawned clone writes PulsarSpawn=2.0
                 // to the GLOBs, which starves the Papyrus-driven client clone
                 // (RemotePlayerManager). Only re-enable when the Papyrus path is
                 // off, or after CloneManager takes over the RemotePlayer role.
@@ -1546,7 +1546,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                 Pulsar::Companion::GetInteractionManager().ProcessPending();
 
                 // Bone sync: send bone transforms at ~20fps (game thread safe).
-                // Gate on IsQuiet() + death/teardown like the position sends —
+                // Gate on IsQuiet() + death/teardown like the position sends -
                 // ReadBones touches the player's anim graph and pure-virtual-
                 // crashed during the both-down reload (client 22:43) because
                 // this path had NO transition gate at all.
@@ -1596,7 +1596,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                 // only transmits ARMO; the apply skips DoEquipWeapon.
                 Pulsar::RemotePlayer::EquipSync::TickSendLocalEquipment();
 
-                // Sarah Morgan tracking (host only, every 2s) — reference for animation variables
+                // Sarah Morgan tracking (host only, every 2s) - reference for animation variables
                 if (g_config.isHost) {
                     static uint64_t s_lastSarahLog = 0;
                     static constexpr RE::TESFormID SARAH_REF_ID = 0x00005986;
@@ -1674,7 +1674,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                     }
 
                     // Periodic profile capture: only while the client is playing in THEIR OWN
-                    // save — i.e. before WorldSync has queued the host save load. Once we hit
+                    // save - i.e. before WorldSync has queued the host save load. Once we hit
                     // LOADING/LOADED, the current player is the host character, and snapshotting
                     // would overwrite the real client profile with host data.
                     auto wsState = Pulsar::WorldSync::GetState();
@@ -1688,7 +1688,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                             auto* player = RE::PlayerCharacter::GetSingleton();
                             if (player) {
                                 auto profile = Pulsar::Profile::SnapshotFromPlayer();
-                                // Only persist if the player actually has gear — protects
+                                // Only persist if the player actually has gear - protects
                                 // against capturing a blank main-menu/initialisation state.
                                 if (!profile.inventory.empty() || !profile.armorFormIDs.empty() ||
                                     profile.weaponFormID != 0) {
@@ -1703,7 +1703,7 @@ static void OnSFSEMessage(SFSE::MessagingInterface::Message* a_msg)
                     }
 
                     // Detect disconnect → reset sync flags so next connect re-runs handshake.
-                    // NOTE: do NOT save profile on disconnect — the player is still the host
+                    // NOTE: do NOT save profile on disconnect - the player is still the host
                     // character at this point, so a snapshot would corrupt the real profile.
                     static bool s_wasConnected = false;
                     bool connected = Pulsar::Network::GetSingleton().IsConnected();
@@ -1728,7 +1728,7 @@ SFSE_PLUGIN_LOAD(const SFSE::LoadInterface* a_sfse)
 
     PLOG_INFO("[PULSAR] Plugin loaded! BUILD {} {} [condeval-seh-toctou-v1]"sv, __DATE__, __TIME__);
 
-    // Teil 1 profile codec — pure-logic round-trip self-check (logs PASS/FAIL).
+    // Teil 1 profile codec - pure-logic round-trip self-check (logs PASS/FAIL).
     Pulsar::Profile::RunSelfTest();
 
     // E2E crypto primitive self-test (ECDH agree + AES-256-GCM round-trip +
@@ -1747,7 +1747,7 @@ SFSE_PLUGIN_LOAD(const SFSE::LoadInterface* a_sfse)
     Pulsar::NPCSync::SetNpcNoImc(g_config.npcNoImc);
     Pulsar::NPCSync::SetNpcCombatAiLive(g_config.npcCombatAiLive);
 
-    // Teil 2C — lobby handoff: if the companion staged a handoff file, it drives
+    // Teil 2C - lobby handoff: if the companion staged a handoff file, it drives
     // host/client role + connect target. No-op (config unchanged) if absent.
     {
         auto ho = Pulsar::Lobby::ReadHandoff();

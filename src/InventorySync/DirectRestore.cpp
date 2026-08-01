@@ -33,13 +33,13 @@ namespace Pulsar::InventorySync::DirectRestore
 {
     namespace
     {
-        // V4 — rich cache holding a refcounted copy of each stack's
+        // V4 - rich cache holding a refcounted copy of each stack's
         // ExtraDataList. Refcounting via BSTSmartPointer keeps the list
         // objects alive across the bridge, even when the engine drops
         // its own references while wiping/replacing the player's inventory.
         // Restoring with the held smartptrs makes Items come back with
         // their original ammo, mods, durability, equip flags, ownership,
-        // etc. — fixes the "items unusable / can't drop" bug that the
+        // etc. - fixes the "items unusable / can't drop" bug that the
         // V3.3 raw-count approach couldn't address.
         struct CachedStack {
             RE::BSTSmartPointer<RE::ExtraDataList> extra;
@@ -48,11 +48,11 @@ namespace Pulsar::InventorySync::DirectRestore
         struct CachedItem {
             std::vector<CachedStack> stacks;
             bool                     equipped = false;
-            // Phase B  — M.2 mod array (raw same-machine mod-form IDs) +
+            // Phase B  - M.2 mod array (raw same-machine mod-form IDs) +
             // sentinel, carried ONLY for seed-sourced (DB-profile) items, which
             // are base forms with no ExtraData. After RestoreClientState re-adds
             // such an item, the mods are re-applied via LootSync::ApplyItemMods
-            // (the working drop-path primitive). Empty for live-captured items —
+            // (the working drop-path primitive). Empty for live-captured items -
             // those keep their mods through cs.extra (ExtraData), so applying
             // would double up; emptiness is the "live vs seed" discriminator.
             std::vector<std::uint32_t> mods;
@@ -62,7 +62,7 @@ namespace Pulsar::InventorySync::DirectRestore
         std::atomic<bool> g_cacheValid{ false };
         std::mutex        g_cacheMu;
 
-        // ghostfix-v3 — host-exclusive worn base forms captured pre-wipe.
+        // ghostfix-v3 - host-exclusive worn base forms captured pre-wipe.
         // UnequipObject FAILS mid-bridge (engine still loading), so the raw wipe
         // removes the inventory entry while the worn-3D/equip binding dangles = a
         // worn item not in inventory (can't select/drop). We retry the unequip at
@@ -71,18 +71,18 @@ namespace Pulsar::InventorySync::DirectRestore
         // LookupByID<TESBoundObject> null pitfall; base forms persist the session.
         std::vector<RE::TESBoundObject*> g_pendingGhostUnequip;
 
-        // Phase C3 (co-op gains) — live inventory snapshot taken at +10s (restore
+        // Phase C3 (co-op gains) - live inventory snapshot taken at +10s (restore
         // settled, dbAuth only). Delta reference for ClientProfile's gains-capture:
         // it carries the same restore artifacts + host credits as a later capture,
         // so (capture − snapshot) = pure session gains. formID → total count.
         std::unordered_map<std::uint32_t, std::uint32_t> g_gainsSnap;
         std::uint32_t     g_gainsSnapCredits = 0;
-        std::uint32_t     g_gainsSnapLevel   = 0;   // V3 — body level at +10s (delta ref)
-        float             g_gainsSnapXP      = 0.0f; // V3 — body "Experience" AV at +10s (delta ref)
-        std::vector<std::uint32_t> g_gainsSnapPowers;   // Powers — live power SET at +10s
-        std::vector<std::uint32_t> g_gainsSnapResearch; // Research — completed SET at +10s
+        std::uint32_t     g_gainsSnapLevel   = 0;   // V3 - body level at +10s (delta ref)
+        float             g_gainsSnapXP      = 0.0f; // V3 - body "Experience" AV at +10s (delta ref)
+        std::vector<std::uint32_t> g_gainsSnapPowers;   // Powers - live power SET at +10s
+        std::vector<std::uint32_t> g_gainsSnapResearch; // Research - completed SET at +10s
         std::atomic<bool> g_gainsSnapValid{ false };
-        // B1 fix (review 2026-06-19) — per-field snapshot validity. The powers/research
+        // B1 fix (review 2026-06-19) - per-field snapshot validity. The powers/research
         // walks can SEH-fault to an EMPTY set; the overall snapshot is still valid for
         // inventory/credits/level/xp. Without these flags an empty (faulted) power/
         // research snapshot makes the set-delta treat the FOREIGN/host powers+research
@@ -93,7 +93,7 @@ namespace Pulsar::InventorySync::DirectRestore
         std::mutex        g_gainsSnapMu;
         constexpr std::uint32_t kCreditsFormID = 0x0000000Fu;
 
-        // #poison-guard (overnight 2026-06-24) — host-EXCLUSIVE item forms the
+        // #poison-guard (overnight 2026-06-24) - host-EXCLUSIVE item forms the
         // bridge briefly placed in the client's live inventory (live forms NOT in
         // the client's restore cache), accumulated across every bridge this
         // session. ClientProfile's DB gains delta-merge excludes these so a host
@@ -110,7 +110,7 @@ namespace Pulsar::InventorySync::DirectRestore
         std::unordered_set<std::uint32_t> g_foreignPerkSet;
         std::mutex                        g_foreignMu;
 
-        // V3 — SEH-safe player character-level read (TESActorBaseData::GetLevel has
+        // V3 - SEH-safe player character-level read (TESActorBaseData::GetLevel has
         // REL::ID{0} → unusable; read the raw field instead: TESNPC inherits
         // TESActorBaseData, actorData @ +0x08, .level (uint16) @ +0x06).
         static std::uint32_t SafeReadActorLevel(RE::PlayerCharacter* a_p) noexcept
@@ -122,22 +122,22 @@ namespace Pulsar::InventorySync::DirectRestore
             return lvl;
         }
 
-        // Phase C3 — DB credits to re-apply at +10s (the raw wipe strips the credits
+        // Phase C3 - DB credits to re-apply at +10s (the raw wipe strips the credits
         // item and the seed doesn't carry it). 0 = nothing to apply.
         std::atomic<std::uint32_t> g_savedCredits{ 0 };
 
-        // V3.3 — cache lockout flag. While true, all CaptureClientState
+        // V3.3 - cache lockout flag. While true, all CaptureClientState
         // calls (periodic ticks + ad-hoc) are no-ops. Set by LockCache()
         // post-pre-bridge-capture, cleared by UnlockCache() at end of
         // RestoreClientState. See DirectRestore.h for rationale.
         std::atomic<bool> g_cacheLocked{ false };
 
-        // A unification Phase 3 — "bridged this session" marker. Set true in
-        // LockCache() (THE pre-bridge marker — WorldSync::OnSaveReceived calls
+        // A unification Phase 3 - "bridged this session" marker. Set true in
+        // LockCache() (THE pre-bridge marker - WorldSync::OnSaveReceived calls
         // it right before the engine applies host's save over the client). Once
         // a bridge has occurred the live inventory is a host-merge and is NO
         // LONGER a safe source for the authoritative DB profile (it may carry
-        // host-leaked items — the exact Bug-A poison). Sticky for the rest of
+        // host-leaked items - the exact Bug-A poison). Sticky for the rest of
         // the game launch (a static, so it resets on process restart); the
         // clean DB-profile auto-capture only fires while this is false, i.e.
         // from the client's OWN loaded save BEFORE any co-op bridge. Not cleared
@@ -146,7 +146,7 @@ namespace Pulsar::InventorySync::DirectRestore
         // window there would re-poison the DB.
         std::atomic<bool> g_bridgedThisSession{ false };
 
-        // 2026-06-18 — "loaded save is the client's OWN character" flag.
+        // 2026-06-18 - "loaded save is the client's OWN character" flag.
         // Set at join by ClientProfile::ApplyProfileData (compares the loaded
         // character's Health base to the DB profile's healthBase: match → own,
         // mismatch → a foreign/HOST save, e.g. the co-op auto-save the engine
@@ -155,24 +155,24 @@ namespace Pulsar::InventorySync::DirectRestore
         //
         // When FALSE (foreign/host save): CaptureClientState is suppressed so the
         // DB-profile seed (the client's own loadout) STAYS in the cache and the
-        // bridge restore puts THAT back — not the host items the loaded save has.
+        // bridge restore puts THAT back - not the host items the loaded save has.
         // Also stops the clean-capture from uploading the host save to the DB
         // (no poisoning). Fixes "loaded the co-op auto-save → 1:1 host items".
-        // When TRUE (own save): save-authoritative — the live capture wins (the
+        // When TRUE (own save): save-authoritative - the live capture wins (the
         // behaviour confirmed working for the client's own save).
         std::atomic<bool> g_loadedSaveIsOwn{ true };
 
-        // Phase C (2026-06-19) — DB-AUTHORITATIVE. When true (config
+        // Phase C (2026-06-19) - DB-AUTHORITATIVE. When true (config
         // `dbAuthoritative` ON AND a non-empty DB seed), the DB profile is the
         // restore source for EVERY join: CaptureClientState is suppressed so the
         // seeded items/AVs/perks survive the bridge, and the upload runs only
         // post-restore (gains) so a stale loaded save can never overwrite the DB.
-        // Independent of g_loadedSaveIsOwn (the hp heuristic) — when this is true
+        // Independent of g_loadedSaveIsOwn (the hp heuristic) - when this is true
         // it dominates. Set per-join by ClientProfile::ApplyProfileData; cleared
         // in Reset().
         std::atomic<bool> g_dbAuthoritative{ false };
 
-        // Phase A (co-op gain persistence) — true once RestoreClientState has
+        // Phase A (co-op gain persistence) - true once RestoreClientState has
         // finished a bridge restore: the host items were wiped and the live
         // inventory is now the CLIENT's items (+ loot gained this session), so it
         // is SAFE to capture to the DB. Cleared in LockCache (the next bridge
@@ -181,11 +181,11 @@ namespace Pulsar::InventorySync::DirectRestore
         // the client's own save is stale, so only the DB can hold the gains.
         std::atomic<bool> g_restoreComplete{ false };
 
-        // V4.2 — post-restore verification snapshot. After a restore we
+        // V4.2 - post-restore verification snapshot. After a restore we
         // record what we EXPECTED to put back (form → total count + equip
         // state). A diff against the live inventory then tells us exactly
         // what landed, what is missing, and what ALIEN items survived (host
-        // leftovers — the visual-mismatch culprit). Kept separate from
+        // leftovers - the visual-mismatch culprit). Kept separate from
         // g_cache so it survives the cache move/clear in RestoreClientState
         // and can be re-checked on a timer afterwards.
         struct ExpectedEntry {
@@ -199,14 +199,14 @@ namespace Pulsar::InventorySync::DirectRestore
         // Deferred re-check stage: 0=disarmed, 1=awaiting +5s, 2=awaiting +10s.
         std::atomic<int>            g_postRestoreStage{ 0 };
 
-        // V4.7 — client's Oxygen capacity, captured pre-bridge. The bridge
+        // V4.7 - client's Oxygen capacity, captured pre-bridge. The bridge
         // load gives the client the host's / a base O2 max (observed 125 → 5),
-        // because skill/perk-derived AVs aren't restored — so one jump empties
+        // because skill/perk-derived AVs aren't restored - so one jump empties
         // the bar and the next costs health. We snapshot the GOOD permanent O2
         // during normal play (captures are frozen during the bridge, so this
         // keeps the last pre-bridge value) and re-apply it after the restore.
         std::atomic<float>          g_savedO2Max{ 0.0f };
-        // (2026-06-18) — O2 BASE (GetBaseActorValue, excludes the suit's
+        // (2026-06-18) - O2 BASE (GetBaseActorValue, excludes the suit's
         // equipment O2 mod). Restore THIS, not the permanent total above: now
         // that re-equips the suit WITH its mods, the suit's O2 applies on
         // top of the base by itself. Setting the base to the permanent total
@@ -215,7 +215,7 @@ namespace Pulsar::InventorySync::DirectRestore
         // Mirrors g_savedHealthBase: Base, not Permanent, so mods don't double.
         std::atomic<float>          g_savedO2Base{ 0.0f };
 
-        // Stage-1 (level proxy) — level-derived survivability AV BASE values
+        // Stage-1 (level proxy) - level-derived survivability AV BASE values
         // (Health, CarryWeight), captured pre-bridge + restored post-apply via
         // SetBaseActorValue (gear/perk mods re-apply on top). Makes the client's
         // real power travel without touching XP/level-up. Base (NOT Permanent) so
@@ -223,7 +223,7 @@ namespace Pulsar::InventorySync::DirectRestore
         std::atomic<float>          g_savedHealthBase{ 0.0f };
         std::atomic<float>          g_savedCarryBase{ 0.0f };
 
-        // Stage-1 progression — perks captured PRE-bridge (the client's own),
+        // Stage-1 progression - perks captured PRE-bridge (the client's own),
         // re-applied additively post-bridge. Mirrors g_savedO2Max: only written
         // while captures are unlocked (normal play), so it survives the bridge.
         struct PerkSnap { std::uint32_t formID = 0; std::int8_t rank = 0; };
@@ -237,13 +237,13 @@ namespace Pulsar::InventorySync::DirectRestore
         // captured rank to restore faithfully. REL::Offset = version-pinned.
         constexpr bool kApplyPerksOnRestore = true;
 
-        // Phase B  — re-apply seed-sourced items' M.2 mods on restore.
+        // Phase B  - re-apply seed-sourced items' M.2 mods on restore.
         // ENABLED 2026-06-18: uses LootSync::AttachItemModsNative (the engine's
-        // own per-entry attach core, FUN_14063de80 @ RVA 0x63D270) — it
+        // own per-entry attach core, FUN_14063de80 @ RVA 0x63D270) - it
         // allocates the kObjectInstance, GROWS the array, and routes each mod
         // to its CORRECT slot. The old gate routed through ApplyItemMods →
         // SafeRestoreModArrayOnInventoryItem, which can only OVERWRITE existing
-        // slots (→ naked base forms / wrong mods) — that path is untouched and
+        // slots (→ naked base forms / wrong mods) - that path is untouched and
         // still serves clone-equip / corpse-loot. If this regresses (crash in
         // the post-bridge window), flip back to false: items come as base forms
         // but the gains still persist.
@@ -257,14 +257,14 @@ namespace Pulsar::InventorySync::DirectRestore
         // from Actor::perks @+0x360, fires the perk-removed event (FUN_1418c7970)
         // so the perk's effects are properly undone. Removes ALL ranks of the
         // perk. The SpaceshipRef.RemovePerk native calls it with reason=5 (the
-        // same constant AddPerk's a4 uses) — replicate. Used for clean perk
+        // same constant AddPerk's a4 uses) - replicate. Used for clean perk
         // REPLACEMENT: strip the host's perks the bridge applied, then re-add the
         // client's captured set so the client ends up with EXACTLY their own.
         using RemovePerkFn = void (*)(RE::Actor*, RE::BGSPerk*, std::uint8_t);
         static REL::Relocation<RemovePerkFn> s_removePerk{ REL::Offset(0x1954B00) };
 
         // Perk-derived-AV REFRESH, Ghidra-verified 2026-06-18 (DecompO2Recompute):
-        // FUN_1419577c0(actor) @0x1954F20 — the engine calls it inside
+        // FUN_1419577c0(actor) @0x1954F20 - the engine calls it inside
         // FUN_140ca46a0 right after a perk's entry-points are (un)applied. It
         // INVALIDATES the actor's cached derived ActorValues (writes -1.0f to
         // actor+0x4d4 and the AV-cache slot +0x3c) so the next read recomputes
@@ -277,7 +277,7 @@ namespace Pulsar::InventorySync::DirectRestore
         using RefreshDerivedAVFn = void (*)(RE::Actor*);
         static REL::Relocation<RefreshDerivedAVFn> s_refreshDerivedAV{ REL::Offset(0x1954F20) };
 
-        // Available (unspent) skill points — engine stores a uint32 at
+        // Available (unspent) skill points - engine stores a uint32 at
         // PlayerCharacter + 0xF60 (Ghidra-verified via AddPerkPoints → FUN_141a3f4b0;
         // see reference_addperk_re). Captured pre-bridge + written back post-apply so
         // the additively re-granted perks don't refund points (AddPerk is free).
@@ -285,7 +285,7 @@ namespace Pulsar::InventorySync::DirectRestore
         std::atomic<bool>        g_skillPtsValid{ false };
         std::atomic<std::uint32_t> g_savedSkillPts{ 0 };
 
-        // Powers (2026-06-19, gap #2) — Starborn/lesser/voice powers, Ghidra-verified
+        // Powers (2026-06-19, gap #2) - Starborn/lesser/voice powers, Ghidra-verified
         // for 1.16.236 (reference_progression_gaps_re): the actor's added-spell array
         // is begin=*(actor+0x2c8), end=*(actor+0x2d0), entries=SpellItem* (8B stride).
         // Apply native Actor::AddSpell = FUN_14199c120(actor, SpellItem*, 0) @0x1999830
@@ -311,7 +311,7 @@ namespace Pulsar::InventorySync::DirectRestore
         std::vector<std::uint32_t> g_powerSnap;   // DB powers seeded for additive apply
         std::mutex                 g_powerMu;
 
-        // Research apply (gap #1) — replay the engine's per-project recipe unlock.
+        // Research apply (gap #1) - replay the engine's per-project recipe unlock.
         // FUN_1418046b0(manager, value) is the processor Complete() calls: when the
         // project's state byte (value+0x08) != 2 it grants the project's recipes
         // (FUN_1418036f0 per entry) + recurses required sub-projects. We call it for
@@ -324,7 +324,7 @@ namespace Pulsar::InventorySync::DirectRestore
         std::vector<std::uint32_t> g_researchSnap;   // DB completed-research formIDs to apply
         std::mutex                 g_researchMu;
 
-        // ActorEquipManager direct-call REL::IDs — verified for 1.16.236
+        // ActorEquipManager direct-call REL::IDs - verified for 1.16.236
         // in RemotePlayerManager.cpp (used for clone weapon/armor equip).
         // CommonLibSF IDs.h has these as REL::ID(0) placeholders; we resolve
         // manually here. Centralised so future modules can lift the pattern.
@@ -344,7 +344,7 @@ namespace Pulsar::InventorySync::DirectRestore
             // equips the BASE form: a modded spacesuit loses its O2-storage mods
             // (Oxygen max collapses to the suit-less base ~5) and modded weapons
             // come back wrong/grey. The inventory item carries its
-            // TBO_InstanceData at BGSInventoryItem+0x08 — pull it so the engine
+            // TBO_InstanceData at BGSInventoryItem+0x08 - pull it so the engine
             // equips the actual modded instance and applies its effects.
             RE::TBO_InstanceData* instData = nullptr;
             a_actor->ForEachInventoryItem(
@@ -363,7 +363,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 false, true, false, true, false);
         }
 
-        // V4.2 — companion to DirectEquipForm. Same singleton, UnequipObject
+        // V4.2 - companion to DirectEquipForm. Same singleton, UnequipObject
         // is REL::ID(101951) (verified 1.16.236 in RemotePlayerManager.cpp).
         // We unequip BEFORE re-equipping so the engine tears down the stale
         // worn-state the item carried in across the bridge, then a fresh
@@ -379,7 +379,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 const RE::BGSObjectInstance&, const RE::BGSEquipSlot*,
                 bool, bool, bool, bool, const RE::BGSEquipSlot*);
             static REL::Relocation<UnequipFn> unequipFn{ REL::ID(101951) };
-            // ghost-gear fix — unequip the ACTUAL worn instance, not the base
+            // ghost-gear fix - unequip the ACTUAL worn instance, not the base
             // form. A modded worn item (host's Grendel + weapon mods, a modded
             // spacesuit) is equipped as (form, modInstance); calling with
             // (form, nullptr) does NOT match the equipped slot → UnequipObject
@@ -387,7 +387,7 @@ namespace Pulsar::InventorySync::DirectRestore
             // teardown then raw-removes the inventory entry while that binding
             // dangles = an equipped item with no inventory entry that can't be
             // selected or dropped (an undroppable "ghost"). Pull the item's
-            // TBO_InstanceData (BGSInventoryItem+0x08) — same path DirectEquipForm
+            // TBO_InstanceData (BGSInventoryItem+0x08) - same path DirectEquipForm
             // uses for so the engine matches the exact worn instance and
             // tears the worn state down before the wipe.
             RE::TBO_InstanceData* instData = nullptr;
@@ -411,7 +411,7 @@ namespace Pulsar::InventorySync::DirectRestore
         // a re-streamed "ghost"), RemoveItem unequips the worn slot, detaches the
         // biped 3D AND deletes the inventory entry in one coherent engine step.
         // moveTo + dropLocation null = delete (no drop). Must run in the SETTLED
-        // post-restore window — mid-bridge mass mutation deadlocked (V4.4); here
+        // post-restore window - mid-bridge mass mutation deadlocked (V4.4); here
         // it's a handful of targeted forms on the game thread.
         bool DirectRemoveForm(RE::Actor* a_actor, RE::TESBoundObject* a_form,
                               std::int32_t a_count)
@@ -482,7 +482,7 @@ namespace Pulsar::InventorySync::DirectRestore
                     *dataSizePtr = dataCount > 0 ? dataCount - 1 : 0;
                     entryCount = *dataSizePtr;
                     ++removed;
-                    // don't ++i — re-check the entry swapped into slot i
+                    // don't ++i - re-check the entry swapped into slot i
                 }
             } __except (EXCEPTION_EXECUTE_HANDLER) {}
             return removed;
@@ -507,7 +507,7 @@ namespace Pulsar::InventorySync::DirectRestore
             std::int32_t        count;
         };
 
-        // Diagnostic out-params (POD pointers — no destructibles).
+        // Diagnostic out-params (POD pointers - no destructibles).
         struct WalkDiag {
             std::uintptr_t invListPtr;
             std::uint32_t  entryCount;
@@ -601,13 +601,13 @@ namespace Pulsar::InventorySync::DirectRestore
             return n;
         }
 
-        // V4 — primary inventory walker. Builds the rich cache (per-stack
+        // V4 - primary inventory walker. Builds the rich cache (per-stack
         // BSTSmartPointer<ExtraDataList> copies + counts) via the engine's
         // ForEachInventoryItem API. Each captured smart pointer increments
         // the refcount on the ExtraDataList; that ref is what keeps the
         // list alive across the bridge load.
         //
-        // No per-item cap any more — we carry stack counts through 1:1
+        // No per-item cap any more - we carry stack counts through 1:1
         // because the count value lives in OUR vector and is not bounded
         // by the temporary cache map's int32 (credits stay at their real
         // value, 20M+ included). The Pass 1 add path uses the original
@@ -663,7 +663,7 @@ namespace Pulsar::InventorySync::DirectRestore
                                           a_reason);
         }
 
-        // L.7 Plan B V1.4 — RAW memory remove of items NOT in the
+        // L.7 Plan B V1.4 - RAW memory remove of items NOT in the
         // keep-set. Bypasses vt[0x9A] AddObjectToContainer entirely so no
         // engine BGSInventoryListEvent / container event cascades fire.
         // Pattern adapted from LootSync.cpp:RawRemoveFromContainer which
@@ -672,7 +672,7 @@ namespace Pulsar::InventorySync::DirectRestore
         // For each entry: if the object pointer is NOT in keep[], zero out
         // every stack.count (offset +0x08 of each 0x10-byte stack). The
         // engine treats count=0 stacks as removed on next inventory walk.
-        // We do NOT swap-remove the entry from the array — that's UI
+        // We do NOT swap-remove the entry from the array - that's UI
         // cleanup the engine will do on its own at next save/load.
         //
         // Returns count of entries zeroed.
@@ -736,7 +736,7 @@ namespace Pulsar::InventorySync::DirectRestore
                         std::memset(entry, 0, 0x28);
                     }
                     *dataSizePtr = dataCount > 0 ? (dataCount - 1) : 0;
-                    // Don't ++i — re-check the swapped-in entry.
+                    // Don't ++i - re-check the swapped-in entry.
                 }
             } __except (EXCEPTION_EXECUTE_HANDLER) {
                 return zeroedEntries;
@@ -744,15 +744,15 @@ namespace Pulsar::InventorySync::DirectRestore
             return zeroedEntries;
         }
 
-        // V4.2 — walk the LIVE player inventory and diff it against the
+        // V4.2 - walk the LIVE player inventory and diff it against the
         // expected snapshot (g_expected) recorded at restore time. Logs a
         // per-form breakdown so a test run answers, unambiguously, whether
         // the player is holding their OWN items or the HOST's:
         //
-        //   matched   — form present with exactly the expected count (good)
-        //   COUNT     — form present but quantity differs (partial restore)
-        //   MISSING   — form expected but absent (our add failed / got wiped)
-        //   ALIEN     — form present that we never cached (= host leftover!)
+        //   matched   - form present with exactly the expected count (good)
+        //   COUNT     - form present but quantity differs (partial restore)
+        //   MISSING   - form expected but absent (our add failed / got wiped)
+        //   ALIEN     - form present that we never cached (= host leftover!)
         //
         // The SEH-protected raw walk runs in WalkInventoryToBuffer; all the
         // std-container diff work happens out here where destructibles are
@@ -820,7 +820,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 if (alienLogged < kDiagDetailMax) {
                     PLOG_WARN(
                         "[PULSAR] [DirectRestore] DIFF[{}] ALIEN "
-                        "form=0x{:08X} live={} (NOT in client cache — host item?)"sv,
+                        "form=0x{:08X} live={} (NOT in client cache - host item?)"sv,
                         a_tag, form ? form->formID : 0u, cnt);
                     ++alienLogged;
                 }
@@ -853,7 +853,7 @@ namespace Pulsar::InventorySync::DirectRestore
         }
     }
 
-    // Powers (gap #2) — is this a power-type spell we persist? In Starfield the
+    // Powers (gap #2) - is this a power-type spell we persist? In Starfield the
     // Starborn powers are SpellType **kSpell (0)** (verified in-game: a 24-power
     // char's +0x2c8 list held exactly 24 type-0 spells = the powers; the 45 type-4
     // kAbility entries were gear/trait abilities). Keep kPower/kLesserPower/
@@ -899,7 +899,7 @@ namespace Pulsar::InventorySync::DirectRestore
         __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
     }
 
-    // Research (gap #1) — manager singleton global (RVA 0x61E26A0; file scope to keep
+    // Research (gap #1) - manager singleton global (RVA 0x61E26A0; file scope to keep
     // the __try frame POD, C2712). Mirrors ClientProfile::SafeWalkResearch: walk the
     // std::map @ mgr+0x18 and collect formIDs of COMPLETED projects (state==2). Used
     // for the +10s snapshot reference. Returns nodes visited (-1 on fault).
@@ -941,7 +941,7 @@ namespace Pulsar::InventorySync::DirectRestore
         return total;
     }
 
-    // Research apply — walk ALL map nodes into POD arrays (formID/value-ptr/state)
+    // Research apply - walk ALL map nodes into POD arrays (formID/value-ptr/state)
     // and return the manager pointer via a_mgr (0 on fault/empty). POD __try frame.
     static int WalkResearchNodes(std::uint32_t* a_ids, std::uintptr_t* a_vals,
                                  std::uint8_t* a_states, int a_cap,
@@ -995,7 +995,7 @@ namespace Pulsar::InventorySync::DirectRestore
         __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
     }
 
-    // Research apply (gap #1) — for each DB-completed project present in the live map
+    // Research apply (gap #1) - for each DB-completed project present in the live map
     // with state != 2: replay the engine recipe-unlock then mark state=2. Crash-safe
     // (self-lookup, per-call SEH). No-op when the DB has no research or apply is off.
     static void ApplyResearch()
@@ -1053,17 +1053,17 @@ namespace Pulsar::InventorySync::DirectRestore
         } __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
     }
 
-    // A unification Phase 3 — seed the cache from the DB-backed client profile at
+    // A unification Phase 3 - seed the cache from the DB-backed client profile at
     // join (clean, host-free), breaking the poisoning bootstrap. Overwrites the
     // cache wholesale; the periodic capture then maintains it from the (now clean)
-    // live inventory. Base forms only (no ExtraData — mods deferred).
+    // live inventory. Base forms only (no ExtraData - mods deferred).
     void SeedCacheFromProfile(const std::vector<SeedItem>& items)
     {
         if (items.empty()) {
             PLOG_INFO("[PULSAR] [DirectRestore] SeedCacheFromProfile: empty, skip"sv);
             return;
         }
-        // Never overwrite the cache mid-bridge — a profile apply that races a bridge
+        // Never overwrite the cache mid-bridge - a profile apply that races a bridge
         // (e.g. a manual F-key restore while a save-load is in flight) would corrupt
         // the in-progress restore source. The join apply runs pre-bridge (unlocked).
         if (g_cacheLocked.load(std::memory_order_acquire)) {
@@ -1080,7 +1080,7 @@ namespace Pulsar::InventorySync::DirectRestore
             cs.count = static_cast<std::uint32_t>(s.count);  // extra left null = base form
             ci.stacks.push_back(std::move(cs));
             ci.equipped = s.equipped;
-            ci.mods = s.mods;                 // Phase B — carry the M.2 mods for re-apply
+            ci.mods = s.mods;                 // Phase B - carry the M.2 mods for re-apply
             ci.modSentinel = s.modSentinel;
             seeded[s.form] = std::move(ci);
             ++n; if (s.equipped) ++eq;
@@ -1096,10 +1096,10 @@ namespace Pulsar::InventorySync::DirectRestore
         // authoritative. The seed matters only if no live capture happens before
         // the bridge (e.g. cross-machine first join with no local loadout).
         PLOG_INFO("[PULSAR] [DirectRestore] SeedCacheFromProfile: seeded {} items "
-                  "({} equipped) from DB profile (fallback — live save overrides)"sv, n, eq);
+                  "({} equipped) from DB profile (fallback - live save overrides)"sv, n, eq);
     }
 
-    // Phase C — DB-authoritative flag.
+    // Phase C - DB-authoritative flag.
     void SetDbAuthoritative(bool a_on)
     {
         const bool prev = g_dbAuthoritative.exchange(a_on, std::memory_order_acq_rel);
@@ -1112,7 +1112,7 @@ namespace Pulsar::InventorySync::DirectRestore
         return g_dbAuthoritative.load(std::memory_order_acquire);
     }
 
-    // Phase C3 — co-op gains baseline snapshot (taken at +10s post-restore).
+    // Phase C3 - co-op gains baseline snapshot (taken at +10s post-restore).
     bool IsGainsSnapshotValid()
     {
         return g_gainsSnapValid.load(std::memory_order_acquire);
@@ -1131,7 +1131,7 @@ namespace Pulsar::InventorySync::DirectRestore
     }
     bool GetGainsSnapshotPowers(std::vector<std::uint32_t>& a_outPowers)
     {
-        // B1: require BOTH the overall snapshot AND the powers walk to have succeeded —
+        // B1: require BOTH the overall snapshot AND the powers walk to have succeeded -
         // else the empty set would poison the DB with foreign powers via the set-delta.
         if (!g_gainsSnapValid.load(std::memory_order_acquire) ||
             !g_gainsSnapPowersValid.load(std::memory_order_acquire)) return false;
@@ -1148,7 +1148,7 @@ namespace Pulsar::InventorySync::DirectRestore
         return true;
     }
 
-    // #poison-guard — host-exclusive item forms recorded across bridges this
+    // #poison-guard - host-exclusive item forms recorded across bridges this
     // session. ClientProfile excludes these from the DB gains upload.
     void GetForeignItemSet(std::unordered_set<std::uint32_t>& a_out)
     {
@@ -1161,7 +1161,7 @@ namespace Pulsar::InventorySync::DirectRestore
         a_out = g_foreignPerkSet;
     }
 
-    // Phase C — seed the AV baselines from the DB profile so RestoreClientState's
+    // Phase C - seed the AV baselines from the DB profile so RestoreClientState's
     // existing AV apply restores the DB's progression (not a live capture). Same
     // thresholds the live capture uses (DirectRestore.cpp ~779-795).
     void SeedAVsFromProfile(float a_o2Base, float a_o2Max,
@@ -1175,15 +1175,15 @@ namespace Pulsar::InventorySync::DirectRestore
                   a_o2Base, a_o2Max, a_healthBase, a_carryBase);
     }
 
-    // Phase C3 — seed the DB credits for the +10s re-apply.
+    // Phase C3 - seed the DB credits for the +10s re-apply.
     void SeedCreditsFromProfile(std::uint32_t a_credits)
     {
         g_savedCredits.store(a_credits, std::memory_order_release);
         PLOG_INFO("[PULSAR] [DirectRestore] SeedCreditsFromProfile: {}"sv, a_credits);
     }
 
-    // Phase C — seed the perk snapshot + skill points from the DB profile. Empty
-    // perk list is a NO-OP (never wipe g_perkSnap — an empty snapshot makes
+    // Phase C - seed the perk snapshot + skill points from the DB profile. Empty
+    // perk list is a NO-OP (never wipe g_perkSnap - an empty snapshot makes
     // ApplyPerksReplace skip the strip, so wiping would leak the loaded save's perks).
     void SeedPerksFromProfile(
         const std::vector<std::pair<std::uint32_t, std::int8_t>>& a_perks,
@@ -1203,7 +1203,7 @@ namespace Pulsar::InventorySync::DirectRestore
                   a_perks.size(), a_skillPoints);
     }
 
-    // Powers (gap #2) — seed the DB powers for additive re-apply. Empty list is a
+    // Powers (gap #2) - seed the DB powers for additive re-apply. Empty list is a
     // no-op (leaves g_powerSnap as-is); additive apply never strips, so an empty
     // seed simply restores nothing (the common case: most players have no powers).
     void SeedPowersFromProfile(const std::vector<std::uint32_t>& a_powers)
@@ -1214,7 +1214,7 @@ namespace Pulsar::InventorySync::DirectRestore
                   a_powers.size());
     }
 
-    // Research (gap #1) — seed the DB's completed-research formIDs for the post-bridge
+    // Research (gap #1) - seed the DB's completed-research formIDs for the post-bridge
     // replay (ApplyResearch). Empty = no-op.
     void SeedResearchFromProfile(const std::vector<std::uint32_t>& a_research)
     {
@@ -1226,7 +1226,7 @@ namespace Pulsar::InventorySync::DirectRestore
 
     void CaptureClientState()
     {
-        // V3.3 — bridge transition lockout. While a save bridge is being
+        // V3.3 - bridge transition lockout. While a save bridge is being
         // applied by the engine the live inventory transitions through
         // (client items → empty → host items). Letting any capture fire
         // during this window poisons the cache with host's items, which
@@ -1239,26 +1239,26 @@ namespace Pulsar::InventorySync::DirectRestore
                 "(bridge in progress), skip"sv);
             return;
         }
-        // Phase C — DB-authoritative: the DB seed (items+AVs+perks) is the restore
+        // Phase C - DB-authoritative: the DB seed (items+AVs+perks) is the restore
         // source for every join. Suppress ALL live capture so the seed survives the
         // bridge regardless of which save is loaded. This is the same suppression as
         // the foreign path below, generalised from "hp says foreign" to "DB is the
         // source of truth".
         if (g_dbAuthoritative.load(std::memory_order_acquire)) {
             PLOG_INFO(
-                "[PULSAR] [DirectRestore] CaptureClientState: DB-authoritative — "
+                "[PULSAR] [DirectRestore] CaptureClientState: DB-authoritative - "
                 "skip (DB seed is the restore source)"sv);
             return;
         }
         // The loaded save is NOT the client's own character (a foreign/host save,
-        // e.g. the co-op auto-save). Do NOT capture its inventory — that would
+        // e.g. the co-op auto-save). Do NOT capture its inventory - that would
         // overwrite the DB-profile seed (the client's own loadout) with host
         // items, and the bridge restore would then put host items back. Keeping
         // the seed makes the restore source the client's DB loadout instead.
         if (!g_loadedSaveIsOwn.load(std::memory_order_acquire)) {
             PLOG_INFO(
                 "[PULSAR] [DirectRestore] CaptureClientState: foreign/host save "
-                "loaded — skip (keeping DB seed as restore source)"sv);
+                "loaded - skip (keeping DB seed as restore source)"sv);
             return;
         }
         auto* player = RE::PlayerCharacter::GetSingleton();
@@ -1270,12 +1270,12 @@ namespace Pulsar::InventorySync::DirectRestore
 
         // A unification (save-authoritative, user decision 2026-06-18): the
         // client's LIVE pre-bridge save is the authoritative item source. The
-        // live capture always runs and OVERWRITES any earlier DB-profile seed —
+        // live capture always runs and OVERWRITES any earlier DB-profile seed -
         // the seed is only a fallback (cross-machine / no local inventory). The
         // g_cacheLocked check above still blocks EVERYTHING mid-bridge (the live
         // state is transitioning to host's there), so this can't capture host's
         // items; it captures the client's own save. Perks/skill-points/AVs are
-        // snapshotted further down (always — the client's own pre-bridge state).
+        // snapshotted further down (always - the client's own pre-bridge state).
         {
             std::unordered_map<RE::TESBoundObject*, CachedItem> snap;
             const bool ok = WalkInventory(player, snap);
@@ -1285,7 +1285,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 return;
             }
 
-            // Diagnostic — log first 16 items with stack count + total units.
+            // Diagnostic - log first 16 items with stack count + total units.
             std::uint32_t logged = 0;
             std::uint64_t totalUnits = 0;
             std::uint32_t equippedSize = 0;
@@ -1315,7 +1315,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 CachedItemCount(), equippedSize, totalUnits);
         }
 
-        // V4.6 — log vital AVs on every capture (~5s) so we get the PRE-bridge
+        // V4.6 - log vital AVs on every capture (~5s) so we get the PRE-bridge
         // baseline AND an O2-regen-at-rest timeline to compare against the
         // post-restore AV[auto+10s] values. Tells us if the bridge breaks the
         // O2 max or if O2 simply isn't regenerating.
@@ -1333,7 +1333,7 @@ namespace Pulsar::InventorySync::DirectRestore
             logAV("Oxygen");
             logAV("CarryWeight");
 
-            // V4.7 — snapshot the client's good O2 max. This runs only when
+            // V4.7 - snapshot the client's good O2 max. This runs only when
             // captures are unlocked (i.e. normal play, NOT during the bridge),
             // so it holds the last pre-bridge value through the bridge window.
             if (auto* o2 = RE::TESForm::LookupByEditorID<RE::ActorValueInfo>(
@@ -1345,7 +1345,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 const float base = player->GetBaseActorValue(*o2);
                 if (base > 1.0f) g_savedO2Base.store(base);
             }
-            // Health + CarryWeight BASE (level-derived, mods excluded) — same
+            // Health + CarryWeight BASE (level-derived, mods excluded) - same
             // pre-bridge snapshot so the client's real power survives the bridge.
             if (auto* hp = RE::TESForm::LookupByEditorID<RE::ActorValueInfo>(
                     RE::BSFixedString("Health"))) {
@@ -1359,8 +1359,8 @@ namespace Pulsar::InventorySync::DirectRestore
             }
         }
 
-        // Stage-1 — capture the client's own perks (pre-bridge). The SEH walk
-        // lives in WalkPerks (a function with no unwinding objects — required
+        // Stage-1 - capture the client's own perks (pre-bridge). The SEH walk
+        // lives in WalkPerks (a function with no unwinding objects - required
         // because __try cannot share a frame with C++ destructible locals,
         // C2712). Only runs while captures are unlocked, so it holds the
         // client's perks across the bridge window.
@@ -1376,7 +1376,7 @@ namespace Pulsar::InventorySync::DirectRestore
             PLOG_INFO("[PULSAR] [DirectRestore] perk capture: {} perks"sv, n);
         }
 
-        // Stage-1 — capture the client's own available skill points (pre-bridge).
+        // Stage-1 - capture the client's own available skill points (pre-bridge).
         // Held across the bridge like g_savedO2Max (capture only runs when unlocked).
         {
             std::uint32_t sp = 0;
@@ -1388,7 +1388,7 @@ namespace Pulsar::InventorySync::DirectRestore
     }
 
     // SEH-isolated engine call (C2712: __try cannot share a frame with C++
-    // unwinding objects — the same trap WalkPerks avoids; ApplyPerksAdditive
+    // unwinding objects - the same trap WalkPerks avoids; ApplyPerksAdditive
     // holds a vector).
     static bool SafeAddPerk(RE::Actor* a_actor, RE::BGSPerk* a_perk, std::uint8_t a_rank)
     {
@@ -1463,15 +1463,15 @@ namespace Pulsar::InventorySync::DirectRestore
                   applied, already, missing);
     }
 
-    // Clean perk REPLACEMENT — converge the player's perk set to EXACTLY the
+    // Clean perk REPLACEMENT - converge the player's perk set to EXACTLY the
     // client's captured set. Post-bridge the player carries the HOST's perks; we
     // (1) strip every LIVE perk that the client doesn't have (or has at a
     // different rank), then (2) ApplyPerksAdditive to (re-)add the client's set
     // at the captured ranks. Net result: the client ends up with only their own
-    // perks/skills — fixes "Client hat die Skills von Host".
+    // perks/skills - fixes "Client hat die Skills von Host".
     //
     // SAFETY: if the client snapshot is EMPTY (pre-bridge capture failed), do
-    // NOT strip anything — removing all perks with nothing to re-add is worse
+    // NOT strip anything - removing all perks with nothing to re-add is worse
     // than the leak. In that case keep the live perks untouched.
     static void ApplyPerksReplace(RE::PlayerCharacter* a_player)
     {
@@ -1484,7 +1484,7 @@ namespace Pulsar::InventorySync::DirectRestore
         std::vector<PerkSnap> want;
         { std::lock_guard lk(g_perkMu); want = g_perkSnap; }
         if (want.empty()) {
-            PLOG_WARN("[PULSAR] [DirectRestore] perk replace: client snapshot EMPTY — "
+            PLOG_WARN("[PULSAR] [DirectRestore] perk replace: client snapshot EMPTY - "
                       "NOT stripping host perks (would leave the player with none)"sv);
             return;
         }
@@ -1493,7 +1493,7 @@ namespace Pulsar::InventorySync::DirectRestore
         std::unordered_map<std::uint32_t, std::int8_t> wantRank;
         for (const auto& p : want) wantRank[p.formID] = p.rank;
 
-        // Snapshot the LIVE (host) perks BEFORE mutating — RemovePerk edits the
+        // Snapshot the LIVE (host) perks BEFORE mutating - RemovePerk edits the
         // same array WalkPerks reads.
         std::vector<PerkSnap> live;
         WalkPerks(a_player, live);
@@ -1515,7 +1515,7 @@ namespace Pulsar::InventorySync::DirectRestore
         ApplyPerksAdditive(a_player);
     }
 
-    // Powers (gap #2) — ADDITIVELY re-add the DB's powers. Never strips (foreign/
+    // Powers (gap #2) - ADDITIVELY re-add the DB's powers. Never strips (foreign/
     // quest spells are left untouched; the capture-side set-delta cancels foreign
     // powers so they don't enter the DB). AddSpell is HasSpell-guarded → re-adding
     // an existing power is a no-op. Empty seed → nothing to do.
@@ -1539,7 +1539,7 @@ namespace Pulsar::InventorySync::DirectRestore
 
     void RestoreClientState()
     {
-        // V3.3 — guarantee unlock on every return path. The lock is set
+        // V3.3 - guarantee unlock on every return path. The lock is set
         // in WorldSync::OnSaveReceived; leaving it set after any restore
         // early-return would freeze the cache for the rest of the session.
         struct UnlockOnExit {
@@ -1559,7 +1559,7 @@ namespace Pulsar::InventorySync::DirectRestore
             return;
         }
 
-        // V4 — move the rich cache out under the lock. We MOVE rather than
+        // V4 - move the rich cache out under the lock. We MOVE rather than
         // copy because the cache holds BSTSmartPointers; copying would
         // double the refcount briefly (harmless but wasteful). After move,
         // g_cache is empty; Reset() at session end clears it formally.
@@ -1572,12 +1572,12 @@ namespace Pulsar::InventorySync::DirectRestore
 
         if (cached.empty()) {
             PLOG_WARN(
-                "[PULSAR] [DirectRestore] RestoreClientState: cache is EMPTY — "
+                "[PULSAR] [DirectRestore] RestoreClientState: cache is EMPTY - "
                 "skipping restore."sv);
             return;
         }
 
-        // V4.8 — capture O2 max from the freshly-loaded HOST save, BEFORE the
+        // V4.8 - capture O2 max from the freshly-loaded HOST save, BEFORE the
         // wipe below. Evidence (2026-05-25): host=125, client=5; the client's
         // pre-bridge capture ALSO reads 5, so the save is already corrupted and
         // g_savedO2Max (fed by the periodic capture) never sees a good value.
@@ -1611,10 +1611,10 @@ namespace Pulsar::InventorySync::DirectRestore
         const bool prevReplay =
             Pulsar::WorldSync::Loot::SetReplayingFromPacket(true);
 
-        // V4.3 — clear the actor's CURRENT worn-state BEFORE wiping. The
+        // V4.3 - clear the actor's CURRENT worn-state BEFORE wiping. The
         // bridge equipped HOST's gear; the actor's worn-list + biped 3D now
         // reference host items. Our raw-wipe removes those host items from
-        // the container, but the worn-list still points at them — so the
+        // the container, but the worn-list still points at them - so the
         // client visually wears host's suit/weapon ("client gets host items"),
         // the equip manager is jammed (can't equip anything new), and the
         // player has no functional armor (dies "no suit"). Pass 3's unequip
@@ -1623,7 +1623,7 @@ namespace Pulsar::InventorySync::DirectRestore
         // (host's forms) and unequip each, leaving a clean slate for the
         // fresh client re-equip after the add.
         {
-            // ghostfix-v2 — capture object + actual worn instance so we can both
+            // ghostfix-v2 - capture object + actual worn instance so we can both
             // unequip with it AND diagnose why a worn item won't unequip.
             struct Worn { RE::TESBoundObject* obj; RE::TBO_InstanceData* inst; };
             std::vector<Worn> nowWorn;
@@ -1653,7 +1653,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 nowWorn.size(), hostUnequipped, g_pendingGhostUnequip.size());
         }
 
-        // #poison-guard (overnight 2026-06-24) — before the wipe, the live
+        // #poison-guard (overnight 2026-06-24) - before the wipe, the live
         // inventory is the HOST's bridged items (the client's own are held in the
         // smart-ptr `cached`). Record every live form NOT in `cached` as a
         // host-exclusive form. ClientProfile's DB gains delta-merge excludes these
@@ -1662,7 +1662,7 @@ namespace Pulsar::InventorySync::DirectRestore
         //
         // ONLY when a FOREIGN/host save was actually loaded (LoadedSaveIsOwn==false).
         // In the manual-TP path (own save loaded, no host items applied) the live
-        // inventory is the CLIENT's own — capturing "live not in cache" there would
+        // inventory is the CLIENT's own - capturing "live not in cache" there would
         // wrongly flag a recently-looted-but-not-yet-in-DB client item as foreign
         // and permanently drop it from the gains upload. Gating on a foreign load
         // keeps the capture to the only window where host items are actually present.
@@ -1684,7 +1684,7 @@ namespace Pulsar::InventorySync::DirectRestore
                     foreign.size(), g_foreignItemSet.size());
             }
 
-            // SKILLS/PERKS — same guard. Live perks here are the HOST's (before
+            // SKILLS/PERKS - same guard. Live perks here are the HOST's (before
             // ApplyPerksReplace strips them); any not in the client's seeded DB
             // perk set (g_perkSnap) is a host-exclusive perk. Record it so the perk
             // delta-upload in ClientProfile never persists a host perk as ours.
@@ -1708,17 +1708,17 @@ namespace Pulsar::InventorySync::DirectRestore
             }
         }
 
-        // NOTE — V4.4 engine-path pre-remove (AddObjectToContainer(-count) over
+        // NOTE - V4.4 engine-path pre-remove (AddObjectToContainer(-count) over
         // all current items to fire UI removal events) was REVERTED: it froze
         // the game thread mid-bridge (2026-05-24, hang right after the pre-wipe
         // unequip line, no "engine-path pre-remove" log → deadlock inside the
         // negative-count remove loop, likely a synchronous container/UI event
         // re-entering during the bridge window). UI ghosts are a lesser evil
         // than a freeze. A safe UI refresh must avoid mass engine-path mutation
-        // during the bridge — revisit with a single post-restore menu refresh
+        // during the bridge - revisit with a single post-restore menu refresh
         // outside the locked window instead.
 
-        // V4.1 — Pass 2 wipes ALL items unconditionally (empty keep-set).
+        // V4.1 - Pass 2 wipes ALL items unconditionally (empty keep-set).
         // V4 used the cache forms as keep-set to preserve overlapping
         // entries, but Pass 1's per-stack add was unconditional → if the
         // bridge didn't apply (manual-TP path: non-proc cells) the player
@@ -1735,7 +1735,7 @@ namespace Pulsar::InventorySync::DirectRestore
         // backing inventory entry. The ghost bug: UnequipObject can't clear a
         // bridged worn item mid-bridge (unequipped=0), and raw-wiping an item
         // that is still equipped leaves a dangling worn-3D binding with NO
-        // inventory entry — an unkillable cosmetic ghost (no entry → nothing for
+        // inventory entry - an unkillable cosmetic ghost (no entry → nothing for
         // unequip OR RemoveItem to grab; observed DIFF alien=0 yet 2 host weapons
         // rendered). Keeping the entry means the worn slot stays backed by a real
         // entry, so the settled-window engine RemoveItem (RemoveForeignGhosts at
@@ -1752,7 +1752,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 "[PULSAR] [DirectRestore] wipe kept {} host worn form(s) for "
                 "settled-window RemoveItem []"sv, keepGhosts.size());
 
-        // Pass 1 V4 — for each cached item, for each cached stack, call
+        // Pass 1 V4 - for each cached item, for each cached stack, call
         // AddObjectToContainer with the HELD ExtraDataList smart pointer.
         // Engine wraps the item-add with proper ExtraData attachment,
         // equip-slot bookkeeping, UI event firing. The smart pointer's
@@ -1770,7 +1770,7 @@ namespace Pulsar::InventorySync::DirectRestore
         std::uint32_t modsApplied = 0;  // Phase B 
         // NOTE on credits (form 0x0000000F): null-extra add made it WORSE
         // (2026-05-24: with cached extra → 4,000 survived; with null extra →
-        // 0, MISSING). Money is not a plain inventory stack — its count lives
+        // 0, MISSING). Money is not a plain inventory stack - its count lives
         // elsewhere and AddObjectToContainer doesn't drive it. Tracked as a
         // separate sub-fix; here we just keep the cached extra (least-broken).
         for (auto& [form, ci] : cached) {
@@ -1796,7 +1796,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 itemAdded = true;
             }
             if (itemAdded) ++addedItems;
-            // Phase B  — seed-sourced items are base forms; the stored
+            // Phase B  - seed-sourced items are base forms; the stored
             // M.2 mods are carried in ci.mods. Re-apply them via the engine's
             // OWN per-entry attach core (AttachItemModsNative → FUN_14063de80):
             // allocates the kObjectInstance, grows the array, correct slots.
@@ -1808,7 +1808,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 std::uint32_t n = Pulsar::WorldSync::Loot::AttachItemModsNative(
                     player, form->GetFormID(), ci.mods, ci.modSentinel);
                 if (n > 0) ++modsApplied;
-                // modfix safety net — read the mods back off the just-restored item;
+                // modfix safety net - read the mods back off the just-restored item;
                 // WARN only if the count differs from the captured set (a faithful
                 // restore is silent). The full exp/act dump was the dev diagnostic;
                 // the alarm stays so a future regression (base-default overstack) shows.
@@ -1824,7 +1824,7 @@ namespace Pulsar::InventorySync::DirectRestore
             }
         }
 
-        // Pass 3 — re-equip via ActorEquipManager. Many items will be
+        // Pass 3 - re-equip via ActorEquipManager. Many items will be
         // auto-equipped by virtue of their ExtraDataList carrying equip
         // flags, but the explicit EquipObject call is a belt-and-suspenders
         // safeguard for primary-slot items.
@@ -1832,7 +1832,7 @@ namespace Pulsar::InventorySync::DirectRestore
         std::uint32_t equippedFail = 0;
         for (auto& [form, ci] : cached) {
             if (!form || !ci.equipped) continue;
-            // V4.2 — force a genuine equip cycle. The re-added item carries
+            // V4.2 - force a genuine equip cycle. The re-added item carries
             // a stale 'worn' flag in its ExtraData, so the inventory shows it
             // equipped (equipped=4 in capture logs) but the bridge load tore
             // down the actor's biped 3D + ActorValue armor modifiers and
@@ -1851,7 +1851,7 @@ namespace Pulsar::InventorySync::DirectRestore
             }
         }
 
-        // Bug-B (adjacent, 2026-06-18) — VERIFY the re-equip actually took.
+        // Bug-B (adjacent, 2026-06-18) - VERIFY the re-equip actually took.
         // Symptom: client joins with no visible weapon in hand. The unequip→equip
         // cycle above can silently no-op post-bridge (engine equip-manager jammed
         // mid-load), leaving the weapon in inventory but not worn. Re-check each
@@ -1882,7 +1882,7 @@ namespace Pulsar::InventorySync::DirectRestore
                       eqVerified, eqRetried, eqStillFail);
         }
 
-        // V4.2 — rebuild the player's 3D so the freshly re-equipped armor
+        // V4.2 - rebuild the player's 3D so the freshly re-equipped armor
         // biped renders and its modifiers apply. Same flag the clone equip
         // path uses (RemotePlayerManager: Set3DUpdateFlag(0x400)). Fire AFTER the
         // verify-retry so a retried weapon also gets its 3D rebuild (Bug-B render).
@@ -1900,7 +1900,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 if (auto* o2 = RE::TESForm::LookupByEditorID<RE::ActorValueInfo>(
                         RE::BSFixedString("Oxygen"))) {
                     const float before = player->GetBaseActorValue(*o2);
-                    player->SetBaseActorValue(*o2, o2Base);  // base only — suit re-applies on top
+                    player->SetBaseActorValue(*o2, o2Base);  // base only - suit re-applies on top
                     player->SetActorValue(*o2, o2Base);      // partial refill; suit capacity regens
                     PLOG_INFO(
                         "[PULSAR] [DirectRestore] O2 base restore: {:.1f} -> {:.1f} "
@@ -1909,18 +1909,18 @@ namespace Pulsar::InventorySync::DirectRestore
             }
         }
 
-        // Progression — converge the player's perks to EXACTLY the client's
+        // Progression - converge the player's perks to EXACTLY the client's
         // captured set now that inventory + O2 are back. Strips the host's perks
         // the bridge applied, then re-adds the client's (uses the pre-bridge
         // snapshot). Falls back to keeping live perks if the snapshot is empty.
         ApplyPerksReplace(player);
 
-        // Powers (gap #2) — additively re-add the DB's Starborn/lesser/voice powers
+        // Powers (gap #2) - additively re-add the DB's Starborn/lesser/voice powers
         // (HasSpell-guarded; never strips foreign/quest spells). No-op when the DB
         // holds no powers (the common case).
         ApplyPowersAdditive(player);
 
-        // Research (gap #1) — replay the engine's recipe-unlock for the DB's completed
+        // Research (gap #1) - replay the engine's recipe-unlock for the DB's completed
         // projects (crash-safe self-lookup + per-call SEH; no-op when DB has none).
         ApplyResearch();
 
@@ -1935,7 +1935,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 PLOG_INFO("[PULSAR] [DirectRestore] skill points restore: {} -> {}"sv, before, want);
         }
 
-        // Restore level-derived survivability (Health, CarryWeight) BASE — the
+        // Restore level-derived survivability (Health, CarryWeight) BASE - the
         // practical "your level travels" without touching XP/level-up. SetBase
         // only; gear/perk mods re-apply on top (captured value is base, no mods).
         {
@@ -1957,7 +1957,7 @@ namespace Pulsar::InventorySync::DirectRestore
             }
         }
 
-        // O2 (RE) — now that perks are replaced and AV bases restored, force
+        // O2 (RE) - now that perks are replaced and AV bases restored, force
         // the engine to recompute the perk-derived AVs (Fitness→Oxygen) so the
         // O2 bonus from the restored perks actually registers instead of the
         // async path landing on the un-perked value (base→0 → "out of stamina").
@@ -1973,7 +1973,7 @@ namespace Pulsar::InventorySync::DirectRestore
             zeroedEntries, addedItems, addedStacks, addedUnits, modsApplied,
             equippedOk, equippedFail, skipped, cached.size(), curItemCount);
 
-        // Phase A — host items are now wiped and the live inventory is the
+        // Phase A - host items are now wiped and the live inventory is the
         // client's own (restored items + any loot gained this session). From
         // here it is safe for the DB capture to track the client's progression.
         g_restoreComplete.store(true, std::memory_order_release);
@@ -1983,7 +1983,7 @@ namespace Pulsar::InventorySync::DirectRestore
         // after planet landings, where weather is regenerated per proc instance.
         Pulsar::TimeWeatherSync::RequestResync();
 
-        // V4.2 — record what we EXPECTED to put back, then diff against the
+        // V4.2 - record what we EXPECTED to put back, then diff against the
         // live inventory immediately. This is the diagnostic that answers
         // "does the player hold their own items or the host's?": ALIEN forms
         // are host leftovers, MISSING forms are adds that didn't take.
@@ -2007,7 +2007,7 @@ namespace Pulsar::InventorySync::DirectRestore
         g_restoreTickMs.store(::GetTickCount64(), std::memory_order_release);
         g_postRestoreStage.store(1, std::memory_order_release);
 
-        // V4 — explicitly release the cache here. Holding the smart pointers
+        // V4 - explicitly release the cache here. Holding the smart pointers
         // longer than necessary keeps ExtraDataList objects in memory and
         // would risk double-attachment if RestoreClientState fires twice.
         // (The cache will be re-filled by the next CaptureClientState.)
@@ -2019,19 +2019,19 @@ namespace Pulsar::InventorySync::DirectRestore
         std::lock_guard lk(g_cacheMu);
         g_cache.clear();  // smart pointers destruct → DecRef
         g_cacheValid.store(false, std::memory_order_release);
-        // Defensive — disconnect/reset should always release any held lock
+        // Defensive - disconnect/reset should always release any held lock
         // so the next session starts in a clean state.
         g_cacheLocked.store(false, std::memory_order_release);
         g_loadedSaveIsOwn.store(true, std::memory_order_release);  // default: assume own next session
         g_restoreComplete.store(false, std::memory_order_release);
         g_dbAuthoritative.store(false, std::memory_order_release); // re-evaluated per-join by ApplyProfileData
-        g_gainsSnapValid.store(false, std::memory_order_release);  // Phase C3 — invalidate gains baseline
+        g_gainsSnapValid.store(false, std::memory_order_release);  // Phase C3 - invalidate gains baseline
         g_gainsSnapPowersValid.store(false, std::memory_order_release);   // B1
         g_gainsSnapResearchValid.store(false, std::memory_order_release); // B1
         { std::lock_guard lk(g_gainsSnapMu); g_gainsSnap.clear(); g_gainsSnapCredits = 0; g_gainsSnapLevel = 0; g_gainsSnapXP = 0.0f; g_gainsSnapPowers.clear(); g_gainsSnapResearch.clear(); }
-        { std::lock_guard lk(g_powerMu); g_powerSnap.clear(); }       // Powers — drop seeded set
-        { std::lock_guard lk(g_researchMu); g_researchSnap.clear(); } // Research — drop seeded set
-        { std::lock_guard lk(g_foreignMu); g_foreignItemSet.clear(); g_foreignPerkSet.clear(); } // #poison — fresh session, no foreign carryover
+        { std::lock_guard lk(g_powerMu); g_powerSnap.clear(); }       // Powers - drop seeded set
+        { std::lock_guard lk(g_researchMu); g_researchSnap.clear(); } // Research - drop seeded set
+        { std::lock_guard lk(g_foreignMu); g_foreignItemSet.clear(); g_foreignPerkSet.clear(); } // #poison - fresh session, no foreign carryover
     }
 
     void LockCache()
@@ -2040,10 +2040,10 @@ namespace Pulsar::InventorySync::DirectRestore
         // inventory is a host-merge; freeze the clean DB-profile auto-capture
         // for the rest of this launch (anti-poison, Bug A).
         g_bridgedThisSession.store(true, std::memory_order_release);
-        // The upcoming bridge re-merges host state — the live inventory is no
+        // The upcoming bridge re-merges host state - the live inventory is no
         // longer the client's until RestoreClientState runs again (Phase A).
         g_restoreComplete.store(false, std::memory_order_release);
-        // Phase C3 — a fresh bridge invalidates the gains baseline; a new one is
+        // Phase C3 - a fresh bridge invalidates the gains baseline; a new one is
         // taken at the next +10s. Until then IsGainsSnapshotValid()=false gates
         // the gains upload so we never full-capture mid-restore (would drift).
         g_gainsSnapValid.store(false, std::memory_order_release);
@@ -2052,7 +2052,7 @@ namespace Pulsar::InventorySync::DirectRestore
         const bool prev = g_cacheLocked.exchange(true, std::memory_order_acq_rel);
         if (!prev) {
             PLOG_INFO(
-                "[PULSAR] [DirectRestore] LockCache — captures frozen until restore"sv);
+                "[PULSAR] [DirectRestore] LockCache - captures frozen until restore"sv);
         }
     }
 
@@ -2061,7 +2061,7 @@ namespace Pulsar::InventorySync::DirectRestore
         const bool prev = g_cacheLocked.exchange(false, std::memory_order_acq_rel);
         if (prev) {
             PLOG_INFO(
-                "[PULSAR] [DirectRestore] UnlockCache — captures resume"sv);
+                "[PULSAR] [DirectRestore] UnlockCache - captures resume"sv);
         }
     }
 
@@ -2090,7 +2090,7 @@ namespace Pulsar::InventorySync::DirectRestore
     {
         const bool prev = g_loadedSaveIsOwn.exchange(a_own, std::memory_order_acq_rel);
         if (prev != a_own) {
-            PLOG_INFO("[PULSAR] [DirectRestore] LoadedSaveIsOwn = {} (was {}) — {}"sv,
+            PLOG_INFO("[PULSAR] [DirectRestore] LoadedSaveIsOwn = {} (was {}) - {}"sv,
                       a_own, prev,
                       a_own ? "save-authoritative (own save)"sv
                             : "DB-authoritative (foreign/host save loaded)"sv);
@@ -2113,7 +2113,7 @@ namespace Pulsar::InventorySync::DirectRestore
     //   refr  + 0x0B0 → parentCell
     //   list  + 0x028 → dataSize (uint32, populated entry count)
     //
-    // V3.2 (2026-05-17) — `invList != nullptr` is NOT sufficient: the
+    // V3.2 (2026-05-17) - `invList != nullptr` is NOT sufficient: the
     // engine creates the inventoryList struct very early in save load but
     // populates `dataSize` ~10s later (observed gap in 12:13:31→12:13:41
     // run). Without the dataSize check, Connect dequeues immediately,
@@ -2122,7 +2122,7 @@ namespace Pulsar::InventorySync::DirectRestore
     // delays Connect until items are materialised so the periodic capture
     // sees client's REAL inventory before the bridge fires.
     //
-    // Edge case — brand-new character with truly empty inventory: never
+    // Edge case - brand-new character with truly empty inventory: never
     // gates open. Not a practical concern (Starfield starter saves always
     // have suit/weapon/credits). If it ever matters, add a 30s fallback
     // timer after `cell != nullptr` first reports true.
@@ -2146,7 +2146,7 @@ namespace Pulsar::InventorySync::DirectRestore
         return ready;
     }
 
-    // V3 — game-thread periodic capture. Two cadences:
+    // V3 - game-thread periodic capture. Two cadences:
     // Player just became ready (transition false→true): capture
     //     immediately so a Connect attempted ms later already has cache.
     // Steady-state: re-capture every kPeriodMs to keep cache fresh
@@ -2160,7 +2160,7 @@ namespace Pulsar::InventorySync::DirectRestore
         const bool ready = IsPlayerReadyForConnect();
         const bool prevReady = s_lastReady.exchange(ready, std::memory_order_acq_rel);
         if (!ready) {
-            return;  // main menu / loading — nothing to capture
+            return;  // main menu / loading - nothing to capture
         }
 
         const std::uint64_t now = ::GetTickCount64();
@@ -2177,7 +2177,7 @@ namespace Pulsar::InventorySync::DirectRestore
         CaptureClientState();
     }
 
-    // GROUND-TRUTH DUMP — what does the ENGINE's own inventory iterator
+    // GROUND-TRUTH DUMP - what does the ENGINE's own inventory iterator
     // (ForEachInventoryItem, what the menu reads) return AFTER our cleanup? Logs
     // every host-exclusive form still present + its equip state. If hostItems=0
     // here but the user still sees ghosts → pure menu/UI cache (need a UI refresh
@@ -2220,11 +2220,11 @@ namespace Pulsar::InventorySync::DirectRestore
     // client's own freshly-looted co-op item is NEVER removed: only items the
     // bridge actually carried over from the host. No-op unless a foreign/host
     // save was bridged (LoadedSaveIsOwn==false).
-    // DIAG — probe WHY UnequipObject rejects the player's bridged worn
+    // DIAG - probe WHY UnequipObject rejects the player's bridged worn
     // gear (cleared=0) while it works on the clone. Runs at +5s BEFORE the
     // RemoveItem pass, so the kept host forms still have entries + worn state.
     // For each pending ghost form, logs: is it in inventory, IsEquipped flag,
-    // instance pointer, formType — then tries unequip TWO ways (null instance =
+    // instance pointer, formType - then tries unequip TWO ways (null instance =
     // the clone's working call, and the inventory instance) and logs each return
     // + the IsEquipped state after. If the null-instance call clears it, that is
     // also the fix (RemoveForeignGhosts then removes the freed entry cleanly).
@@ -2268,14 +2268,14 @@ namespace Pulsar::InventorySync::DirectRestore
                       reinterpret_cast<const void*>(inst));
             if (!mgr) continue;
 
-            // Attempt 1 — null instance (the clone's working call).
+            // Attempt 1 - null instance (the clone's working call).
             RE::BGSObjectInstance iNull(bo, nullptr);
             const bool rNull = unequipFn(mgr, player, iNull, nullptr,
                                          false, true, false, true, nullptr);
             bool f1 = false, eq1 = false; RE::TBO_InstanceData* i1 = nullptr;
             probe(bo, f1, eq1, i1);
 
-            // Attempt 2 — inventory instance (only if still equipped).
+            // Attempt 2 - inventory instance (only if still equipped).
             bool rInst = false, eq2 = eq1;
             if (eq1 && inst) {
                 RE::BGSObjectInstance iInv(bo, inst);
@@ -2303,7 +2303,7 @@ namespace Pulsar::InventorySync::DirectRestore
         { std::lock_guard lk(g_foreignMu); foreign = g_foreignItemSet; }
         if (foreign.empty()) return 0;
 
-        // Currently-equipped forms — NEVER swap-remove an equipped entry (it
+        // Currently-equipped forms - NEVER swap-remove an equipped entry (it
         // would dangle the worn slot → crash). Host worn items that the client's
         // re-equip swapped out are no longer equipped, so they still get swept;
         // a host item that stayed equipped (slot the client doesn't fill) is
@@ -2316,7 +2316,7 @@ namespace Pulsar::InventorySync::DirectRestore
             return RE::BSContainer::ForEachResult::kContinue;
         });
 
-        // EVERY entry obj incl count=0 — the menu renders count=0 host leftovers
+        // EVERY entry obj incl count=0 - the menu renders count=0 host leftovers
         // (raw-wipe zeroes but doesn't collapse them; the diff walk skips them).
         std::vector<RE::TESBoundObject*> allObjs(kMaxItems, nullptr);
         const std::size_t n = WalkAllEntryObjs(
@@ -2328,7 +2328,7 @@ namespace Pulsar::InventorySync::DirectRestore
             auto* obj = allObjs[i];
             if (!obj || !seen.insert(obj).second) continue;
             if (expected.find(obj) != expected.end()) continue;   // client's own
-            if (equipped.count(obj)) continue;                    // still worn — skip (safety)
+            if (equipped.count(obj)) continue;                    // still worn - skip (safety)
             if (!foreign.count(obj->GetFormID())) continue;       // not a host item
             toRemove.push_back(obj);
         }
@@ -2338,11 +2338,11 @@ namespace Pulsar::InventorySync::DirectRestore
         // (AddObjectToContainer with negative delta, to fire the
         // BGSInventoryListEvent the UI-agent cache listens to) DEADLOCKED the game
         // thread even in this settled window (froze right after DIFF[+5s], no
-        // sweep log, only the net thread kept logging — same hang as the V4.4
+        // sweep log, only the net thread kept logging - same hang as the V4.4
         // mid-bridge mass remove). The negative-delta path is OFF-LIMITS. We use
         // ONLY the raw swap-remove: it keeps the container + DB clean (verified)
         // but cannot touch the BGSInventoryInterface UI-agent cache, so the
-        // in-game menu still renders the ghosts — deferred to a UI-RE pass that
+        // in-game menu still renders the ghosts - deferred to a UI-RE pass that
         // edits the agent array directly (no engine UI event = no deadlock).
         const bool prevReplay =
             Pulsar::WorldSync::Loot::SetReplayingFromPacket(true);
@@ -2365,7 +2365,7 @@ namespace Pulsar::InventorySync::DirectRestore
         return removed;
     }
 
-    // V4.2 — game-thread tick. After a restore arms it (g_postRestoreStage=1),
+    // V4.2 - game-thread tick. After a restore arms it (g_postRestoreStage=1),
     // re-runs the live-inventory diff at ~+5s and ~+10s, then disarms. Cheap
     // no-op when not armed. Lets us see whether another sync module overwrites
     // our restore shortly after it completes.
@@ -2380,13 +2380,13 @@ namespace Pulsar::InventorySync::DirectRestore
 
         if (stage == 1 && elapsed >= 5000) {
             LogLiveDiff("+5s");
-            // DIAG — probe the ghost unequip BEFORE Bug-B clears the pending
+            // DIAG - probe the ghost unequip BEFORE Bug-B clears the pending
             // list + before RemoveForeignGhosts removes the entries.
             DiagGhostUnequip("+5s");
             PLOG_INFO("[PULSAR] [DirectRestore] perk watch[+5s]: live perks={}"sv, LivePerkCount());
-            // Bug B (2026-06-18) — re-attach equipped gear 3D now that the post-bridge
+            // Bug B (2026-06-18) - re-attach equipped gear 3D now that the post-bridge
             // biped rebuild has SETTLED. RestoreClientState equipped items logically
-            // (equippedOk=N, IsEquipped=true) but the weapon/armor 3D didn't render —
+            // (equippedOk=N, IsEquipped=true) but the weapon/armor 3D didn't render -
             // the in-restore re-equip ran while the actor's 3D was still mid-rebuild,
             // so the model never attached ("weapon equipped but invisible"). The
             // in-restore equip-verify sees IsEquipped=true and skips, so it can't fix
@@ -2407,7 +2407,7 @@ namespace Pulsar::InventorySync::DirectRestore
                     DirectUnequipForm(player, f);
                     if (DirectEquipForm(player, f)) ++reattached;
                 }
-                // ghostfix-v3 — tear down host-exclusive worn gear whose mid-bridge
+                // ghostfix-v3 - tear down host-exclusive worn gear whose mid-bridge
                 // unequip failed. The raw wipe stripped its inventory entry but its
                 // worn-3D/equip binding dangled (= an undroppable "ghost" rendered on
                 // the character). The engine has settled now, so retry UnequipObject;
@@ -2432,7 +2432,7 @@ namespace Pulsar::InventorySync::DirectRestore
                 // (engine recompute on unequip → ~5, observed). Re-assert the
                 // client's O2 BASE here, after the re-attach, so it holds; the
                 // suit's O2 re-applies on top via the equip (instance data).
-                // BASE not Permanent — else the suit double-counts (320 vs host).
+                // BASE not Permanent - else the suit double-counts (320 vs host).
                 {
                     const float o2Base = g_savedO2Base.load();
                     if (o2Base > 1.0f) {
@@ -2458,10 +2458,10 @@ namespace Pulsar::InventorySync::DirectRestore
             LogLiveDiff("+10s");
             // backstop: catch any ghost that re-streamed after the +5s pass.
             RemoveForeignGhosts("+10s");
-            // GROUND-TRUTH — engine-view of host items AFTER the sweep.
+            // GROUND-TRUTH - engine-view of host items AFTER the sweep.
             DumpInventoryFull("+10s");
             PLOG_INFO("[PULSAR] [DirectRestore] perk watch[+10s]: live perks={}"sv, LivePerkCount());
-            // O2  — safety net: re-assert the client's O2 BASE once more
+            // O2  - safety net: re-assert the client's O2 BASE once more
             // if a late equip/3D event collapsed it again after the +5s pass.
             if (auto* player = RE::PlayerCharacter::GetSingleton()) {
                 const float o2Base = g_savedO2Base.load();
@@ -2476,7 +2476,7 @@ namespace Pulsar::InventorySync::DirectRestore
                     }
                 }
             }
-            // V4.5 — auto-dump the full live inventory at +10s so we capture
+            // V4.5 - auto-dump the full live inventory at +10s so we capture
             // the container's actual contents during the window the user
             // reports host "ghosts" in the menu (which persist indefinitely).
             // No keypress needed. Compare engineItems against what the menu
@@ -2485,13 +2485,13 @@ namespace Pulsar::InventorySync::DirectRestore
             // hotkey dump still works; this auto per-item dump is the biggest spam.)
             if constexpr (kDiagVerbose) DumpLiveInventory("auto+10s");
 
-            // Phase C3 — take the gains baseline snapshot now that the restore has
+            // Phase C3 - take the gains baseline snapshot now that the restore has
             // settled. dbAuth only (in non-dbAuth/bootstrap the full live capture is
             // correct, no delta). This is the reference the gains-capture diffs
             // against so only TRUE session changes (loot/spend/credits) persist.
             if (IsDbAuthoritative()) {
                 if (auto* player = RE::PlayerCharacter::GetSingleton()) {
-                    // Phase C3 — re-apply DB credits BEFORE the snapshot (so the
+                    // Phase C3 - re-apply DB credits BEFORE the snapshot (so the
                     // snapshot reflects the applied value → gains delta for credits
                     // is 0 unless truly earned). The raw wipe stripped the credits
                     // item; nothing re-adds it (not in the seed). Now settled.
@@ -2545,13 +2545,13 @@ namespace Pulsar::InventorySync::DirectRestore
                     if (auto* xpav = RE::TESForm::LookupByEditorID<RE::ActorValueInfo>(
                             RE::BSFixedString("Experience")))
                         snapXP = player->GetActorValue(*xpav);
-                    // Powers — the live power SET right now (= DB powers re-applied +
+                    // Powers - the live power SET right now (= DB powers re-applied +
                     // any foreign powers the loaded save carried). The capture diffs
                     // against this so foreign powers cancel and only session-acquired
                     // powers persist.
                     std::vector<std::uint32_t> snapPowers;
                     const bool powersOk = WalkPowers(player, snapPowers);
-                    // Research — completed-project SET right now (= the loaded/foreign
+                    // Research - completed-project SET right now (= the loaded/foreign
                     // save's research; the capture diffs against this so it cancels).
                     std::vector<std::uint32_t> snapResearch;
                     const bool researchOk = (WalkResearch(snapResearch) >= 0);
@@ -2588,7 +2588,7 @@ namespace Pulsar::InventorySync::DirectRestore
             return;
         }
 
-        // Engine view — what ForEachInventoryItem (the canonical inventory
+        // Engine view - what ForEachInventoryItem (the canonical inventory
         // enumeration the menu builds from) actually returns.
         std::uint32_t items = 0, equipped = 0;
         player->ForEachInventoryItem(
@@ -2608,7 +2608,7 @@ namespace Pulsar::InventorySync::DirectRestore
             return RE::BSContainer::ForEachResult::kContinue;
         });
 
-        // Raw view — BGSInventoryList.dataSize (entries in the BSTArray).
+        // Raw view - BGSInventoryList.dataSize (entries in the BSTArray).
         std::uint32_t rawDataSize = 0;
         {
             auto* pb = reinterpret_cast<std::uint8_t*>(player);
@@ -2622,7 +2622,7 @@ namespace Pulsar::InventorySync::DirectRestore
             "equipped={} rawDataSize={}"sv,
             a_tag, items, equipped, rawDataSize);
 
-        // V4.6 — vital ActorValue diagnostic for the O2-on-jump bug. O2/CO2
+        // V4.6 - vital ActorValue diagnostic for the O2-on-jump bug. O2/CO2
         // depletion on exertion is driven by encumbrance (InventoryWeight vs
         // CarryWeight) and the suit; if any of these are in a bad post-bridge
         // state the player reds out on the first jump. Log current + permanent

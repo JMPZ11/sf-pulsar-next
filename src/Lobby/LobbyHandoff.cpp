@@ -122,7 +122,7 @@ namespace Pulsar::Lobby
         s_applied = true;
     }
 
-    // Shared writer — write an already-serialized profile blob to profile-out.
+    // Shared writer - write an already-serialized profile blob to profile-out.
     static void WriteProfileBlob(const std::vector<uint8_t>& blob)
     {
         std::string path = LobbyDir() + "pulsar_profile_out.json";
@@ -137,7 +137,7 @@ namespace Pulsar::Lobby
                   blob.size(), path);
     }
 
-    // FNV-1a over the blob — cheap change-detection so the periodic clean
+    // FNV-1a over the blob - cheap change-detection so the periodic clean
     // capture doesn't re-write (and re-upload) an identical profile.
     static uint64_t BlobHash(const std::vector<uint8_t>& blob)
     {
@@ -165,12 +165,12 @@ namespace Pulsar::Lobby
     {
         if (!g_autoSaveRequested.exchange(false, std::memory_order_relaxed)) return;
 
-        // Phase A — capture only when the live inventory is the CLIENT's own:
+        // Phase A - capture only when the live inventory is the CLIENT's own:
         // own save pre-bridge, OR post-restore (host items wiped → live is the
         // client's items + co-op loot). A disconnect AFTER the restore now
-        // captures the session's gains (not host poison — host items are gone).
+        // captures the session's gains (not host poison - host items are gone).
         // A foreign/host save before its restore is never captured.
-        // Phase C — when DB-authoritative, NEVER upload pre-bridge: the loaded save
+        // Phase C - when DB-authoritative, NEVER upload pre-bridge: the loaded save
         // may be stale and would overwrite the DB's newer gains. Only the
         // post-restore upload (live = DB + gains) runs in that mode. With an empty
         // DB (bootstrap, dbAuth false) the pre-bridge upload fills the DB.
@@ -178,9 +178,9 @@ namespace Pulsar::Lobby
             !Pulsar::InventorySync::DirectRestore::HasBridgedThisSession() &&
             Pulsar::InventorySync::DirectRestore::LoadedSaveIsOwn() &&
             !Pulsar::InventorySync::DirectRestore::IsDbAuthoritative();
-        // Phase C3 — the post-restore upload IS the co-op gains-capture. In dbAuth
+        // Phase C3 - the post-restore upload IS the co-op gains-capture. In dbAuth
         // mode CaptureProfile does a delta-merge (frozen DB baseline + session
-        // delta), which is drift-safe now that mod-restore is faithful — so the
+        // delta), which is drift-safe now that mod-restore is faithful - so the
         // upload is re-enabled. It must wait for the +10s gains snapshot baseline
         // (per-function guard below), else the delta has no reference. Legacy
         // (non-dbAuth / bootstrap) co-op uploads as before.
@@ -194,7 +194,7 @@ namespace Pulsar::Lobby
             Pulsar::InventorySync::DirectRestore::IsDbAuthoritative() &&
             Pulsar::InventorySync::DirectRestore::RestoreComplete();
         if (!ownPreBridge && !clientPostRestore) {
-            PLOG_INFO("[PULSAR] [LobbyHandoff] auto-save SKIPPED — live inventory "
+            PLOG_INFO("[PULSAR] [LobbyHandoff] auto-save SKIPPED - live inventory "
                       "not client-owned yet (pre-restore foreign/bridge state) "
                       "[ownPreBridge={} dbAuth={} bridged={}]"sv,
                       ownPreBridge,
@@ -203,7 +203,7 @@ namespace Pulsar::Lobby
             return;
         }
 
-        // Phase C3 — in dbAuth mode the upload is a gains delta-capture; wait for
+        // Phase C3 - in dbAuth mode the upload is a gains delta-capture; wait for
         // the +10s post-restore snapshot baseline (else there's no delta reference).
         // Re-arm so a fast disconnect still captures gains once the baseline lands.
         if (Pulsar::InventorySync::DirectRestore::IsDbAuthoritative() &&
@@ -219,7 +219,7 @@ namespace Pulsar::Lobby
             return;
         }
 
-        // Debounce bursts (e.g. several disconnects in a row). Drop — the next
+        // Debounce bursts (e.g. several disconnects in a row). Drop - the next
         // trigger will capture the latest state.
         uint64_t now = static_cast<uint64_t>(
             std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -235,13 +235,13 @@ namespace Pulsar::Lobby
     {
         // Capture only when the live inventory is the CLIENT's own:
         //   (a) own save, before any bridge (solo / pre-join), OR
-        //   (b) post-restore during co-op — RestoreClientState wiped the host
+        //   (b) post-restore during co-op - RestoreClientState wiped the host
         //       items, so the live inventory is the client's items + the loot
         //       gained THIS session. This is how co-op gains reach the DB
         //       (Phase A). The engine's leave-co-op auto-save is the host's save
         //       and the client's own save is stale, so only the DB can hold them.
         // A foreign/host save BEFORE its restore is never captured (poison).
-        // Phase C — when DB-authoritative, NEVER upload pre-bridge: the loaded save
+        // Phase C - when DB-authoritative, NEVER upload pre-bridge: the loaded save
         // may be stale and would overwrite the DB's newer gains. Only the
         // post-restore upload (live = DB + gains) runs in that mode. With an empty
         // DB (bootstrap, dbAuth false) the pre-bridge upload fills the DB.
@@ -249,13 +249,13 @@ namespace Pulsar::Lobby
             !Pulsar::InventorySync::DirectRestore::HasBridgedThisSession() &&
             Pulsar::InventorySync::DirectRestore::LoadedSaveIsOwn() &&
             !Pulsar::InventorySync::DirectRestore::IsDbAuthoritative();
-        // Phase C3 — the post-restore upload IS the co-op gains-capture. In dbAuth
+        // Phase C3 - the post-restore upload IS the co-op gains-capture. In dbAuth
         // mode CaptureProfile does a delta-merge (frozen DB baseline + session
-        // delta), which is drift-safe now that mod-restore is faithful — so the
+        // delta), which is drift-safe now that mod-restore is faithful - so the
         // upload is re-enabled. It must wait for the +10s gains snapshot baseline
         // (per-function guard below), else the delta has no reference. Legacy
         // (non-dbAuth / bootstrap) co-op uploads as before.
-        // FIX (2026-06-21): see TickAutoSave — post-restore upload is only
+        // FIX (2026-06-21): see TickAutoSave - post-restore upload is only
         // safe in dbAuth mode. In bootstrap a post-bridge live state is the
         // HOST's items; require dbAuth so bootstrap uploads ONLY via ownPreBridge.
         const bool clientPostRestore =
@@ -263,7 +263,7 @@ namespace Pulsar::Lobby
             Pulsar::InventorySync::DirectRestore::RestoreComplete();
         if (!ownPreBridge && !clientPostRestore) return;
 
-        // Phase C3 — dbAuth gains delta-capture needs the +10s snapshot baseline
+        // Phase C3 - dbAuth gains delta-capture needs the +10s snapshot baseline
         // first; until then skip (the periodic tick retries).
         if (Pulsar::InventorySync::DirectRestore::IsDbAuthoritative() &&
             !Pulsar::InventorySync::DirectRestore::IsGainsSnapshotValid())
@@ -295,7 +295,7 @@ namespace Pulsar::Lobby
         if (blob.empty()) return;
 
         const uint64_t h = BlobHash(blob);
-        if (h == s_lastHash) {            // unchanged since last write — skip the upload
+        if (h == s_lastHash) {            // unchanged since last write - skip the upload
             s_lastWriteMs = now;
             return;
         }
@@ -303,7 +303,7 @@ namespace Pulsar::Lobby
         s_lastWriteMs = now;
 
         WriteProfileBlob(blob);
-        PLOG_INFO("[PULSAR] [LobbyHandoff] clean profile-capture ({}) — host-free "
+        PLOG_INFO("[PULSAR] [LobbyHandoff] clean profile-capture ({}) - host-free "
                   "(pre-bridge), {} bytes"sv,
                   transitioned ? "save-load" : "periodic", blob.size());
     }

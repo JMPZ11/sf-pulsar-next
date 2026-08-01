@@ -1,4 +1,4 @@
-# PULSAR — Technical Architecture
+# PULSAR - Technical Architecture
 
 > **Status:** 2026-04-20. Co-op on static cells (cities/stations) stable; proc cells (planets) stable for movement, animation and shooting. NPC planet-sync designed (Phase A/B/C) but not yet implemented.
 >
@@ -14,7 +14,7 @@ PULSAR is an asymmetric 2-player co-op mod. One machine runs as **host**, the ot
 Each machine sees:
 - Its own local player (driven by the user's input, vanilla engine)
 - A "clone" actor representing the other player (driven by incoming network packets)
-- The same world state (NPCs, quests, time) — only deltas are synced, not full state
+- The same world state (NPCs, quests, time) - only deltas are synced, not full state
 
 The mod is an **SFSE plugin** (`PULSAR.dll`) plus a small Papyrus bridge (`PULSAR.esp` + `PulsarRemoteControl.psc`). Initial development used Papyrus to drive spawns (because `PlaceAtMe` had to run on the game thread), and this pattern was kept even after C++ gained a Havok-safe game-thread path.
 
@@ -46,9 +46,9 @@ The mod is an **SFSE plugin** (`PULSAR.dll`) plus a small Papyrus bridge (`PULSA
 ```
 
 Key structural points:
-- **Symmetric** — both sides run the same code paths. Host-ness is just a config flag (`g_config.isHost`).
-- **Authoritative local state** — each side owns its own player. No server-side truth; movement on the remote is purely visual.
-- **Clone driven by packets** — the "other" player is just an NPC spawned via `PlaceAtMe(player_base)`, then hijacked by our hooks (IMovementDirectControl, PerformAction blocker, vtable-patching for animation).
+- **Symmetric** - both sides run the same code paths. Host-ness is just a config flag (`g_config.isHost`).
+- **Authoritative local state** - each side owns its own player. No server-side truth; movement on the remote is purely visual.
+- **Clone driven by packets** - the "other" player is just an NPC spawned via `PlaceAtMe(player_base)`, then hijacked by our hooks (IMovementDirectControl, PerformAction blocker, vtable-patching for animation).
 
 Subsystems by file:
 
@@ -58,7 +58,7 @@ Subsystems by file:
 | `src/Network/NetworkHost.cpp` | ENet setup, packet dispatch, connection state. |
 | `src/RemotePlayer/RemotePlayerManager.cpp` | The big one (~2300 lines). Clone spawn, position sync, animation, hooks. |
 | `src/Animation/BoneSync.cpp` | Reads/applies 19 bone rotations + hip position. |
-| `src/NPCSync/NPCSync.cpp` | Side-NPCs (Sarah, etc.) — different from the clone path. |
+| `src/NPCSync/NPCSync.cpp` | Side-NPCs (Sarah, etc.) - different from the clone path. |
 | `src/Companion/CompanionManager.cpp` | Vasco-style 2nd clone ("the other player as companion"). |
 | `src/WorldSync/WorldSync.cpp` | Save transfer on connect. |
 | `src/Profile/ClientProfile.cpp` | Client sends its inventory/appearance to host. |
@@ -72,10 +72,10 @@ Subsystems by file:
 ## 3. Network Layer
 
 **Transport:** ENet UDP, two channels:
-- Channel 0: real-time (position, bones) — unreliable
-- Channel 1: large / state (equipment, fire, profile, save, NPC-state) — reliable
+- Channel 0: real-time (position, bones) - unreliable
+- Channel 1: large / state (equipment, fire, profile, save, NPC-state) - reliable
 
-**Thread model:** ENet runs on a dedicated network thread. All `enet_peer_send` / `enet_host_service` calls are wrapped in `m_enetMutex` (ENet is not thread-safe — see `feedback_enet_threadsafe.md`).
+**Thread model:** ENet runs on a dedicated network thread. All `enet_peer_send` / `enet_host_service` calls are wrapped in `m_enetMutex` (ENet is not thread-safe - see `feedback_enet_threadsafe.md`).
 
 **Timeouts:**
 - Normal: 5 s
@@ -141,9 +141,9 @@ ProcessPending (60Hz):
 **ForceRespawn:** despawn → 2 s delay → spawn. Used when state gets wedged.
 
 **Papyrus quirks (see `feedback_papyrus_api.md`):**
-- `StartTimer(0.05)` must be called at the TOP of `OnTimer` — if an exception later aborts the body, the next tick still fires.
+- `StartTimer(0.05)` must be called at the TOP of `OnTimer` - if an exception later aborts the body, the next tick still fires.
 - `PlaceAtMe` in Starfield has **5 parameters** (not 4 like Skyrim): `(base, count, persist, disabled, deferInit)`.
-- `EnsureGlobs()` via `GetFormFromFile("PULSAR.esp", 0x800)` etc. — load-order independent.
+- `EnsureGlobs()` via `GetFormFromFile("PULSAR.esp", 0x800)` etc. - load-order independent.
 
 ---
 
@@ -180,14 +180,14 @@ if (m_pendingPosition.exchange(false)) {
 }
 ```
 
-### 5.3 Apply side — `DoSetPosition()`
+### 5.3 Apply side - `DoSetPosition()`
 
 Core logic (simplified):
 ```cpp
-// 1. Pin parentCell (UAF fix — T22)
+// 1. Pin parentCell (UAF fix - T22)
 SafePinParentCell(m_remoteActor, player->parentCell);
 
-// 2. Lerp (unless jumping — then snap)
+// 2. Lerp (unless jumping - then snap)
 if (isJumping) { lerpX=targetX; lerpY=targetY; lerpZ=targetZ; }
 else {
     lerpX += (targetX - lerpX) * 0.02;
@@ -221,11 +221,11 @@ We use `[3]` to drive locomotion blend (walk/run/sprint based on speed magnitude
 
 ### 5.5 Proc-cell vs static-cell split
 
-Actor::SetPosition Stage-1 (`FUN_140B4EB30`) re-indexes the refr in the cell-quadrant hashmap. On proc cells this dereferences `refr->parentCell` before acquiring the cell's lock — a **UAF** when proc-gen has destroyed the old cell but our clone still points at it (T22 finding).
+Actor::SetPosition Stage-1 (`FUN_140B4EB30`) re-indexes the refr in the cell-quadrant hashmap. On proc cells this dereferences `refr->parentCell` before acquiring the cell's lock - a **UAF** when proc-gen has destroyed the old cell but our clone still points at it (T22 finding).
 
 **Fix:** every frame, write `clone->parentCell = player->parentCell` (pin). Player is the streaming anchor, their cell is always live. UAF-window closed.
 
-**But:** T22 scenario (c) — freshly allocated proc cell may not have its `cell+0x110` hashmap buckets constructed yet. So in proc cells we still skip Stage-1 by using `data.location`-direct writes + Havok-direct CharController writes. In static cells we use normal `Actor::SetPosition`. See `feedback_procedural_cell_crash.md`.
+**But:** T22 scenario (c) - freshly allocated proc cell may not have its `cell+0x110` hashmap buckets constructed yet. So in proc cells we still skip Stage-1 by using `data.location`-direct writes + Havok-direct CharController writes. In static cells we use normal `Actor::SetPosition`. See `feedback_procedural_cell_crash.md`.
 
 ---
 
@@ -234,8 +234,8 @@ Actor::SetPosition Stage-1 (`FUN_140B4EB30`) re-indexes the refr in the cell-qua
 ### 6.1 Two parallel mechanisms
 
 The clone's animation is driven by **two** inputs that the engine's anim graph combines:
-1. **Graph variables** (set every frame from network data) — drive locomotion blend, pose, weapon stance.
-2. **Graph events** (fired on state transitions via `NotifyAnimationGraphImpl`) — drive jump, sneak, draw.
+1. **Graph variables** (set every frame from network data) - drive locomotion blend, pose, weapon stance.
+2. **Graph events** (fired on state transitions via `NotifyAnimationGraphImpl`) - drive jump, sneak, draw.
 
 Plus `IMovementDirectControl::SetSpeed` drives the locomotion-state machine's speed input.
 
@@ -255,17 +255,17 @@ ForceSetGraphIntDirect(graph, setIntFn, "iSyncGravity", 0);
 ForceSetGraphIntDirect(graph, setIntFn, "iSyncWeaponDrawState", m_weaponDrawn ? 1 : 0);
 ForceSetGraphIntDirect(graph, setIntFn, "iSyncActorStance", isWeaponReady ? 1 : 0);
 ForceSetGraphIntDirect(graph, setIntFn, "iSyncRelaxedReadyAlert", npcRelax);
-ForceSetGraphIntDirect(graph, setIntFn, "iSyncGunActions", 0);  // hardcoded — unsafe to sync (crashes in proc cells)
+ForceSetGraphIntDirect(graph, setIntFn, "iSyncGunActions", 0);  // hardcoded - unsafe to sync (crashes in proc cells)
 ForceSetGraphIntDirect(graph, setIntFn, "iSyncGunDown", 0);
 // ... plus head-tracking flags, sighted, bleedout, swim, partial-body etc.
 ```
 
 The `iSync*` prefix comes from Starfield's internal multiplayer scaffold (T14 finding): 18 variables intended for ReplayTool / CK-preview sync. We use them because NPC graphs honor them.
 
-### 6.4 Jump sync — the interesting case
+### 6.4 Jump sync - the interesting case
 
 Host transitions `iSyncJumpState`:
-- Weapon HOLSTERED: `0 → 1 → 0` (state 2 never appears — host graph quirk)
+- Weapon HOLSTERED: `0 → 1 → 0` (state 2 never appears - host graph quirk)
 - Weapon DRAWN: `0 → 1 → 2 → 0`
 
 On the clone we detect state changes and fire events:
@@ -291,7 +291,7 @@ if (s_syntheticFallAt > 0 && now >= s_syntheticFallAt) {
 }
 ```
 
-**Force-animation window** (`g_forceAnimation` flag + `s_forceAnimUntil` timestamp): while open, `HookedPerformAction` lets Engine actions through on the clone. Needed because during a jump the engine tries to fire `ActionFall`, `ActionLand`, etc. on the clone — without pass-through the graph can't transition.
+**Force-animation window** (`g_forceAnimation` flag + `s_forceAnimUntil` timestamp): while open, `HookedPerformAction` lets Engine actions through on the clone. Needed because during a jump the engine tries to fire `ActionFall`, `ActionLand`, etc. on the clone - without pass-through the graph can't transition.
 
 Window sizes:
 - `JumpUp`: 1500 ms (covers full arc)
@@ -304,11 +304,11 @@ Window sizes:
 
 After initial equip+holster, auto-fire a draw→holster cycle with **2000 ms** gap. This triggers the engine's non-instant `ActionInitializeGraphToBaseState` (0x0002FFA9) which brings the graph to a state where jumps animate correctly. The instant version (`ActionInstantInitializeGraphToBaseState`, fires at spawn automatically) alone is insufficient.
 
-500 ms gap was too short — engine didn't register the drawn state before our holster, so the holster became a non-transition and the init never fired.
+500 ms gap was too short - engine didn't register the drawn state before our holster, so the holster became a non-transition and the init never fired.
 
 ### 6.6 Pitch / LookAt
 
-Pitch (up-down aim) is NOT a graph var that can be set from outside — the engine computes it from LookAt targets. Our solution:
+Pitch (up-down aim) is NOT a graph var that can be set from outside - the engine computes it from LookAt targets. Our solution:
 
 1. Papyrus spawns an XMarker (FormID `0x3B`) once, calls `SetLookAt(marker)` on the clone each tick.
 2. C++ moves the marker every frame via `ExtraDirectAtTarget` on the clone's ExtraDataList.
@@ -349,7 +349,7 @@ Client applies via `ActorEquipManager::EquipObject` (REL::ID 101949). Direct eng
 
 ### 7.2 Weapon drawn state
 
-`m_weaponDrawn` is set from host's `actorState2 & 0x3` with 50 ms debounce. Applied via `DrawWeaponMagicHands(bool)` — the same engine call Papyrus/combat-hooks use for draw/holster. Engine responds with internal `ActionDraw`/`ActionSheathe` which we let through during the force-window.
+`m_weaponDrawn` is set from host's `actorState2 & 0x3` with 50 ms debounce. Applied via `DrawWeaponMagicHands(bool)` - the same engine call Papyrus/combat-hooks use for draw/holster. Engine responds with internal `ActionDraw`/`ActionSheathe` which we let through during the force-window.
 
 ### 7.3 Weapon swap re-draw
 
@@ -395,7 +395,7 @@ This routes the action through the engine's full fire pipeline: projectile spawn
 
 The `skipFireForwardProcCell` gate was added on 2026-04-19 after the engine's fire path crashed ~5 s after the first shot on a planet. At the time we attributed this to "bhkWorld bullet spawn races proc-gen".
 
-T22 later showed the real cause was UAF on `clone->parentCell`. The parentCell-pin (applied every frame) closes the UAF window. Fire-forward was re-enabled on proc cells on 2026-04-20 and works end-to-end — bullets, sound, impact marks all visible.
+T22 later showed the real cause was UAF on `clone->parentCell`. The parentCell-pin (applied every frame) closes the UAF window. Fire-forward was re-enabled on proc cells on 2026-04-20 and works end-to-end - bullets, sound, impact marks all visible.
 
 ### 8.3 No friendly-fire / no combat on clone
 
@@ -406,11 +406,11 @@ Design rule: the clone is never a combat target. It doesn't take damage, doesn't
 - `g_forceAnimation` window is open (jump/sneak/draw/sighted transitions)
 - action is an outgoing fire-sync we synthesized ourselves (handled separately)
 
-Incoming damage reactions (flinch, stagger, hit, death) — always blocked. See `feedback_coop_no_combat_clone.md`.
+Incoming damage reactions (flinch, stagger, hit, death) - always blocked. See `feedback_coop_no_combat_clone.md`.
 
 ---
 
-## 9. NPC Sync (Phase A — current)
+## 9. NPC Sync (Phase A - current)
 
 **Separate from the player-clone path.** NPCSync tracks side-NPCs (Sarah, other companions, static scripted NPCs).
 
@@ -442,16 +442,16 @@ Unreliable for normal updates; reliable when an NPC dies (flags bit 0).
 
 ### 9.2 Client apply
 
-`ApplyPendingRemoteState` resolves each received NPC by ref-FormID (or base-FormID fallback for dynamic refs). Currently **skips NPCs in proc cells** — a leftover from the pre-T22 workaround. Marked for removal.
+`ApplyPendingRemoteState` resolves each received NPC by ref-FormID (or base-FormID fallback for dynamic refs). Currently **skips NPCs in proc cells** - a leftover from the pre-T22 workaround. Marked for removal.
 
 Applied state:
-- `Actor::SetPosition(pos, true)` — proper physics-settle
+- `Actor::SetPosition(pos, true)` - proper physics-settle
 - Angle via `data.angle`
 - Health via `SetActorValue`
 - `DrawWeaponMagicHands` for weapon state
 - `KillActor` for dead flag
 
-Remote-owned actors are added to `g_remoteOwned` — `HookedActorUpdate` suppresses the engine's AI tick for them (TiltedEvolution pattern: if AI runs on top of network state, they fight each other → jitter).
+Remote-owned actors are added to `g_remoteOwned` - `HookedActorUpdate` suppresses the engine's AI tick for them (TiltedEvolution pattern: if AI runs on top of network state, they fight each other → jitter).
 
 ### 9.3 Not yet implemented (Phase B/C)
 
@@ -496,7 +496,7 @@ Client side: position sending is paused while state != LOADED. ENet timeout exte
 
 `BGSSaveLoadManager::queuedTasks + 0x50`:
 - bit `0x8` = quicksave
-- bit `0x4` = load by filename (reads path from `mgr+0x70`) — confirmed via Ghidra `FUN_141852ab0`
+- bit `0x4` = load by filename (reads path from `mgr+0x70`) - confirmed via Ghidra `FUN_141852ab0`
 
 Quicksave bit silent-fails for our use case (loads from save slot, not from a file path we control); we use the filename variant.
 
@@ -527,9 +527,9 @@ The biggest distinction between static and procedural cells in Starfield:
 | Lifetime | Stable for session | Torn down when player leaves range |
 | Cell FormID | Static (from plugin) | 0xFF-prefix (dynamic) |
 | Spawned NPCs | Static FormIDs | 0xFF-prefix (including base TESNPC) |
-| parentCell pointer on refs | Stable | **Dangling after teardown** — this was our main crash source |
+| parentCell pointer on refs | Stable | **Dangling after teardown** - this was our main crash source |
 
-### 11.1 T22 diagnosis — it was never a thread race
+### 11.1 T22 diagnosis - it was never a thread race
 
 Early hypothesis: "proc-gen worker threads race Actor::SetPosition on the cell-quadrant hashmap." T22's Ghidra RE disproved this:
 - Proc-gen runs on the main thread (per-frame ticker from `0x1485fa168` dispatch table)
@@ -540,36 +540,36 @@ The real cause: proc-gen destroys the `TESObjectCELL` object when unloading a ch
 
 ### 11.2 The fix stack
 
-1. **parentCell-pin** — every `DoSetPosition` frame: `clone->parentCell = player->parentCell`. Player is streaming anchor → their parentCell is always live.
-2. **Split-path in proc cells** — T22 scenario (c) remains: a fresh proc cell may have zero-filled bucket arrays. Bypass Stage-1 by writing `data.location` directly + calling `CharController::setPosition` directly (vtable slot 72).
-3. **30 Hz Havok rate-limit in split-path** — 10 Hz caused ball-glitch (IK uses stale ground position). 60 Hz caused a crash when combined with `iSyncGunActions` sync. 30 Hz is the Goldilocks zone.
-4. **Static cells use `Actor::SetPosition` normally** — parentCell is live, full Stage-1 is safe and gives proper hashmap registration + Havok broadphase wake-up + NiAVObject mirroring.
+1. **parentCell-pin** - every `DoSetPosition` frame: `clone->parentCell = player->parentCell`. Player is streaming anchor → their parentCell is always live.
+2. **Split-path in proc cells** - T22 scenario (c) remains: a fresh proc cell may have zero-filled bucket arrays. Bypass Stage-1 by writing `data.location` directly + calling `CharController::setPosition` directly (vtable slot 72).
+3. **30 Hz Havok rate-limit in split-path** - 10 Hz caused ball-glitch (IK uses stale ground position). 60 Hz caused a crash when combined with `iSyncGunActions` sync. 30 Hz is the Goldilocks zone.
+4. **Static cells use `Actor::SetPosition` normally** - parentCell is live, full Stage-1 is safe and gives proper hashmap registration + Havok broadphase wake-up + NiAVObject mirroring.
 
 ### 11.3 NPCSync proc-cell status
 
-Currently NPCSync skips proc cells client-side. With the parentCell-pin pattern applicable to NPCs too, this is no longer required — Phase A removal is the next step in NPC sync.
+Currently NPCSync skips proc cells client-side. With the parentCell-pin pattern applicable to NPCs too, this is no longer required - Phase A removal is the next step in NPC sync.
 
 ---
 
 ## 12. Debug & Logging
 
-**Logger:** `NASLog.h` — REX-style structured logger, tagged `[PULSAR]`. Host log at `%USERPROFILE%/Documents/My Games/Starfield/SFSE/Logs/PULSAR.log`. Client log deployed to `<NAS>/logs/PULSAR.log`.
+**Logger:** `NASLog.h` - REX-style structured logger, tagged `[PULSAR]`. Host log at `%USERPROFILE%/Documents/My Games/Starfield/SFSE/Logs/PULSAR.log`. Client log deployed to `<NAS>/logs/PULSAR.log`.
 
-**Rate-limited periodic logs** (every 2–5 s):
-- `Sync: pos=...` — incoming position
-- `PITCH: p=... yaw=...` — pitch input
-- `SARAH: Spd=... Dir=...` — nearby NPC anim-var probe (debug only)
-- `PLAYER: as1=... as2=...` — actorState flags
-- `NPCSync: tracked=N captures/3s=M` — NPC tracker stats
-- `PKT stats: sent=... recv=... recvPos=...` — network traffic
+**Rate-limited periodic logs** (every 2-5 s):
+- `Sync: pos=...` - incoming position
+- `PITCH: p=... yaw=...` - pitch input
+- `SARAH: Spd=... Dir=...` - nearby NPC anim-var probe (debug only)
+- `PLAYER: as1=... as2=...` - actorState flags
+- `NPCSync: tracked=N captures/3s=M` - NPC tracker stats
+- `PKT stats: sent=... recv=... recvPos=...` - network traffic
 
 **One-shot logs:**
-- `Equipped weapon 0x...` — weapon change
-- `Forced jump: JumpUp/Fall/Down (state=N prev=M)` — jump transitions
-- `Forced DrawWeaponMagicHands(bool)` — weapon toggle
-- `GraphKickstart: draw fired / holster fired` — init cycle
-- `ALLOWED action / BLOCKED action` — PerformAction decisions (logged once per form-ID)
-- `RE_NPC ref=... base=...` — NPC tracker for RE (debugging planet NPCs)
+- `Equipped weapon 0x...` - weapon change
+- `Forced jump: JumpUp/Fall/Down (state=N prev=M)` - jump transitions
+- `Forced DrawWeaponMagicHands(bool)` - weapon toggle
+- `GraphKickstart: draw fired / holster fired` - init cycle
+- `ALLOWED action / BLOCKED action` - PerformAction decisions (logged once per form-ID)
+- `RE_NPC ref=... base=...` - NPC tracker for RE (debugging planet NPCs)
 
 **Crash recovery:** Starfield crashes produce `.dmp` files at `<Starfield>/Starfield_DATE.dmp`. Analysis via `local RE notes (Python + `minidump` library) extracts crash RIP/RSP, stack walk, thread context.
 
@@ -581,7 +581,7 @@ Currently NPCSync skips proc cells client-side. With the parentCell-pin pattern 
 |---|---|---|---|
 | `HookedPerformAction` | DAT_145FB7BF0 (fn ptr via MinHook) | trampoline | Blocks engine actions on clone; forwards fire to sync |
 | `HookedEvaluatePackage` | `REL::ID(150640)` | trampoline | AI-block on clone in static cells, pass-through in proc cells |
-| `HookedActorUpdate` | primary Actor vtable `[0]` slot (via RTTI — NOT `VTABLE_Actor[0]`, that's secondary; use `VTABLE_Actor[1]` = `REL::ID 451614`) | vtable-patch | NPC state capture / remote-owned AI suppression |
+| `HookedActorUpdate` | primary Actor vtable `[0]` slot (via RTTI - NOT `VTABLE_Actor[0]`, that's secondary; use `VTABLE_Actor[1]` = `REL::ID 451614`) | vtable-patch | NPC state capture / remote-owned AI suppression |
 | `HookedPlayerCtrl` | REL::ID 82252 | trampoline | Read player camera pitch into `g_playerPitch` |
 | Clone CC creation | REL::ID 101052 (FUN_14193bed0) | call | Create CharController on newly-spawned clone |
 | `PlaceAtMe` | RVA 0x207CFB0 | reference | 5-param Papyrus spawner |
@@ -594,31 +594,31 @@ Currently NPCSync skips proc cells client-side. With the parentCell-pin pattern 
 
 ---
 
-## 14. RE Findings (T1–T27 summary)
+## 14. RE Findings (T1-T27 summary)
 
 | Task | Target | Key answer |
 |---|---|---|
 | T1 | Actor::SetPosition internals | 4-stage function: cell-hashmap update, event fire, Havok body update, NiAVObject mirror. Stage-1 is the UAF site. |
-| T2 | TESObjectREFR::SetParentCell | Exists at vtable[0x10C], but direct assignment of parentCell is enough for our use — we don't need proper SetParentCell semantics. |
+| T2 | TESObjectREFR::SetParentCell | Exists at vtable[0x10C], but direct assignment of parentCell is enough for our use - we don't need proper SetParentCell semantics. |
 | T3 | Procedural content manager | Main-thread ticker; content tree at BGSPlanetContentManagerTree. |
 | T4 | NiAVObject transform pipeline | Translation at +0x70 in NiAVObject. |
 | T5 | ObjectReferenceManager singleton | REFR factory; not currently used directly. |
 | T6 | bhkWorld lock | **Does not exist in shipping Starfield.** markForWrite/unmarkForWrite strings stripped. Engine relies on implicit thread-phase contract. |
 | T7-T9 | Havok body chain on Actor | Actor+0x228 (aiProc) → +0x08 (middleHigh) → +0x458 (CC) → CC+0x20 body wrapper → +0x20 inner hknpBody. Double-null gate required. |
-| T10 | Physics-state-gated animations | Anim graph checks body velocity.z for JumpUp/Apex/JumpFall — confirms why we need Havok writes for jumps. |
-| T11 | Graph-var setter functions | Functions resolved for setInt/setFloat via vtable[0x20]/[0x22] — used for iSync* writes. |
+| T10 | Physics-state-gated animations | Anim graph checks body velocity.z for JumpUp/Apex/JumpFall - confirms why we need Havok writes for jumps. |
+| T11 | Graph-var setter functions | Functions resolved for setInt/setFloat via vtable[0x20]/[0x22] - used for iSync* writes. |
 | T12 | Graph variable names | 18 iSync\* vars identified, 4 Player-graph-only (silent no-op on NPC). |
 | T13 | Constant-var decoding | iSyncRelaxReadySneak values: 0=relax, 1=ready, 2=sneak, 3=alert. |
-| T14 | MP-scaffold | Starfield has **iSync\* variable protocol** (real). "Network module" (0x1435-0x1436) is HTTP/Telemetry/Bethesda.net — NOT game-MP. No aktivierbares MP-scaffold. |
+| T14 | MP-scaffold | Starfield has **iSync\* variable protocol** (real). "Network module" (0x1435-0x1436) is HTTP/Telemetry/Bethesda.net - NOT game-MP. No aktivierbares MP-scaffold. |
 | T15 | Network-module analysis | HTTP/libcurl/WinHttp/Xbox Live services. Dead end for us. |
 | T16 | NPC graph vars | iSync\* honored on NPC graphs; IsPlayer/IsNPC not registered on NPC graph. |
 | T17 | hknpWorld vtable | markForWrite/unmarkForWrite absent. 0 hits on lock-related strings. |
 | T18 | HavokCommandQueue | Worker-task wrapper, not a generic "enqueue write" API. |
-| T19 | Internal body writers | All 51 engine setPosition callers run without locks — main-thread phase contract. |
+| T19 | Internal body writers | All 51 engine setPosition callers run without locks - main-thread phase contract. |
 | T20 | Cell-hashmap writers | 6 writers besides SetPosition Stage-1. All take `cell+0xFC` lock internally. Caller prologue reads `refr+0x98` unguarded. |
 | T22 | Proc-gen vs hashmap | **Proc-gen does NOT race the hashmap.** UAF on `refr->parentCell` is the real bug. |
 | T24 | Hashmap readers | All readers take the lock. Stale entries in freed cells are safe. |
-| T27 | NPC spawn chain | Dynamic FormID allocator at `FUN_14036BF70` — process-local, non-deterministic. Sync must be snapshot-based. |
+| T27 | NPC spawn chain | Dynamic FormID allocator at `FUN_14036BF70` - process-local, non-deterministic. Sync must be snapshot-based. |
 
 Full findings in `local RE notes*_findings.md`.
 
@@ -626,15 +626,15 @@ Full findings in `local RE notes*_findings.md`.
 
 ## 15. Known Limitations (as of 2026-04-20)
 
-1. **No Phase B/C NPC sync on planets** — planet enemies visible on each machine separately, not shared. Design ready; implementation pending.
-2. **Save-load crash on host** (rare) — reloading a different save while client is connected sometimes crashes host. Single occurrence so far; not root-caused.
-3. **0.5 m jump height on planet** — cross-machine Havok rate is 30 Hz; between writes gravity pulls the body down. Bumping to 60 Hz caused a combined failure with iSyncGunActions sync. 30 Hz is the stable sweet spot; full height is a polish task for later.
-4. **iSyncGunActions / iSyncGunDown not synced** — setting them on the clone triggers the crash path the fire-forward originally hit. Hardcoded to 0. Shooting animation still works because `iSyncRelaxReadySneak` + PerformAction synthesis drive the same behavior.
-5. **ImGui overlay can't run in-game** — D3D12 swapchain hook crashes (see `feedback_imgui_crash.md`). UI uses an external launcher pre-game.
-6. **Quicksave transfer via bit 0x8 silent-fails** — using menu-save path (bit 0x4) with filename.
-7. **Clone takes no damage / not hostile target** — design decision, not a bug.
-8. **Fall damage on clone during jumps (historical)** — fixed by one-shot impulse at state transitions instead of continuous velocity writes.
-9. **bhkCharRigidBodyController vtable** — we use `0x144D6B430` (primary), NOT `0x144D693F0` (abstract base). Wrong vtable = null calls.
+1. **No Phase B/C NPC sync on planets** - planet enemies visible on each machine separately, not shared. Design ready; implementation pending.
+2. **Save-load crash on host** (rare) - reloading a different save while client is connected sometimes crashes host. Single occurrence so far; not root-caused.
+3. **0.5 m jump height on planet** - cross-machine Havok rate is 30 Hz; between writes gravity pulls the body down. Bumping to 60 Hz caused a combined failure with iSyncGunActions sync. 30 Hz is the stable sweet spot; full height is a polish task for later.
+4. **iSyncGunActions / iSyncGunDown not synced** - setting them on the clone triggers the crash path the fire-forward originally hit. Hardcoded to 0. Shooting animation still works because `iSyncRelaxReadySneak` + PerformAction synthesis drive the same behavior.
+5. **ImGui overlay can't run in-game** - D3D12 swapchain hook crashes (see `feedback_imgui_crash.md`). UI uses an external launcher pre-game.
+6. **Quicksave transfer via bit 0x8 silent-fails** - using menu-save path (bit 0x4) with filename.
+7. **Clone takes no damage / not hostile target** - design decision, not a bug.
+8. **Fall damage on clone during jumps (historical)** - fixed by one-shot impulse at state transitions instead of continuous velocity writes.
+9. **bhkCharRigidBodyController vtable** - we use `0x144D6B430` (primary), NOT `0x144D693F0` (abstract base). Wrong vtable = null calls.
 
 ---
 
@@ -650,7 +650,7 @@ cmake --build <repo>/build/vs --config Release --target PULSAR
 
 Output: `<repo>/build/vs/Release/PULSAR.dll`.
 
-### 16.2 Deploy — ALWAYS both targets
+### 16.2 Deploy - ALWAYS both targets
 
 ```bash
 cp PULSAR.dll "<Starfield>/Data/SFSE/Plugins/PULSAR.dll"                    # HOST
@@ -672,11 +672,11 @@ Backups available at `<repo>/logs_backup/` when specifically saved.
 
 ## 17. Development Workflow Notes
 
-- **Never git push** — local commits only.
-- **Test on real hosts every change** — cross-machine co-op can't be unit-tested.
-- **SEH everywhere** — raw pointer dereferences on engine data are wrapped in `__try/__except`. Separates plain-C wrappers from C++ functions (C2712 compiler error otherwise).
-- **ProcessPending = 60 Hz on SFSE worker pool** — tasks dispatch across 6+ threads in practice. All part of the engine task graph → Havok-safe.
-- **Ghidra project at `the local Ghidra project`** — RE scripts in `local RE notes*.java`, run via `analyzeHeadless.bat` pattern in `run_t2.bat`.
+- **Never git push** - local commits only.
+- **Test on real hosts every change** - cross-machine co-op can't be unit-tested.
+- **SEH everywhere** - raw pointer dereferences on engine data are wrapped in `__try/__except`. Separates plain-C wrappers from C++ functions (C2712 compiler error otherwise).
+- **ProcessPending = 60 Hz on SFSE worker pool** - tasks dispatch across 6+ threads in practice. All part of the engine task graph → Havok-safe.
+- **Ghidra project at `the local Ghidra project`** - RE scripts in `local RE notes*.java`, run via `analyzeHeadless.bat` pattern in `run_t2.bat`.
 
 ---
 
@@ -692,10 +692,10 @@ Backups available at `<repo>/logs_backup/` when specifically saved.
 
 **In design / next up:**
 - Planet NPC sync (Phase A: static NPCs on planet; Phase B: scripted POI)
-- Full-height jumps on planet (physics fight — needs iSyncGravity experiment or velocity-based approach)
+- Full-height jumps on planet (physics fight - needs iSyncGravity experiment or velocity-based approach)
 
 **Parked:**
-- Phase C planet NPC sync (random mobs) — needs T28 RE for template-source-lookup
-- 3D drops & loot sync — disabled due to dupe bugs
-- Quicksave transfer — silent-fail, using menu-save path instead
-- In-game ImGui overlay — D3D12 hook unstable
+- Phase C planet NPC sync (random mobs) - needs T28 RE for template-source-lookup
+- 3D drops & loot sync - disabled due to dupe bugs
+- Quicksave transfer - silent-fail, using menu-save path instead
+- In-game ImGui overlay - D3D12 hook unstable

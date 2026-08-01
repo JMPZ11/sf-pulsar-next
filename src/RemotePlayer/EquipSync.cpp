@@ -36,7 +36,7 @@ namespace Pulsar::RemotePlayer::EquipSync
             std::vector<std::uint32_t> mods;
         };
 
-        // FNV-1a over the full collected state — cheap change detection.
+        // FNV-1a over the full collected state - cheap change detection.
         std::uint64_t HashEquipment(const std::vector<CollectedItem>& a_items)
         {
             std::uint64_t h = 0xcbf29ce484222325ull;
@@ -59,7 +59,7 @@ namespace Pulsar::RemotePlayer::EquipSync
         auto& net = Pulsar::Network::GetSingleton();
         if (!net.IsConnected()) return;
 
-        // (2026-06-20): the local-downed SEND-gate was REMOVED — in-game logs
+        // (2026-06-20): the local-downed SEND-gate was REMOVED - in-game logs
         // proved the send was already suppressed during downed yet the bleedout was
         // still blocked, so the send is not the cause. Re-enabling full equip flow
         // (incl. the weapon holster) which is what triggers the bleedout anim.

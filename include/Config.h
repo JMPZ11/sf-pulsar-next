@@ -17,33 +17,33 @@ namespace Pulsar
         std::string raceName;
         uint16_t    gender = 0;
 
-        // Hotkey VK codes — user-rebindable via PULSAR.ini.
+        // Hotkey VK codes - user-rebindable via PULSAR.ini.
         // Defaults: F7 / F8 (free in vanilla Starfield).
         int         hotkeyAutoFollow      = 0x76;  // VK_F7
         int         hotkeyManualBridge    = 0x77;  // VK_F8
-        // L.7 Path B Phase 1 — run BCPS round-trip test on the
+        // L.7 Path B Phase 1 - run BCPS round-trip test on the
         // newest save and write the recompressed result to a sidecar
         // "<savename>_pulsar_rt.sfs" for engine-load verification.
         // Default F10 (F9 = vanilla Quickload conflict).
         int         hotkeySaveRoundTrip   = 0x79;  // VK_F10
-        // L.7 Path B Phase 2 — diff the two newest saves whose
+        // L.7 Path B Phase 2 - diff the two newest saves whose
         // names start with "PULSAR_" (or fall back to two newest
         // overall) and write candidate pilot-state byte ranges to
         // tools/save_diff_pilot.txt. Default F11.
         int         hotkeySaveDiff        = 0x7A;  // VK_F11
 
         // Player-facing manual character save/restore (were hardcoded F10/F11).
-        int         hotkeySaveCharacter    = 0x79;  // VK_F10 — "save my character now"
-        int         hotkeyRestoreCharacter = 0x7A;  // VK_F11 — "restore my character"
+        int         hotkeySaveCharacter    = 0x79;  // VK_F10 - "save my character now"
+        int         hotkeyRestoreCharacter = 0x7A;  // VK_F11 - "restore my character"
 
         // Developer / diagnostic hotkeys. OFF by default for release: when devHotkeys
         // is false the dev hotkeys below are NOT polled (no collisions, no confusion
         // for normal players). The Pulsar tool exposes only the player hotkeys.
         // ini: devHotkeys = 1
         bool        devHotkeys              = false;
-        int         hotkeyDevFlashlightDump = 0x75; // VK_F6  — light-field dump
-        int         hotkeyDevDiag           = 0x78; // VK_F9  — diagnostic dump
-        int         hotkeyDevManualRevive   = 0x79; // VK_F10 — debug manual revive
+        int         hotkeyDevFlashlightDump = 0x75; // VK_F6  - light-field dump
+        int         hotkeyDevDiag           = 0x78; // VK_F9  - diagnostic dump
+        int         hotkeyDevManualRevive   = 0x79; // VK_F10 - debug manual revive
 
         // KANDIDAT 2 (de-risk): drive tracked NPCs via IMovementDirectControl
         // instead of the data.location lerp + SetPosition snap. Opt-in on the
@@ -59,7 +59,7 @@ namespace Pulsar
         // position stays loosely host-corrected. ini: npcCombatAiLive = 1
         bool        npcCombatAiLive       = false;
 
-        // Phase C — DB-authoritative progression restore. When ON and the DB
+        // Phase C - DB-authoritative progression restore. When ON and the DB
         // profile is non-empty, the DB (items+mods+AVs+perks+skillpoints) is the
         // restore source for EVERY join regardless of which save is loaded, so
         // co-op gains survive (the user's "load any save, keep my progress"
@@ -141,7 +141,7 @@ namespace Pulsar
         // zeroing, restored on disconnect. ini: coopTameCombatAI = 0 (to disable).
         bool        coopTameCombatAI      = true;
 
-        // EventTrace — dev-only diagnostic telemetry (quest progress, scripts,
+        // EventTrace - dev-only diagnostic telemetry (quest progress, scripts,
         // NPC spawns, NPC dialogue) to PULSAR.log + NAS for co-op sync design.
         // Compiled OUT of the hardened release entirely; this flag only toggles
         // it in the dev build. Default ON so a dev session always captures it.

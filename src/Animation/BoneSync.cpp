@@ -24,7 +24,7 @@ namespace Pulsar::BoneSync
     Quat MatrixToQuat(const RE::NiMatrix3& m)
     {
         // m.entry[row][col]: entry[0] = row0, entry[1] = row1, entry[2] = row2
-        // NiPoint4 has x,y,z,w — we use x,y,z as columns
+        // NiPoint4 has x,y,z,w - we use x,y,z as columns
         float m00 = m.entry[0][0], m01 = m.entry[0][1], m02 = m.entry[0][2];
         float m10 = m.entry[1][0], m11 = m.entry[1][1], m12 = m.entry[1][2];
         float m20 = m.entry[2][0], m21 = m.entry[2][1], m22 = m.entry[2][2];
@@ -247,7 +247,7 @@ namespace Pulsar::BoneSync
                 // Extract yaw from quaternion: zero out the yaw component
                 // For Z-up coordinate system: yaw = atan2(2(wz+xy), 1-2(yy+zz))
                 // Simplification: project quaternion to remove Z rotation
-                // q_no_yaw = normalize(w, x, y, 0) — removes Z-axis rotation
+                // q_no_yaw = normalize(w, x, y, 0) - removes Z-axis rotation
                 float len = std::sqrt(hipsQ.w * hipsQ.w + hipsQ.x * hipsQ.x + hipsQ.y * hipsQ.y);
                 if (len > 0.001f) {
                     hipsQ.w /= len;

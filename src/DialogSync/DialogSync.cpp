@@ -4,7 +4,7 @@
 #include "Network/NetworkHost.h"
 #include "Network/PacketTypes.h"
 #include "EventTrace/EventTrace.h"
-#include "NPCSync/NPCSync.h"  // V36: MarkNpcInScene — suspend NPC puppet during scenes
+#include "NPCSync/NPCSync.h"  // V36: MarkNpcInScene - suspend NPC puppet during scenes
 
 #include <REL/Relocation.h>
 #include "WorldSync/LootSync.h"  // CallOrigActivateAsReplay
@@ -35,7 +35,7 @@ using namespace std::string_view_literals;
 namespace Pulsar::DialogSync {
 namespace {
 
-    // L.8 Phase 3 V1 — engine event sources verified via Ghidra sub-agent
+    // L.8 Phase 3 V1 - engine event sources verified via Ghidra sub-agent
     // 2026-05-09 + cross-checked against SFSE 0.2.19 GameEvents.h:
     //
     //   PlayerInDialogueChanged::Event @ RVA 0x597A298  (start AND end)
@@ -47,16 +47,16 @@ namespace {
     // `(modBase + RVA)` to `BSTEventSource<X>*` and call RegisterSink.
     //
     // Recommendation from RE pass: prefer event sinks over MinHook on the
-    // setters — the two setters live in 3.4 KB / 1.2 KB functions with
+    // setters - the two setters live in 3.4 KB / 1.2 KB functions with
     // multiple call paths and thread-local init prologues that are
     // ABI-fragile across patches.
     constexpr std::uintptr_t kRVA_PlayerInDialogueChanged = 0x597A298;
     constexpr std::uintptr_t kRVA_TESOnPCDialogueTarget   = 0x5978698;
     constexpr std::uintptr_t kRVA_TESTopicInfoEvent       = 0x5978468;
 
-    // L.8 Phase 3 — TESTopicInfo::Fire engine primitive (the say-mirror core).
+    // L.8 Phase 3 - TESTopicInfo::Fire engine primitive (the say-mirror core).
     // Re-RE'd 2026-06-28 on 1.16.244 (verified): the 3rd arg is the SPEAKER's
-    // REFR HANDLE, not a formID — Fire resolves it via the handle manager to
+    // REFR HANDLE, not a formID - Fire resolves it via the handle manager to
     // get the speaking actor, then plays voice + subtitle + lipsync with NO
     // menu and NO player hijack. Called twice per line: (info,0,handle,0)
     // starts it, (info,1,handle,0) drives the continuation. Game-thread only
@@ -68,25 +68,25 @@ namespace {
     constexpr std::uintptr_t kRVA_TopicInfoFire = 0xD48170;
     static TopicInfoFireFn g_topicInfoFire = nullptr;
 
-    // Object->REFR-handle primitive (HandleManager::EmplaceHandle) — builds the
+    // Object->REFR-handle primitive (HandleManager::EmplaceHandle) - builds the
     // handle Fire's arg3 needs from an Actor*. RE'd 2026-06-28 on 1.16.244
-    // (verified, high confidence): find-or-create — for a loaded actor it
+    // (verified, high confidence): find-or-create - for a loaded actor it
     // returns the EXISTING handle (no duplicate) and is game-thread-safe
     // (internal lock). __fastcall(HandleManager* mgr, TESObjectREFR* refr) ->
-    // u32 handle in EAX. Manager singleton @ *(moduleBase + 0x5E60380) — the
+    // u32 handle in EAX. Manager singleton @ *(moduleBase + 0x5E60380) - the
     // SAME manager Fire reads, so the handle round-trips. (Note: CommonLibSF
-    // GetSmartPointer{72432} is a stale jmp-thunk on 244 — never use it here.)
+    // GetSmartPointer{72432} is a stale jmp-thunk on 244 - never use it here.)
     using EmplaceHandleFn = std::uint32_t (*)(void* mgr, void* refr);
     constexpr std::uintptr_t kRVA_EmplaceHandle = 0x28CCAC0;   // REL::ID 1186745
     constexpr std::uintptr_t kRVA_HandleMgrSlot = 0x5E60380;   // &singleton
     static EmplaceHandleFn g_emplaceHandle = nullptr;
     static void**          g_handleMgrSlot = nullptr;  // deref at call time (null pre-init)
 
-    // V7 — Actor::SetDialogueTarget. RE'd via dialog_re.txt prior pass.
+    // V7 - Actor::SetDialogueTarget. RE'd via dialog_re.txt prior pass.
     // Signature: void(Actor* self, TESObjectREFR* target). When target!=0
     // sets self+0x238 = target and notifies TESOnPCDialogueTargetEvent;
     // when target==0 clears the field. Lighter than Activate (no menu, no
-    // camera transition, no input lock) — just establishes the engine's
+    // camera transition, no input lock) - just establishes the engine's
     // internal dialog-state pointer so subsequent line fires have
     // correct context. This is what V6's Activate did internally but
     // WITHOUT the menu/camera/freeze side-effects.
@@ -95,9 +95,9 @@ namespace {
     static SetDialogueTargetFn g_setDialogueTarget    = nullptr;
     static SetDialogueTargetFn g_origSetDialogTarget  = nullptr;  // V13 hook trampoline
 
-    // V20 — scene-less dialog open primitive. RE'd via scene_storyteller_re.txt:
+    // V20 - scene-less dialog open primitive. RE'd via scene_storyteller_re.txt:
     // FUN_141795760(MenuTopicManager*, TESObjectREFR* speaker, int unk1=0, int unk2=1, int unk3=0)
-    // is the engine's free-form (E-press) dialog opener — bypasses the
+    // is the engine's free-form (E-press) dialog opener - bypasses the
     // BGSScene path that wraps quest-driven dialogues. Hooking it lets
     // us capture E-press dialog opens (which V13 SetCurrentScene hook
     // misses entirely). Calling it directly is also a cleaner RX-replay
@@ -108,26 +108,26 @@ namespace {
     static OpenDialogFn g_openDialog       = nullptr;
     static OpenDialogFn g_origOpenDialog   = nullptr;  // V20 hook trampoline
 
-    // V25 REMOVED — see Init() comment. FUN_141793d10 has 6 params, our
+    // V25 REMOVED - see Init() comment. FUN_141793d10 has 6 params, our
     // 2-arg hook corrupted R8/R9/stack args → vanilla dialog menus
     // failed to open. Lesson learned: verify full signature first.
 
-    // V20 — MenuTopicManager singleton (raw object at this address).
+    // V20 - MenuTopicManager singleton (raw object at this address).
     // 0x1461E22B0 is the absolute, runtime = moduleBase + (this - 0x140000000).
     constexpr std::uintptr_t kRVA_MTM = 0x61E22B0;
     static void* g_mtm = nullptr;
 
-    // Engine event payload layouts (forward-declared here — neither
+    // Engine event payload layouts (forward-declared here - neither
     // CommonLibSF nor SFSE 0.2.19 expose them as full structs; both
     // declare empty `struct {};` placeholders. Layouts derived from
     // Notify-fire-site decompile in the RE pass).
     struct PlayerInDialogueChangedEvent
     {
-        bool inDialogue;  // +0x00 — single byte, only field accessed by sinks
+        bool inDialogue;  // +0x00 - single byte, only field accessed by sinks
     };
 
     // Layout derived from runtime diagnostic 2026-05-09 18:57 (3 events
-    // fire per dialogue start, one per involved actor — the source field
+    // fire per dialogue start, one per involved actor - the source field
     // varies per event but the TARGET pointer at +0x10 is always the NPC
     // and is identical across all 3 events of a session). Cross-machine
     // FormID consistency confirmed (host+client both saw 0x0028A2B5 from
@@ -135,12 +135,12 @@ namespace {
     // is treated as opaque padding.
     struct TESOnPCDialogueTargetEvent
     {
-        RE::TESObjectREFR* source;       // +0x00 — actor whose dialogue-target changed
-        std::uintptr_t     opaque_pad;   // +0x08 — caller-frame spill, NOT part of struct
-        RE::TESObjectREFR* target;       // +0x10 — NPC being addressed (or null)
+        RE::TESObjectREFR* source;       // +0x00 - actor whose dialogue-target changed
+        std::uintptr_t     opaque_pad;   // +0x08 - caller-frame spill, NOT part of struct
+        RE::TESObjectREFR* target;       // +0x10 - NPC being addressed (or null)
     };
 
-    // V4 payload layout from dialog_v4_re.txt — built in FUN_140D48780.
+    // V4 payload layout from dialog_v4_re.txt - built in FUN_140D48780.
     // First-pass best-guess; will hex-dump on first fire and verify before
     // shipping. Structure may need adjustment after diagnostic.
     struct TESTopicInfoEvent
@@ -153,17 +153,17 @@ namespace {
 
     // Latest-target tracker. PlayerInDialogueChanged fires with a bool;
     // TESOnPCDialogueTarget fires with the actual Actor*. The two events
-    // do NOT fire atomically — typically Target fires *first* (when the
+    // do NOT fire atomically - typically Target fires *first* (when the
     // speaker is set), then InDialogue fires (when the menu commits). We
     // store the most-recent target FormID so the InDialogue=true broadcast
     // can include the speaker. Reset on InDialogue=false.
     static std::atomic<std::uint32_t> s_lastTargetFormID{ 0 };
 
-    // Last broadcasted state — dedupes spurious double-fires (engine
+    // Last broadcasted state - dedupes spurious double-fires (engine
     // sometimes runs the setters twice during cinematic transitions).
     static std::atomic<bool> s_lastBroadcastInDialogue{ false };
 
-    // V24 — track which speaker formID we last broadcasted START for.
+    // V24 - track which speaker formID we last broadcasted START for.
     // Vanilla scene-driven dialogs cycle through multiple speakers within
     // a single continuous engine session. V19's `s_lastBroadcastInDialogue`
     // flag stays true across speaker changes, so the original first-speaker
@@ -174,7 +174,7 @@ namespace {
     // Client's RX handler will queue another Activate → switches menu.
     static std::atomic<std::uint32_t> s_lastBroadcastNpc{ 0 };
 
-    // V26 — post-END cooldown to break engine auto-greet echo loop.
+    // V26 - post-END cooldown to break engine auto-greet echo loop.
     // When player stands next to a quest NPC, the engine auto-greets
     // continuously. Each cycle:
     //   1. local END (V18 form=0) → broadcasts END
@@ -182,11 +182,11 @@ namespace {
     //   3. peer engine auto-greets the same NPC (player still nearby)
     //   4. peer V20/V19 broadcasts START → echoes back
     //   5. local Activate replay → menu reopens
-    //   6. user can't escape — pressing "leave" repeats the cycle
+    //   6. user can't escape - pressing "leave" repeats the cycle
     // V26: after observing END for NPC X (local broadcast OR peer RX),
     // refuse to broadcast NEW START for X for kEndCooldownMs, AND refuse
     // to apply incoming START Activate for X. Different NPC unaffected.
-    constexpr std::uint64_t kEndCooldownMs = 2000;  // V26.1 — was 5000, too long
+    constexpr std::uint64_t kEndCooldownMs = 2000;  // V26.1 - was 5000, too long
     static std::atomic<std::uint32_t> g_lastEndedNpc{ 0 };
     static std::atomic<std::uint64_t> g_lastEndedMs{ 0 };
 
@@ -213,7 +213,7 @@ namespace {
     // thread and the engine may also fire from game thread.
     static thread_local bool tls_applyingRemoteTopic = false;
 
-    // V4 RX queue — Network thread receives PKT_DIALOG_VOTE, pushes
+    // V4 RX queue - Network thread receives PKT_DIALOG_VOTE, pushes
     // here; game-thread DrainPending pops + replays. TESTopicInfo::Fire
     // and ExtraDataList mutex are not network-thread-safe.
     struct PendingPick
@@ -225,27 +225,27 @@ namespace {
     static std::mutex                s_pendingPicksMutex;
     static std::vector<PendingPick>  s_pendingPicks;
 
-    // V10 — TopicInfo-driven session tracker. PlayerInDialogueChanged
+    // V10 - TopicInfo-driven session tracker. PlayerInDialogueChanged
     // doesn't fire in scene-style dialogues where player is a spectator.
-    // V11 — synthesize START on first foreign-speaker TopicInfo fire,
-    // and END after a 30s idle gap (was 5s in V10 — caused mid-scene
+    // V11 - synthesize START on first foreign-speaker TopicInfo fire,
+    // and END after a 30s idle gap (was 5s in V10 - caused mid-scene
     // tear-down + V9 Activate spam that destabilized engine).
     static std::atomic<std::uint64_t> s_lastTopicInfoMs{ 0 };
     static constexpr std::uint64_t    kSessionIdleMs = 30000;
 
-    // V11 — dedupe V9 dialog-open per NPC. Same NPC speaking again
-    // within an active session should NOT re-fire Activate — the menu
+    // V11 - dedupe V9 dialog-open per NPC. Same NPC speaking again
+    // within an active session should NOT re-fire Activate - the menu
     // is already open. Reset on END.
     static std::atomic<std::uint32_t> s_lastV9OpenedNpc{ 0 };
 
-    // V6 — pending engine-natural dialog opens (NPC formIDs) + closes
+    // V6 - pending engine-natural dialog opens (NPC formIDs) + closes
     // (player slots). Drained on game thread because Activate touches
     // cell-streamer + ExtraDataList + UI message queue.
     static std::vector<std::uint32_t> s_pendingDialogOpens;
     static std::vector<std::uint8_t>  s_pendingDialogCloses;
 
     // V4 first-N hex-dump diagnostic. Set kDiagDumpRemaining=N to log the
-    // first N TESTopicInfoEvent fires with raw payload bytes — confirms
+    // first N TESTopicInfoEvent fires with raw payload bytes - confirms
     // the layout in production before we trust it for broadcast.
     static std::atomic<int> s_diagDumpRemaining{ 6 };
 
@@ -265,7 +265,7 @@ namespace {
         __except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
     }
 
-    // V16 — extended diagnostic readers for trace mode.
+    // V16 - extended diagnostic readers for trace mode.
     static std::uint8_t SafeRawFormType(const void* form) noexcept
     {
         if (!form) return 0xFF;
@@ -301,14 +301,14 @@ namespace {
         }
     }
 
-    // V23 — live UI menu-state read. V22 used MTM+0xA8 (assumed to be
+    // V23 - live UI menu-state read. V22 used MTM+0xA8 (assumed to be
     // the current speaker REFR*) but logs showed it returning non-null
     // even when no DialogueMenu was open, blocking every RX Activate.
     // Root cause: CommonLibSF MenuTopicManager declares speaker as a
     // BSPointerHandle at +0x14, NOT a pointer at +0xA8. The +0xA8 read
     // landed on some pre-populated engine state field.
     //
-    // V23 switches to RE::UI::IsMenuOpen("DialogueMenu") — the actual
+    // V23 switches to RE::UI::IsMenuOpen("DialogueMenu") - the actual
     // authoritative on-screen menu state. Wrapped in SEH for safety
     // (mirrors the IsLoadingMenuOpen helper in Main.cpp).
     static bool IsDialogueMenuOpenRaw(RE::UI* ui,
@@ -382,10 +382,10 @@ namespace {
         }
     }
 
-    // V12 — read PlayerCharacter.dialogTarget from raw +0x238. Set by
+    // V12 - read PlayerCharacter.dialogTarget from raw +0x238. Set by
     // FUN_14194CA60 (Actor::SetDialogueTarget) when player engages an
     // NPC via E-press. 0 if no active dialog. Used to filter ambient
-    // NPC TopicInfo events from the actual conversation partner —
+    // NPC TopicInfo events from the actual conversation partner -
     // V11 had "first speaker wins" which incorrectly locked onto
     // passerby NPCs that fired ambient lines before the real partner.
     static std::uint32_t SafeReadPlayerDialogTarget() noexcept
@@ -402,11 +402,11 @@ namespace {
         }
     }
 
-    // V6 — engine-natural dialog open via Activate replay. Mirrors
+    // V6 - engine-natural dialog open via Activate replay. Mirrors
     // LootSync's ActivateArgs layout (32 bytes). Calling Activate with
     // (NPC, args.activator=player) routes through the engine's normal
     // E-press path, which decides "target is NPC with dialog → open
-    // DialogueMenu + camera transition" — no need for a private engine
+    // DialogueMenu + camera transition" - no need for a private engine
     // primitive we don't have access to.
     struct ActivateArgs {
         RE::TESObjectREFR* activator;
@@ -421,19 +421,19 @@ namespace {
     static_assert(sizeof(ActivateArgs) == 0x20, "ActivateArgs size");
 
     // V6 echo-suppression: when client opens dialog via replay, host's
-    // own dialog session is unrelated — but the ENGINE on client will
+    // own dialog session is unrelated - but the ENGINE on client will
     // fire PlayerInDialogueChanged + TESOnPCDialogueTarget locally as a
     // result of the replayed activate. Without this flag, those events
     // would broadcast back to host as a "client started dialog" event.
     static thread_local bool tls_applyingRemoteDialogOpen = false;
 
-    // V9 — DialogueCamera setting. INI key `bDialogueEnable:Interface`
+    // V9 - DialogueCamera setting. INI key `bDialogueEnable:Interface`
     // (Bethesda legacy name from FO4/76; user-facing label is "Starfield
     // Dialogue Camera" in Accessibility menu). When 0, the engine's PC
     // dialog state machine (FUN_141794720) skips the camera-transition
     // path that caused V6's freeze when client wasn't near the NPC.
     // We force-flip OFF only while applying a remote dialog open, then
-    // restore the user's value on END — accessibility pref isn't
+    // restore the user's value on END - accessibility pref isn't
     // silently overridden outside our co-op flow. In-memory only;
     // never WriteSetting to disk so nothing persists.
     static RE::Setting* g_dialogueCameraSetting  = nullptr;
@@ -442,26 +442,26 @@ namespace {
 
     static std::uint8_t LocalSlot()
     {
-        // We don't have a player-id concept yet — use isHost for V1. When
+        // We don't have a player-id concept yet - use isHost for V1. When
         // multi-client lands this becomes the seat number from handshake.
         return Pulsar::Network::GetSingleton().IsHost() ? kSlotHost : kSlotClient;
     }
 
-    // V13 forward decl — body lives in second anon-ns block past Reset().
+    // V13 forward decl - body lives in second anon-ns block past Reset().
     static void __fastcall HookedSetDialogTarget(void* actor, void* target);
 
-    // V20 forward decl — body in same downstream block.
+    // V20 forward decl - body in same downstream block.
     static void __fastcall HookedOpenDialog(void* mtm, void* speaker,
                                             int u1, int u2, int u3);
 
-    // V25 forward decls — REMOVED, see Init() comment.
+    // V25 forward decls - REMOVED, see Init() comment.
 
     static void BroadcastDialogStart(std::uint32_t npcFormID)
     {
         auto& net = Pulsar::Network::GetSingleton();
         if (!net.IsConnected()) return;
 
-        // V28 — host-only architecture. Client never broadcasts dialog
+        // V28 - host-only architecture. Client never broadcasts dialog
         // events. Eliminates echo loops entirely (client→host→client).
         // Client's V19/V20 sinks still fire when client's engine auto-
         // greets locally (or replays our Activate), but those events stay
@@ -469,17 +469,17 @@ namespace {
         if (!net.IsHost()) {
             PLOG_INFO(
                 "[PULSAR] DialogSync V28: TX START suppressed on client "
-                "(npc=0x{:08X}) — host-only sync"sv, npcFormID);
+                "(npc=0x{:08X}) - host-only sync"sv, npcFormID);
             return;
         }
 
-        // V26 — post-END cooldown. If we just ended a dialog with this NPC,
+        // V26 - post-END cooldown. If we just ended a dialog with this NPC,
         // suppress the broadcast for kEndCooldownMs to break engine auto-greet
         // echo loop. Engine repeats the dialog automatically when player
         // stands near; without this lockout the dialog never closes.
         if (IsNpcOnEndCooldown(npcFormID)) {
             PLOG_INFO(
-                "[PULSAR] DialogSync V26: BroadcastStart blocked — NPC 0x{:08X} "
+                "[PULSAR] DialogSync V26: BroadcastStart blocked - NPC 0x{:08X} "
                 "on post-END cooldown ({}ms remaining)"sv,
                 npcFormID,
                 static_cast<int>(kEndCooldownMs -
@@ -487,14 +487,14 @@ namespace {
             return;
         }
 
-        // V24 — speaker-change dedupe. Skip only if we already broadcasted
+        // V24 - speaker-change dedupe. Skip only if we already broadcasted
         // START for THIS exact npcFormID. Different NPC = scene-cycled
         // through speakers, push a new START so Client switches menu.
         std::uint32_t prevNpc = s_lastBroadcastNpc.exchange(
             npcFormID, std::memory_order_acq_rel);
         if (prevNpc == npcFormID) return;
 
-        // Mark "in dialogue" — kept for legacy V18 BroadcastDialogEnd
+        // Mark "in dialogue" - kept for legacy V18 BroadcastDialogEnd
         // logic + DRAIN dedupe paths that still consult this flag.
         s_lastBroadcastInDialogue.store(true, std::memory_order_release);
 
@@ -514,19 +514,19 @@ namespace {
         auto& net = Pulsar::Network::GetSingleton();
         if (!net.IsConnected()) return;
 
-        // V28 — host-only sync. Client never broadcasts END.
+        // V28 - host-only sync. Client never broadcasts END.
         if (!net.IsHost()) return;
 
         bool wasIn = s_lastBroadcastInDialogue.exchange(false,
                                                        std::memory_order_acq_rel);
         if (!wasIn) return;
 
-        // V26 — capture which NPC we just ended dialog with, BEFORE clearing
+        // V26 - capture which NPC we just ended dialog with, BEFORE clearing
         // s_lastBroadcastNpc, so the cooldown check can identify echo loops.
         std::uint32_t endedNpc = s_lastBroadcastNpc.load(std::memory_order_acquire);
         MarkNpcEnded(endedNpc);
 
-        // V24 — clear speaker tracker so the next dialog (even if it's
+        // V24 - clear speaker tracker so the next dialog (even if it's
         // with the same NPC we just left) gets a fresh START broadcast.
         s_lastBroadcastNpc.store(0, std::memory_order_release);
 
@@ -548,7 +548,7 @@ namespace {
         if (!net.IsConnected()) return;
         if (!topicInfoFormID) return;
 
-        // V28 — host-only sync. Client doesn't broadcast TopicInfo lines.
+        // V28 - host-only sync. Client doesn't broadcast TopicInfo lines.
         if (!net.IsHost()) return;
 
         std::uint8_t buf[1 + sizeof(Pulsar::Network::DialogVoteData)]{};
@@ -581,7 +581,7 @@ namespace {
             const TESTopicInfoEvent& e,
             RE::BSTEventSource<TESTopicInfoEvent>*) override
         {
-            // Diagnostic dump — first N events get logged with raw payload
+            // Diagnostic dump - first N events get logged with raw payload
             // so we can verify the +0x10 / +0x14 layout matches reality.
             int rem = s_diagDumpRemaining.load(std::memory_order_acquire);
             if (rem > 0 &&
@@ -598,7 +598,7 @@ namespace {
                     b0, b1, b2);
             }
 
-            // Echo suppression — DrainPending fires this same path on RX
+            // Echo suppression - DrainPending fires this same path on RX
             // replay, we MUST NOT rebroadcast.
             if (tls_applyingRemoteTopic) {
                 return RE::BSEventNotifyControl::kContinue;
@@ -615,7 +615,7 @@ namespace {
                 return RE::BSEventNotifyControl::kContinue;
             }
 
-            // Capture only line-START fires — agent confirmed (param_2==0
+            // Capture only line-START fires - agent confirmed (param_2==0
             // = engine's start, param_2==1 = end). Broadcasting on end
             // would double-fire on the receiver.
             if (isEnd != 0) return RE::BSEventNotifyControl::kContinue;
@@ -626,15 +626,15 @@ namespace {
 
             // Skip the player's own lines and procedural/runtime refs. FF-prefix
             // formIDs are dynamically created and NOT stable across machines, so
-            // the peer can't resolve them — only persistent NPCs (Lin/Heller/
+            // the peer can't resolve them - only persistent NPCs (Lin/Heller/
             // Barrett/...) are mirrorable.
             const bool isProcRef = (speakerFormID & 0xFF000000) == 0xFF000000;
             if (speakerFormID == 0 || speakerFormID == 0x14 || isProcRef)
                 return RE::BSEventNotifyControl::kContinue;
 
-            // V33 — say-mirror scope. The old gate required the DialogueMenu to
+            // V33 - say-mirror scope. The old gate required the DialogueMenu to
             // be open, which dropped EVERY event-driven scene/forced/ambient
-            // line (no menu) — exactly the dialogue we now want to mirror.
+            // line (no menu) - exactly the dialogue we now want to mirror.
             // Replace it with a proximity gate: mirror lines from NPCs near the
             // host player (the shared scene), which keeps city-wide ambient
             // banter from far NPCs out.
@@ -661,14 +661,14 @@ namespace {
                 spkName, lineName);
 
             // Say-mirror: broadcast the line so the peer's copy of this NPC
-            // speaks it (voice + subtitle + lipsync, no menu). V35: gated OFF —
+            // speaks it (voice + subtitle + lipsync, no menu). V35: gated OFF -
             // scene dialogue runs locally on both machines, so the mirror just
             // fights the client's own scene. See s_sayMirrorEnabled note.
             if (s_sayMirrorEnabled) {
                 BroadcastVote(formID, speakerFormID);
             }
 
-            // Menu-mirror (BG3 beta path) — ONLY when the host's dialogue menu
+            // Menu-mirror (BG3 beta path) - ONLY when the host's dialogue menu
             // is actually open. Never fire START for scene/ambient lines, so the
             // client is not dragged into a menu / Activate-replay for NPC banter.
             if (IsDialogueMenuOpenSafe()) {
@@ -678,7 +678,7 @@ namespace {
                 if (prevSeen != speakerFormID) {
                     PLOG_INFO(
                         "[PULSAR] DialogSync V24: speaker=0x{:08X} type=0x{:02X} "
-                        "(prev=0x{:08X}) — broadcasting START (menu open)"sv,
+                        "(prev=0x{:08X}) - broadcasting START (menu open)"sv,
                         speakerFormID, speakerType, prevSeen);
                 }
             }
@@ -744,7 +744,7 @@ namespace {
             std::uint32_t formID = SafeRawFormID(target);
             std::uint8_t  fType  = SafeRawFormType(target);
 
-            // V17 — diagnostic so we can see if this event fires for
+            // V17 - diagnostic so we can see if this event fires for
             // E-press dialog. If yes, we have the real NPC FormID.
             PLOG_INFO(
                 "[PULSAR] DialogSync V17 DIAG TgtEvt: target=0x{:x} "
@@ -760,12 +760,12 @@ namespace {
                 return RE::BSEventNotifyControl::kContinue;
             }
 
-            // V17 — only treat ACHR (0x40 = Actor reference) as real NPC.
+            // V17 - only treat ACHR (0x40 = Actor reference) as real NPC.
             // Anything else (BGSScene 0x88, BGSDialogueBranch 0x81, etc.)
-            // is NOT a dialog partner — skip.
+            // is NOT a dialog partner - skip.
             if (fType != 0x40) {
                 PLOG_INFO(
-                    "[PULSAR] DialogSync V17: target type=0x{:02X} not ACHR — "
+                    "[PULSAR] DialogSync V17: target type=0x{:02X} not ACHR - "
                     "ignoring (only Actor refs are real dialog partners)"sv,
                     fType);
                 return RE::BSEventNotifyControl::kContinue;
@@ -777,7 +777,7 @@ namespace {
             Pulsar::EventTrace::NameOfBuf(formID, tgtName, sizeof(tgtName));
             Pulsar::EventTrace::Trace("DIALOG", "target NPC=%s", tgtName);
 
-            // V17 — broadcast START from THIS sink (the proper one).
+            // V17 - broadcast START from THIS sink (the proper one).
             if (!s_lastBroadcastInDialogue.load(std::memory_order_acquire) &&
                 !tls_applyingRemoteDialogOpen)
             {
@@ -816,7 +816,7 @@ namespace {
     //
     // Fix: hook TESTopicInfo::Fire and suppress the SECOND, cross-source play
     // of the same line within a window. "First source wins", so the client
-    // follows whoever spoke first — the host mirror, since it leads. Same-
+    // follows whoever spoke first - the host mirror, since it leads. Same-
     // source repeats (a scene legitimately re-saying a line) pass through.
     // Host-only lines (the local scene never produces them) are never matched,
     // so they still mirror normally. The logic is self-gating: the mirror only
@@ -854,7 +854,7 @@ namespace {
             if (it != s_recentPlay.end()
                 && now - it->second.ms <= kDedupWindowMs
                 && it->second.mirror != isMirror) {
-                // The OTHER source already started this line — duplicate.
+                // The OTHER source already started this line - duplicate.
                 s_blockedStart[fid] = now;
                 return true;
             }
@@ -910,8 +910,8 @@ void Init()
             "[PULSAR] DialogSync: PlayerInDialogueChanged singleton resolve failed"sv);
     }
 
-    // V4 — resolve TopicInfo::Fire worker (RVA 0xD48170)
-    // V7 — also resolve SetDialogueTarget worker (RVA 0x194A1C0)
+    // V4 - resolve TopicInfo::Fire worker (RVA 0xD48170)
+    // V7 - also resolve SetDialogueTarget worker (RVA 0x194A1C0)
     {
         std::uintptr_t moduleBase = 0;
         __try {
@@ -925,7 +925,7 @@ void Init()
                 reinterpret_cast<std::uintptr_t>(g_topicInfoFire),
                 kRVA_TopicInfoFire);
 
-            // V34 — hook Fire for client-side say-mirror dedup. Both the local
+            // V34 - hook Fire for client-side say-mirror dedup. Both the local
             // scene and the mirror replay funnel through here, so the hook can
             // suppress whichever says a shared line SECOND (see the dedup block
             // in the anonymous namespace). g_topicInfoFire keeps pointing at the
@@ -949,7 +949,7 @@ void Init()
                     kRVA_TopicInfoFire);
             }
 
-            // Say-mirror — resolve EmplaceHandle (object->handle) + the handle
+            // Say-mirror - resolve EmplaceHandle (object->handle) + the handle
             // manager singleton slot. Used on RX to build the speaker handle
             // Fire needs.
             g_emplaceHandle = reinterpret_cast<EmplaceHandleFn>(
@@ -969,7 +969,7 @@ void Init()
                 reinterpret_cast<std::uintptr_t>(g_setDialogueTarget),
                 kRVA_SetDialogueTarget);
 
-            // V13 — install MinHook on FUN_14194CA60 to capture all
+            // V13 - install MinHook on FUN_14194CA60 to capture all
             // engine SetDialogueTarget calls.
             void* setTgtFn = reinterpret_cast<void*>(
                 moduleBase + kRVA_SetDialogueTarget);
@@ -993,7 +993,7 @@ void Init()
                 }
             }
 
-            // V20 — install MinHook on FUN_141795760 (scene-less E-press
+            // V20 - install MinHook on FUN_141795760 (scene-less E-press
             // dialog opener). Captures the path V13 SetCurrentScene
             // misses (free-form NPC chat with no quest scene wrapper).
             g_openDialog = reinterpret_cast<OpenDialogFn>(
@@ -1023,24 +1023,24 @@ void Init()
                 }
             }
 
-            // V20 — resolve MenuTopicManager singleton address. Object
+            // V20 - resolve MenuTopicManager singleton address. Object
             // lives at this address directly (not a pointer-to-pointer).
             g_mtm = reinterpret_cast<void*>(moduleBase + kRVA_MTM);
             PLOG_INFO(
                 "[PULSAR] DialogSync V20: MenuTopicManager resolved at 0x{:x}"sv,
                 reinterpret_cast<std::uintptr_t>(g_mtm));
 
-            // V25 — REMOVED. Diagnostic hooks on FUN_141793640 (2 args, fine) +
+            // V25 - REMOVED. Diagnostic hooks on FUN_141793640 (2 args, fine) +
             // FUN_141793d10 (6 args, our 2-arg hook truncated R8/R9/stack →
             // corrupted engine state for vanilla dialogs → menu never opened
             // for Sarah/Vendor). Lesson: never hook without verified signature.
         } else {
             PLOG_WARN(
-                "[PULSAR] DialogSync: module base resolve failed — V4/V7 RX disabled"sv);
+                "[PULSAR] DialogSync: module base resolve failed - V4/V7 RX disabled"sv);
         }
     }
 
-    // V9 — cache DialogueCamera setting pointer. Setting* is global +
+    // V9 - cache DialogueCamera setting pointer. Setting* is global +
     // persistent so safe to cache once.
     {
         auto* prefs = RE::INIPrefSettingCollection::GetSingleton();
@@ -1066,7 +1066,7 @@ void Init()
         }
     }
 
-    // V4 — subscribe to TESTopicInfoEvent for line-by-line capture
+    // V4 - subscribe to TESTopicInfoEvent for line-by-line capture
     void* topicRaw = ResolveSingletonRaw(kRVA_TESTopicInfoEvent);
     if (topicRaw) {
         auto* src = reinterpret_cast<
@@ -1132,12 +1132,12 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
 
         if (!d.npcFormID || d.npcFormID == 0x14) return;
 
-        // V26 — drop incoming START if this NPC is on post-END cooldown.
+        // V26 - drop incoming START if this NPC is on post-END cooldown.
         // Breaks the engine auto-greet echo loop: peer's auto-greet right
         // after END would otherwise re-open the menu we just closed.
         if (IsNpcOnEndCooldown(d.npcFormID)) {
             PLOG_INFO(
-                "[PULSAR] DialogSync V26: RX START dropped — NPC 0x{:08X} "
+                "[PULSAR] DialogSync V26: RX START dropped - NPC 0x{:08X} "
                 "on post-END cooldown ({}ms remaining)"sv,
                 d.npcFormID,
                 static_cast<int>(kEndCooldownMs -
@@ -1145,7 +1145,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
             return;
         }
 
-        // Queue for game-thread DrainPending — Activate is game-thread-only
+        // Queue for game-thread DrainPending - Activate is game-thread-only
         // (touches cell-streamer + animation graph + UI message queue).
         std::lock_guard g(s_pendingPicksMutex);
         s_pendingDialogOpens.push_back(d.npcFormID);
@@ -1160,12 +1160,12 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
             "[PULSAR] DialogSync RX: END slot={} (queueing dialog close)"sv,
             d.playerSlot);
 
-        // V22 — clear local broadcast flag. V23 made UI::IsMenuOpen the
+        // V22 - clear local broadcast flag. V23 made UI::IsMenuOpen the
         // canonical "in dialog" guard, but this flag is still consulted
         // on a few legacy paths.
         s_lastBroadcastInDialogue.store(false, std::memory_order_release);
 
-        // V26 — also start the post-END cooldown for the NPC we were
+        // V26 - also start the post-END cooldown for the NPC we were
         // talking to (peer-broadcasted END means peer just left a dialog
         // with someone; we need cooldown on our own auto-greet for that
         // NPC too). Use s_lastTargetFormID before we clear it.
@@ -1175,7 +1175,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
 
         s_lastTargetFormID.store(0, std::memory_order_release);
         s_lastV9OpenedNpc.store(0, std::memory_order_release);
-        // V24 — reset speaker tracker so next session can broadcast START
+        // V24 - reset speaker tracker so next session can broadcast START
         // even for the same NPC.
         s_lastBroadcastNpc.store(0, std::memory_order_release);
 
@@ -1184,9 +1184,9 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
         return;
     }
 
-    // PKT_DIALOG_VOTE — Phase 3 V4. Peer picked a TopicInfo; queue for
+    // PKT_DIALOG_VOTE - Phase 3 V4. Peer picked a TopicInfo; queue for
     // game-thread replay via DrainPending. We can't replay here on the
-    // network thread — TESTopicInfo::Fire is not thread-safe.
+    // network thread - TESTopicInfo::Fire is not thread-safe.
     if (pktType == PKT_DIALOG_VOTE) {
         if (length < 1 + sizeof(DialogVoteData)) return;
         DialogVoteData d{};
@@ -1228,7 +1228,7 @@ void Reset()
 // SEH-only helper for the worker call. C2712 forbids __try in functions
 // containing object-unwinding scopes (locks, std::vector ops).
 namespace {
-    // Say-mirror — build the speaker REFR handle (Fire's arg3) from an actor
+    // Say-mirror - build the speaker REFR handle (Fire's arg3) from an actor
     // pointer via HandleManager::EmplaceHandle. Returns 0 on failure. SEH-safe.
     static std::uint32_t SafeMakeRefHandle(void* refr) noexcept
     {
@@ -1249,7 +1249,7 @@ namespace {
         __except (EXCEPTION_EXECUTE_HANDLER) {}
     }
 
-    // V14 proximity check helper — wraps the raw +0x8C reads in SEH so
+    // V14 proximity check helper - wraps the raw +0x8C reads in SEH so
     // DrainPending (which has lock_guard scopes) can call this without
     // C2712 conflict.
     static float SafeDistanceSquared(const void* a, const void* b) noexcept
@@ -1271,7 +1271,7 @@ namespace {
 
     static void SafeSetDialogueTarget(void* actor, void* target) noexcept
     {
-        // V13 — call the trampoline (orig) instead of the patched fn so
+        // V13 - call the trampoline (orig) instead of the patched fn so
         // our own RX-replay path doesn't recurse through the hook.
         auto* fn = g_origSetDialogTarget ? g_origSetDialogTarget : g_setDialogueTarget;
         if (!actor || !fn) return;
@@ -1279,17 +1279,17 @@ namespace {
         __except (EXCEPTION_EXECUTE_HANDLER) {}
     }
 
-    // V13 — hook FUN_14194CA60 to catch the engine's E-press dialog
+    // V13 - hook FUN_14194CA60 to catch the engine's E-press dialog
     // engagement directly. V12's player+0x238 polling never observed
     // a transition, so either the offset is wrong or this function is
     // bypassed by the E-press path. Hooking captures every call regardless
     // of code path so we can see who/what triggers it.
-    // V20 — hook FUN_141795760 to capture E-press / scene-less dialog
+    // V20 - hook FUN_141795760 to capture E-press / scene-less dialog
     // open. This is the engine path that V13 SetCurrentScene hook
     // missed entirely. Args:
     //   mtm = MenuTopicManager*
     //   speaker = TESObjectREFR* NPC actor (the one player engaged)
-    //   u1=0, u2=1, u3=0 — open params
+    //   u1=0, u2=1, u3=0 - open params
     // After this returns, MTM+0xA8 = speaker, dialog menu is open.
     static void __fastcall HookedOpenDialog(void* mtm, void* speaker,
                                             int u1, int u2, int u3)
@@ -1310,9 +1310,9 @@ namespace {
             "[PULSAR] DialogSync V20 HOOK: OpenDialog(MTM, speaker=0x{:08X} "
             "type=0x{:02X})"sv, fid, ft);
 
-        // V21 — args u2/u3 turned out to be stack garbage (function takes
+        // V21 - args u2/u3 turned out to be stack garbage (function takes
         // 2 args, not 5 as RE-agent guessed). Drop the open/close
-        // discrimination — V13 SetCurrentScene hook handles END on
+        // discrimination - V13 SetCurrentScene hook handles END on
         // form=0. V20 hook only broadcasts START for E-press paths
         // (scene-less) that V13 misses entirely.
         const bool isProcRef = (fid & 0xFF000000) == 0xFF000000;
@@ -1324,7 +1324,7 @@ namespace {
             s_lastTopicInfoMs.store(::GetTickCount64(),
                                     std::memory_order_release);
             PLOG_INFO(
-                "[PULSAR] DialogSync V20: dialog open detected — "
+                "[PULSAR] DialogSync V20: dialog open detected - "
                 "broadcasting START with NPC=0x{:08X}"sv, fid);
         }
     }
@@ -1343,7 +1343,7 @@ namespace {
         std::uint32_t tgtFid   = SafeRawFormID(target);
         if (actorFid != 0x14) return;
 
-        // V17 — also read formType to identify what we're really dealing
+        // V17 - also read formType to identify what we're really dealing
         // with. FUN_14194CA60 turned out to set Actor.currentScene
         // (BGSScene form, formType 0x88), NOT dialog-target. Only
         // ACHR (0x40) targets are real NPC refs we should broadcast.
@@ -1354,14 +1354,14 @@ namespace {
             "form=0x{:08X} type=0x{:02X})"sv,
             tgtFid, tgtType);
 
-        // V18 — use scene-exit (form=0) as canonical session-end. Engine
+        // V18 - use scene-exit (form=0) as canonical session-end. Engine
         // wraps every dialog in a BGSScene; when scene clears, dialog is
         // over. This replaces the unreliable idle-timeout for END.
         if (tgtFid == 0 &&
             s_lastBroadcastInDialogue.load(std::memory_order_acquire))
         {
             PLOG_INFO(
-                "[PULSAR] DialogSync V18: scene exited — broadcasting END"sv);
+                "[PULSAR] DialogSync V18: scene exited - broadcasting END"sv);
             BroadcastDialogEnd();
             s_lastTargetFormID.store(0, std::memory_order_release);
             s_lastV9OpenedNpc.store(0, std::memory_order_release);
@@ -1374,7 +1374,7 @@ namespace {
 
 void DrainPending()
 {
-    // V10 — idle-END detector: if we're tracking an active session and
+    // V10 - idle-END detector: if we're tracking an active session and
     // no TopicInfo event fired for 5+ seconds, synthesize END so client
     // restores camera setting + clears dialog-target.
     if (s_lastBroadcastInDialogue.load(std::memory_order_acquire)) {
@@ -1382,7 +1382,7 @@ void DrainPending()
         std::uint64_t nowMs  = ::GetTickCount64();
         if (lastMs > 0 && (nowMs - lastMs) > kSessionIdleMs) {
             PLOG_INFO(
-                "[PULSAR] DialogSync V11: idle {}s — synthesizing END"sv,
+                "[PULSAR] DialogSync V11: idle {}s - synthesizing END"sv,
                 static_cast<int>(kSessionIdleMs / 1000));
             BroadcastDialogEnd();
             s_lastTargetFormID.store(0, std::memory_order_release);
@@ -1390,7 +1390,7 @@ void DrainPending()
         }
     }
 
-    // V12 — poll player.dialogTarget transitions. If host pressed E on
+    // V12 - poll player.dialogTarget transitions. If host pressed E on
     // an NPC the engine sets player+0x238 = NPC. Detecting this transition
     // gives us the clean "player engaged conversation X" signal that
     // PlayerInDialogueChanged doesn't reliably provide. Game-thread only
@@ -1435,14 +1435,14 @@ void DrainPending()
         localCloses.swap(s_pendingDialogCloses);
     }
 
-    // V14 — re-enable V9 with proximity gate. The freeze in V6/V9 was
+    // V14 - re-enable V9 with proximity gate. The freeze in V6/V9 was
     // caused by the engine's dialog system trying to focus a player
     // who is far from the target NPC (input-gates lock with no menu
     // visible). With a distance check we only fire Activate when the
-    // local player is within talking range — same constraint Bethesda's
+    // local player is within talking range - same constraint Bethesda's
     // own E-press has. Both players physically together = both see the
     // dialog (BG3 party-gather pattern). Far apart = outcome-only sync.
-    // V15 — bumped from 500u (E-press range) to 5000u (~50m). Logs
+    // V15 - bumped from 500u (E-press range) to 5000u (~50m). Logs
     // showed user testing at 3327u away, which is "same area" coop
     // distance. Engine freeze in V6 was at much-larger distances (or
     // different cell entirely). 50m gives BG3 "same room" flexibility
@@ -1450,10 +1450,10 @@ void DrainPending()
     constexpr float kDialogDist     = 5000.0f;
     constexpr float kDialogDist2    = kDialogDist * kDialogDist;
 
-    // V27 — only force bDialogueEnable=0 for procedural NPCs (FD/FF prefix).
+    // V27 - only force bDialogueEnable=0 for procedural NPCs (FD/FF prefix).
     // V14 was added to skip camera-transition freeze on far NPCs, but at
     // the 5000u proximity gate vanilla camera works fine. For VANILLA NPCs
-    // (non-procedural formIDs), bDialogueEnable=0 breaks menu opening —
+    // (non-procedural formIDs), bDialogueEnable=0 breaks menu opening -
     // logs 12:44 showed Activate POST-ACT dialogTarget=0 for Sarah/vendor,
     // meaning the menu state didn't transition because the engine relies
     // on camera-transition completion as the trigger for vanilla menu UI.
@@ -1467,7 +1467,7 @@ void DrainPending()
         g_dialogueCameraSetting->SetBool(false);
         PLOG_INFO(
             "[PULSAR] DialogSync V14/V27: bDialogueEnable forced OFF "
-            "(procedural NPC in batch — restored to {} on END)"sv,
+            "(procedural NPC in batch - restored to {} on END)"sv,
             g_dialogueCameraOriginal ? 1 : 0);
     } else if (!localOpens.empty()) {
         PLOG_INFO(
@@ -1476,14 +1476,14 @@ void DrainPending()
     }
 
     for (std::uint32_t npcFormID : localOpens) {
-        // V23 — UI-menu-state guard (replaces V22 broken MTM+0xA8 read).
+        // V23 - UI-menu-state guard (replaces V22 broken MTM+0xA8 read).
         // RE::UI::IsMenuOpen("DialogueMenu") is the authoritative signal:
         // true iff the dialogue menu is actually on screen. V22 misread
         // a non-pointer field at MTM+0xA8 and returned non-null even
         // when no menu was open, blocking every Activate replay.
         if (IsDialogueMenuOpenSafe()) {
             PLOG_INFO(
-                "[PULSAR] DialogSync DRAIN: NPC 0x{:08X} skip — DialogueMenu "
+                "[PULSAR] DialogSync DRAIN: NPC 0x{:08X} skip - DialogueMenu "
                 "already open (V23 UI check)"sv,
                 npcFormID);
             continue;
@@ -1492,7 +1492,7 @@ void DrainPending()
         // V11 dedupe.
         if (s_lastV9OpenedNpc.load(std::memory_order_acquire) == npcFormID) {
             PLOG_INFO(
-                "[PULSAR] DialogSync DRAIN: NPC 0x{:08X} already opened — skip"sv,
+                "[PULSAR] DialogSync DRAIN: NPC 0x{:08X} already opened - skip"sv,
                 npcFormID);
             continue;
         }
@@ -1500,14 +1500,14 @@ void DrainPending()
         auto* form = RE::TESForm::LookupByID(npcFormID);
         if (!form) {
             PLOG_INFO(
-                "[PULSAR] DialogSync DRAIN: NPC 0x{:08X} not loaded — drop"sv,
+                "[PULSAR] DialogSync DRAIN: NPC 0x{:08X} not loaded - drop"sv,
                 npcFormID);
             continue;
         }
         auto* player = RE::PlayerCharacter::GetSingleton();
         if (!player) continue;
 
-        // V16 — verbose pre-Activate state dump.
+        // V16 - verbose pre-Activate state dump.
         const std::uint8_t formType    = SafeRawFormType(form);
         const std::uint32_t formCellID = SafeReadFormCell(form);
         std::uint64_t formBytes[4];
@@ -1543,7 +1543,7 @@ void DrainPending()
 
         if (tooFar) {
             PLOG_INFO(
-                "[PULSAR] DialogSync DRAIN: NPC 0x{:08X} too far — skip Activate"sv,
+                "[PULSAR] DialogSync DRAIN: NPC 0x{:08X} too far - skip Activate"sv,
                 npcFormID);
             continue;
         }
@@ -1576,17 +1576,17 @@ void DrainPending()
 
         PLOG_INFO(
             "[PULSAR] DialogSync DRAIN: V16 dialog-open NPC=0x{:08X} "
-            "(dist²={:.0f}, in range — Activate fired)"sv,
+            "(dist²={:.0f}, in range - Activate fired)"sv,
             npcFormID, dist2);
     }
 
-    // V7 — clear dialogue-target on END so engine state mirrors peer.
+    // V7 - clear dialogue-target on END so engine state mirrors peer.
     for (std::uint8_t slot : localCloses) {
         if (!g_setDialogueTarget) continue;
         auto* player = RE::PlayerCharacter::GetSingleton();
         if (!player) continue;
 
-        // V11 — reset dedupe so next session can re-open.
+        // V11 - reset dedupe so next session can re-open.
         s_lastV9OpenedNpc.store(0, std::memory_order_release);
 
         tls_applyingRemoteDialogOpen = true;
@@ -1598,7 +1598,7 @@ void DrainPending()
             "for slot={} END"sv, slot);
     }
 
-    // V9 — restore user's DialogCamera setting on END.
+    // V9 - restore user's DialogCamera setting on END.
     if (!localCloses.empty() && g_dialogueCameraSetting && g_dialogueCameraSaved) {
         g_dialogueCameraSetting->SetBool(g_dialogueCameraOriginal);
         g_dialogueCameraSaved = false;
@@ -1613,17 +1613,17 @@ void DrainPending()
         auto* form = RE::TESForm::LookupByID(pick.topicInfoFormID);
         if (!form) {
             PLOG_INFO(
-                "[PULSAR] DialogSync DRAIN: topicInfo 0x{:08X} not loaded — drop"sv,
+                "[PULSAR] DialogSync DRAIN: topicInfo 0x{:08X} not loaded - drop"sv,
                 pick.topicInfoFormID);
             continue;
         }
 
         // TESTopicInfo's FormType is INFO (0x59). We don't reject other
-        // types — defensive logging only — because LookupByID may
+        // types - defensive logging only - because LookupByID may
         // resolve to a child class we don't have a struct for.
         void* topicInfo = static_cast<void*>(form);
 
-        // Say-mirror: resolve the speaker actor and build its REFR handle —
+        // Say-mirror: resolve the speaker actor and build its REFR handle -
         // Fire's arg3. Without a valid speaker handle the line plays without
         // voice context (the old "pass topicInfo formID as handle" bug), so
         // skip if we can't build one.
@@ -1635,7 +1635,7 @@ void DrainPending()
         if (speakerHandle == 0) {
             PLOG_INFO(
                 "[PULSAR] DialogSync DRAIN: no speaker handle (topicInfo=0x{:08X} "
-                "speaker=0x{:08X}) — skip say"sv,
+                "speaker=0x{:08X}) - skip say"sv,
                 pick.topicInfoFormID, pick.speakerFormID);
             continue;
         }

@@ -1,10 +1,10 @@
 #pragma once
 
-// Phase L.3 V2 V0 — runtime probe that captures multiple flight-state
+// Phase L.3 V2 V0 - runtime probe that captures multiple flight-state
 // candidates while player pilots in space. Profile-diff approach: dump
 // every 250ms, look at which fields change between idle and piloting.
 //
-// READ-ONLY. No mutations, no network — pure diagnostic.
+// READ-ONLY. No mutations, no network - pure diagnostic.
 
 namespace Pulsar::SpaceFlightProbe {
 

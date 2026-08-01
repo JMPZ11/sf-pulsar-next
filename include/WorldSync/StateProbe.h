@@ -2,9 +2,9 @@
 
 #include <cstdint>
 
-// L.7 V13b — Engine pre-load state probe.
+// L.7 V13b - Engine pre-load state probe.
 //
-// Hooks FUN_14189A8E0 (RVA 0x141898210) — the engine's pre-load init
+// Hooks FUN_14189A8E0 (RVA 0x141898210) - the engine's pre-load init
 // handler called from BGSSaveLoadManager queue task processor when bit 0x4
 // (load) is set in mgr+0x50. On entry, dumps a snapshot of all candidate
 // stuck-state items so we can diff load #1/#2/#3 and identify what changes
@@ -36,7 +36,7 @@ namespace Pulsar::WorldSync::StateProbe {
     // Install the FUN_14189A8E0 entry hook. Idempotent.
     void Init();
 
-    // Manually dump a snapshot tagged "[PROBE MANUAL]" — useful to
+    // Manually dump a snapshot tagged "[PROBE MANUAL]" - useful to
     // capture state from outside the load path (e.g. from PENDING_TRIGGER
     // right before we set bit 0x4, to compare with the snapshot the
     // hook itself writes inside FUN_14189A8E0).

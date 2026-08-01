@@ -123,7 +123,7 @@ public partial class SettingsViewModel : ViewModelBase
         }
     }
 
-    // Update-repos (Phase 5) — tool and mod are separate repos / release channels.
+    // Update-repos (Phase 5) - tool and mod are separate repos / release channels.
     public string ToolRepo
     {
         get => _shell.Config.ToolRepo;

@@ -9,7 +9,7 @@
 
 namespace Pulsar::Engine::ProcGenGate
 {
-    // Starfield.exe 1.16.236 — BGSPlanet::ProcGenRuntimeService streaming state.
+    // Starfield.exe 1.16.236 - BGSPlanet::ProcGenRuntimeService streaming state.
     // Reversed via Ghidra (T3). `DAT_14590b180` block holds the proc-gen tile/
     // chunk streaming phase. Non-blocking reads are safe from SFSE threads;
     // the engine writes this with LOCK/WakeByAddress, plain volatile read is

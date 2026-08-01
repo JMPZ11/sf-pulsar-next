@@ -1,14 +1,14 @@
-// Phase L.3 V2 V0 — Space-flight runtime probe.
+// Phase L.3 V2 V0 - Space-flight runtime probe.
 //
 // Goal: profile-diff approach. While player pilots in space, dump candidate
 // sources of flight state every 250ms:
-//   1. Player REFR.data (location/angle) — REFR is known to be at (0,0,0)
+//   1. Player REFR.data (location/angle) - REFR is known to be at (0,0,0)
 //      for the SHIP REFR; we want to confirm what PLAYER REFR shows.
 //   2. Ship REFR raw memory bytes at +0x80..+0xC8 (data + loadedData pointers).
-//   3. Ship loadedData (+0xB0) — pointer to the runtime data including 3D + havok.
-//   4. PilotCameraShaker @ 0x1461EAF80 — confirmed shake module; check if
+//   3. Ship loadedData (+0xB0) - pointer to the runtime data including 3D + havok.
+//   4. PilotCameraShaker @ 0x1461EAF80 - confirmed shake module; check if
 //      shake-displacement (+0x50..+0x5C) actually accumulates during piloting.
-//   5. Ship 3D NiNode local + world transform — ship's render orientation.
+//   5. Ship 3D NiNode local + world transform - ship's render orientation.
 //
 // Static RE narrowed candidates (see reference_space_flight_architecture.md)
 // but couldn't pinpoint per-frame writers. This probe gives ground truth.
@@ -45,7 +45,7 @@ namespace {
     static std::atomic<std::uint64_t> g_firstSpaceTickMs{ 0 };
     static std::atomic<bool>          g_inSpaceLast{ false };
 
-    // PilotCameraShaker singleton pointer — RE'd via Ghidra to live at this VA.
+    // PilotCameraShaker singleton pointer - RE'd via Ghidra to live at this VA.
     // (RVA 0x61EAF80, class PilotCameraShaker, static RE 2026-04-29.)
     // The address holds a `PilotCameraShaker*`; if non-null, +0x50..+0x5C is
     // the shake-displacement vec4 and +0x78 is the shake intensity scalar.
@@ -91,7 +91,7 @@ namespace {
     }
 
     // Resolve PilotCameraShaker singleton pointer. The DAT itself stores a
-    // `PilotCameraShaker*` — could be null until first flight init.
+    // `PilotCameraShaker*` - could be null until first flight init.
     static void* ResolvePilotCameraShaker()
     {
         __try {
@@ -103,7 +103,7 @@ namespace {
         }
     }
 
-    // Snapshot — all fields zero by default. Booleans gate "did we read".
+    // Snapshot - all fields zero by default. Booleans gate "did we read".
     struct Snapshot {
         // Player REFR
         bool   havePlayer = false;
@@ -130,7 +130,7 @@ namespace {
         float          shakeIntensity = 0;
         float          shakeBound = 0;
 
-        // Player REFR NiNode (separate object — player is child of ship).
+        // Player REFR NiNode (separate object - player is child of ship).
         std::uintptr_t playerLoadedDataPtr = 0;
         std::uintptr_t playerData3DPtr     = 0;
         float          plNiWorldT[3] = { 0, 0, 0 };
@@ -188,10 +188,10 @@ namespace {
                     s.shipCellIsProc = (cell->formID & 0xFF000000u) == 0xFF000000u;
                 }
 
-                // Ship loadedData @ TESObjectREFR + 0xB8 (CommonLibSF — verified
+                // Ship loadedData @ TESObjectREFR + 0xB8 (CommonLibSF - verified
                 // by CellDiag/Cell3DAttach which read live heap pointers here).
                 // Earlier V0.2 used +0xB0 (sfse-0.2.19 value) and got vtable-shaped
-                // garbage — wrong offset.
+                // garbage - wrong offset.
                 s.shipLoadedDataPtr = ReadPtrRaw(ship, 0xB8);
 
                 if (s.shipLoadedDataPtr) {
@@ -243,7 +243,7 @@ namespace {
         } __except (EXCEPTION_EXECUTE_HANDLER) {}
 
         // PlayerCharacter NiNode (player is parented to ship cockpit while
-        // piloting — its NiNode may rotate even if ship REFR doesn't).
+        // piloting - its NiNode may rotate even if ship REFR doesn't).
         __try {
             s.playerLoadedDataPtr = ReadPtrRaw(player, 0xB8);
             if (s.playerLoadedDataPtr) {
@@ -396,7 +396,7 @@ void Tick()
     if (nowInSpace && !wasInSpace) {
         g_firstSpaceTickMs.store(nowMs, std::memory_order_relaxed);
         PLOG_INFO("[PULSAR] FlightProbe: entering space, starting probe window"sv);
-        NASLOG("FlightProbe: entering space — probe window starts");
+        NASLOG("FlightProbe: entering space - probe window starts");
     }
     if (!nowInSpace) return;
 

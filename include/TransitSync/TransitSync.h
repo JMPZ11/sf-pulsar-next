@@ -5,7 +5,7 @@
 
 namespace Pulsar::TransitSync {
 
-    // Phase K.1 — Universal Transit-Event Sync.
+    // Phase K.1 - Universal Transit-Event Sync.
     //
     // Detection: CellDiag::Tick observes player.parentCell.formID changes
     // and worldspace changes. When a non-trivial transition is detected
@@ -20,7 +20,7 @@ namespace Pulsar::TransitSync {
 
     // Called by LootSync's Activate hook when the local player activates a
     // kDOOR. The most recent value is paired with the next loadMenu open
-    // and broadcast as TransitData::sourceDoorFormID — receiver can then
+    // and broadcast as TransitData::sourceDoorFormID - receiver can then
     // Activate the same door to follow through with proper engine cell-load
     // (rather than blind SetPosition which only handles exterior).
     void NoteLocalDoorActivation(std::uint32_t a_doorFormID);
@@ -30,7 +30,7 @@ namespace Pulsar::TransitSync {
     // the door REFR to follow peer through it. That call fires the engine's
     // door-trigger pipeline which includes OUR LootSync HookedActivate.
     // While this flag is true, LootSync's hook MUST NOT call
-    // NoteLocalDoorActivation — otherwise our auto-follow's own activate
+    // NoteLocalDoorActivation - otherwise our auto-follow's own activate
     // would loop back as a transit-broadcast ping.
     bool IsInAutoFollowActivate();
 
@@ -42,7 +42,7 @@ namespace Pulsar::TransitSync {
     // Inputs are sampled from PlayerCharacter just AFTER LoadingMenu close.
     // Pass 0 for prevCellFormID / prevWorldspaceFormID if unknown (initial
     // session start). sourceDoorFormID is automatically pulled from the
-    // recent-door-activation note (see NoteLocalDoorActivation) — pass
+    // recent-door-activation note (see NoteLocalDoorActivation) - pass
     // 0u to skip the door-based follow path.
     void OnLocalTransit(std::uint32_t prevCellFormID,
                          std::uint32_t newCellFormID,
@@ -55,18 +55,18 @@ namespace Pulsar::TransitSync {
     // for game-thread processing. K.1 just logs.
     void OnPacketReceived(const std::uint8_t* data, std::size_t length);
 
-    // Game-thread tick — drains the receive queue, logs.
+    // Game-thread tick - drains the receive queue, logs.
     // K.2 will hand off to auto-follow handlers here.
     void Tick();
 
-    // Diagnostic accessor — last peer-reported transit (formID dest cell).
+    // Diagnostic accessor - last peer-reported transit (formID dest cell).
     // Future K.2 / RemotePlayerManager can read this to drive auto-follow.
     std::uint32_t GetLastPeerDestCellFormID();
     std::uint32_t GetLastPeerDestWorldspaceFormID();
 
     // ------- K.2 Auto-Follow (Toggle-Hybrid) -------
     //
-    // Default ON — when peer's PKT_TRANSIT arrives the local player auto-
+    // Default ON - when peer's PKT_TRANSIT arrives the local player auto-
     // teleports to peer's destination position. Hotkey (F7) toggles the
     // mode at runtime so the user can split off intentionally.
     //
@@ -84,7 +84,7 @@ namespace Pulsar::TransitSync {
     void ToggleFollow();      // flips the bit + logs new state
     void SetFollow(bool a_on);
 
-    // Polled from Main.cpp permanent task — checks edge of the supplied VK.
+    // Polled from Main.cpp permanent task - checks edge of the supplied VK.
     // Default 0x76 = VK_F7 to preserve historical behaviour; the binding is
     // overridable via PULSAR.ini's HotkeyAutoFollow.
     void TickFollowHotkey(int a_vkey = 0x76);

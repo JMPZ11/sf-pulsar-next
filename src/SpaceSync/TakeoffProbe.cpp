@@ -1,4 +1,4 @@
-// Phase L.1 V1 — Takeoff/Landing/etc state-change probe.
+// Phase L.1 V1 - Takeoff/Landing/etc state-change probe.
 //
 // Logs comprehensive player+ship state at the moment a Spaceship event fires
 // AND at delayed checkpoints (100ms / 500ms / 2s / 5s) so we can see when
@@ -58,7 +58,7 @@ namespace {
     static constexpr std::uint64_t kDelaysMs[] = { 100, 500, 2000, 5000 };
     static constexpr std::size_t   kDelayCount = sizeof(kDelaysMs) / sizeof(kDelaysMs[0]);
 
-    // L.6 V1.2 — Dock-Probe-Window. After DockEvent fires, we sample every
+    // L.6 V1.2 - Dock-Probe-Window. After DockEvent fires, we sample every
     // kDockProbeIntervalMs for kDockProbeDurationMs to capture the full
     // Phase A (cutscene + visual attach) sequence. Marker logs on every
     // detectable change to pinpoint the moment the engine flips state.
@@ -71,7 +71,7 @@ namespace {
     static std::atomic<std::uint32_t> g_dockProbeLastDockFormID{ 0 };
     static std::atomic<int>           g_dockProbeSampleCounter{ 0 };
 
-    // Increment counter — used for sample numbering in logs.
+    // Increment counter - used for sample numbering in logs.
     static int NextDockSampleNum() {
         return g_dockProbeSampleCounter.fetch_add(1, std::memory_order_relaxed) + 1;
     }
@@ -159,7 +159,7 @@ namespace {
             auto* cell = player->parentCell;
             if (cell) {
                 s.playerCellFormID = cell->formID;
-                // cellFlags raw — read 4 bytes at cell+0x48 (raw layout, +8
+                // cellFlags raw - read 4 bytes at cell+0x48 (raw layout, +8
                 // shifted from CommonLibSF compiled-struct).
                 s.cellFlagsRaw = *reinterpret_cast<std::uint32_t*>(
                     reinterpret_cast<std::uint8_t*>(cell) + 0x48);
@@ -172,7 +172,7 @@ namespace {
             }
         } __except (EXCEPTION_EXECUTE_HANDLER) {}
 
-        // --- Player ship (GetSpaceship) — VALID REL::ID 119881 ---
+        // --- Player ship (GetSpaceship) - VALID REL::ID 119881 ---
         __try {
             auto* ship = player->GetSpaceship(true);
             if (ship) {
@@ -194,15 +194,15 @@ namespace {
             }
         } __except (EXCEPTION_EXECUTE_HANDLER) {}
 
-        // --- IsInSpace — VALID REL::ID 63482 ---
+        // --- IsInSpace - VALID REL::ID 63482 ---
         __try {
             s.playerIsInSpace = player->IsInSpace(true);
         } __except (EXCEPTION_EXECUTE_HANDLER) {}
 
-        // --- GetSpaceshipParentDock — raw RVA 0x3428FB0 ---
+        // --- GetSpaceshipParentDock - raw RVA 0x3428FB0 ---
         // Reads this->member@+0x88, calls vt[50], writes result via xmm0/movsd.
         // L.6 V1.1 FIX (2026-05-02): CommonLibSF declares this on
-        // TESObjectREFR — must be called on the SHIP REFR, not the player.
+        // TESObjectREFR - must be called on the SHIP REFR, not the player.
         // Pre-fix logs showed dock=0 always; calling on ship resolves it.
         __try {
             void* dockOut = nullptr;
@@ -219,9 +219,9 @@ namespace {
 
         // GetSpaceshipPilot (173834) and IsSpaceshipLanded (173880) are
         // BSComponentDB2 queries with 4-arg signatures requiring a component-
-        // key argument that callers must construct. Skipped here — would need
+        // key argument that callers must construct. Skipped here - would need
         // deeper RE to integrate; see feedback_commonlibsf_zero_id_lookup.md.
-        // IsSpaceshipDocked (174146) thunks a float arg + tail-calls vt[33] —
+        // IsSpaceshipDocked (174146) thunks a float arg + tail-calls vt[33] -
         // signature is unclear, also skipped.
         return s;
     }
@@ -260,7 +260,7 @@ namespace {
             s.shipDockFormID, s.playerIsInSpace ? 1 : 0);
     }
 
-    // L.6 V1.2 — Arm/extend the probe window. Called from Dock + RampDown.
+    // L.6 V1.2 - Arm/extend the probe window. Called from Dock + RampDown.
     static void ArmDockProbeWindow(const char* a_reason)
     {
         std::uint64_t now = ::GetTickCount64();
@@ -296,7 +296,7 @@ namespace {
             s.shipFormID, s.shipParentCellID, s.shipX, s.shipY, s.shipZ,
             s.shipDockFormID, s.playerIsInSpace ? 1 : 0);
 
-        // Specially highlight changes — these are the points where engine
+        // Specially highlight changes - these are the points where engine
         // state flipped (pre vs post Phase A, or hatch transit, etc.).
         if (n > 1 && prevPCell != s.playerCellFormID) {
             PLOG_INFO("[PULSAR] L.6 V1.2 DockProbe ⚡ PLAYER-CELL CHANGE 0x{:08X} → 0x{:08X}"sv,
@@ -318,7 +318,7 @@ namespace {
         }
     }
 
-    // Tick — drain probe window samples (called from main Tick()).
+    // Tick - drain probe window samples (called from main Tick()).
     static void TickDockProbe()
     {
         std::uint64_t until = g_dockProbeUntilMs.load(std::memory_order_acquire);
@@ -327,7 +327,7 @@ namespace {
         if (now >= until) {
             g_dockProbeUntilMs.store(0, std::memory_order_release);
             int n = g_dockProbeSampleCounter.load(std::memory_order_acquire);
-            PLOG_INFO("[PULSAR] L.6 V1.2 DockProbe WINDOW CLOSED — {} samples taken"sv, n);
+            PLOG_INFO("[PULSAR] L.6 V1.2 DockProbe WINDOW CLOSED - {} samples taken"sv, n);
             NASLOG("L.6 V1.2 DockProbe WINDOW CLOSED (%d samples)", n);
             return;
         }
@@ -370,7 +370,7 @@ void OnEventFire(std::uint8_t a_kind)
     auto snap = CaptureNow();
     LogSnapshot(a_kind, "T+0", snap);
 
-    // L.6 V1.2 — Dock-Probe-Window arming on Dock and RampDown.
+    // L.6 V1.2 - Dock-Probe-Window arming on Dock and RampDown.
     if (a_kind == 3 /*Dock*/) {
         ArmDockProbeWindow("DockEvent");
     } else if (a_kind == 5 /*RampDown*/ && IsDockProbeActive()) {
@@ -391,7 +391,7 @@ void OnEventFire(std::uint8_t a_kind)
 
 void Tick()
 {
-    // L.6 V1.2 — Dock-Probe-Window sampling (always runs, gates inside).
+    // L.6 V1.2 - Dock-Probe-Window sampling (always runs, gates inside).
     TickDockProbe();
 
     std::vector<Pending> toFire;

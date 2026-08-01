@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-// SpawnSync  — host-authoritative NPC spawn replication.
+// SpawnSync  - host-authoritative NPC spawn replication.
 //
 // Some quest NPCs are spawned/enabled by Block-Event quests (e.g. the dropship
 // pirates in the opening) via alias-fill that is host-local + non-deterministic,

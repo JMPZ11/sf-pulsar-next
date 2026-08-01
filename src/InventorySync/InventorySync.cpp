@@ -40,7 +40,7 @@ namespace Pulsar::InventorySync
         //           capacity @ +0x20.
         //
         // Forms::SaveBuffer's existing LoadFormBufferRaw uses Skyrim-derived
-        // (incorrect) offsets — its DeserializeForm therefore only triggers
+        // (incorrect) offsets - its DeserializeForm therefore only triggers
         // a state-zero side effect (vt[0x1B] LoadGame), which happens to be
         // useful for biped re-init but does NOT actually apply the blob.
         //
@@ -80,17 +80,17 @@ namespace Pulsar::InventorySync
         // Vtable address (resolved at runtime via REL::ID 398652).
         static REL::Relocation<std::uintptr_t> s_loadFBVtable{ REL::ID(398652) };
 
-        // ─── V2 chunk-filter — runtime vtable hook ─────────────────────
+        // ─── V2 chunk-filter - runtime vtable hook ─────────────────────
         // Allowlist of chunk tags to KEEP when applying a remote player
         // blob. All other tags are silently consumed at the chunk-reader
         // level so PlayerCharacter::FinishLoadGame's switch never sees
         // them (no dispatch → no world-state overlay).
         //
         // Tag values are u32 little-endian = 4 ASCII chars MSB-first read.
-        //   "DATA" → 0x41544144 — base REFR pos/rot/scale (L.7 overrides)
-        //   "NAME" → 0x454D414E — baseForm pointer (identical between peers)
-        //   "EDID" → 0x44494445 — actor editor-ID alias
-        //   "BFCB" → 0x42434642 — THE inventory/AV/skills/perks sub-blob
+        //   "DATA" → 0x41544144 - base REFR pos/rot/scale (L.7 overrides)
+        //   "NAME" → 0x454D414E - baseForm pointer (identical between peers)
+        //   "EDID" → 0x44494445 - actor editor-ID alias
+        //   "BFCB" → 0x42434642 - THE inventory/AV/skills/perks sub-blob
         //
         // Full chunk-tag map + KEEP/DROP rationale lives in
         // memory/reference_m3_chunk_tags.md and local RE notes
@@ -117,7 +117,7 @@ namespace Pulsar::InventorySync
         static std::atomic<bool> s_customVtReady{ false };
         static void* s_origChunkReader = nullptr;
 
-        // L.7 V2 — global engine-vtable patch state. When true, the
+        // L.7 V2 - global engine-vtable patch state. When true, the
         // chunk reader hook runs on the engine's own LoadFB instances too
         // (not just our M.3 apply buf). Used to skip player BFCB chunks
         // during bridge load so live player keeps pre-bridge state.
@@ -136,10 +136,10 @@ namespace Pulsar::InventorySync
         // worker thread while our apply runs on game-main.
         static thread_local bool s_inApplyChain = false;
 
-        // L.7 V3.3 — per-form dispatcher hook state. The engine's
+        // L.7 V3.3 - per-form dispatcher hook state. The engine's
         // bridge-load LoadFB instances do NOT put the form pointer at
         // buf+0xD8 (we set that field in our M.3 ApplyBlobToForm but the
-        // engine doesn't — confirmed by V3.2 diagnostic showing playerHits=0
+        // engine doesn't - confirmed by V3.2 diagnostic showing playerHits=0
         // even when engineCalls=47). Reliable identification of "currently
         // dispatched form is the player" comes from the per-form dispatcher
         // FUN_14181E030, which receives the recordHeader with formID at
@@ -153,12 +153,12 @@ namespace Pulsar::InventorySync
         // Diagnostic budget for first-N dispatch logs per bridge cycle.
         static std::atomic<int> s_diag_dispatchLogBudget{ 0 };
 
-        // ─── L.7 V5.1 — Memory-mutation watchpoint ───────────────────
+        // ─── L.7 V5.1 - Memory-mutation watchpoint ───────────────────
         // V5 used a narrow region (0x100..0x600) and saw zero engine
         // mutations. Widened to 0x00..0x1000 (4KB) to catch position writes
         // (+0x80..0x94), TESForm flags (+0x20), and any high-offset state.
         // Indirect mutations (via heap pointers like ExtraContainerChanges)
-        // are STILL invisible — the pointer doesn't change, only the
+        // are STILL invisible - the pointer doesn't change, only the
         // pointed-to data does. For those we'd need to walk through the
         // pointer (TODO if V5.1 still shows no diff).
         static std::uint64_t HashPlayerRegion() noexcept
@@ -241,26 +241,26 @@ namespace Pulsar::InventorySync
         static std::atomic<int> s_diag_mutLogBudget{ 0 };
 
         // The hook: behavior depends on calling context.
-        //   (a) PULSAR apply chain — s_inApplyChain=true
+        //   (a) PULSAR apply chain - s_inApplyChain=true
         //       Original KEEP-allowlist: drop non-KEEP chunks (world-state),
         //       pass KEEP chunks (DATA/NAME/EDID/BFCB) to dispatcher.
-        //   (b) Engine bridge load on player — s_inApplyChain=false AND
+        //   (b) Engine bridge load on player - s_inApplyChain=false AND
         //       buf.form==player AND IsPreBridgeSnapshotPending()
         //       Drop ONLY BFCB (inventory+AVs+skills+perks). Let DATA/NAME/
         //       EDID/everything-else pass through so engine cell-streaming
         //       + position apply work normally and per-form invariants stay
         //       intact. Live player keeps pre-bridge inventory/skills.
-        //       V2 attempted drop-ALL (return 0 immediately) — that part
+        //       V2 attempted drop-ALL (return 0 immediately) - that part
         //       alone didn't crash (1st bridge logged successful diagnostic
         //       hash). The actual V2 crash was infinite recursion in the
         //       passthrough call below, caused by GetCustomVtable corrupting
         //       s_origChunkReader; fixed in GetCustomVtable() (guard write).
         //   (c) Anything else (non-player forms during bridge, non-bridge
-        //       loads, main-menu loads, autosave recovery, ...) —
+        //       loads, main-menu loads, autosave recovery, ...) -
         //       passthrough. Calls original engine chunk reader unchanged.
         using ChunkReaderFn = std::uint64_t(__fastcall*)(void* /*buf*/, void* /*param2*/);
 
-        // L.7 V3.2 — diagnostic counters. Engine-context only (not
+        // L.7 V3.2 - diagnostic counters. Engine-context only (not
         // apply-chain). Reset on each ArmForBridge so each bridge cycle gets
         // a clean tally; dump in DoApply after the .psprof apply runs.
         static std::atomic<std::uint32_t> s_diag_engineCalls{ 0 };
@@ -278,7 +278,7 @@ namespace Pulsar::InventorySync
             __try {
                 auto* base = reinterpret_cast<std::uint8_t*>(a_buf);
 
-                // Context (b) — engine bridge load on player change-form.
+                // Context (b) - engine bridge load on player change-form.
                 // Drop ONLY BFCB chunks: loop until orig() returns a chunk
                 // whose tag is NOT BFCB (or EOF), pass that one through.
                 // Player's per-form chunk loop sees DATA/NAME/EDID/etc.
@@ -314,7 +314,7 @@ namespace Pulsar::InventorySync
                             }
                             s_diag_bfcbDrops.fetch_add(1,
                                 std::memory_order_relaxed);
-                            // BFCB — advance position past body, clear
+                            // BFCB - advance position past body, clear
                             // tag/size, loop to read next chunk.
                             const auto sz =
                                 *reinterpret_cast<std::uint32_t*>(
@@ -340,12 +340,12 @@ namespace Pulsar::InventorySync
                                 base + kOff_curTag)  = 0;
                             *reinterpret_cast<std::uint32_t*>(
                                 base + kOff_curSize) = 0;
-                            // Sanity bound — only 1 BFCB expected on player;
+                            // Sanity bound - only 1 BFCB expected on player;
                             // 16 leaves room without risking infinite loop.
                             if (++dropCount > 16) return 0;
                         }
                     }
-                    // Context (c) — non-player or non-bridge load. Pass
+                    // Context (c) - non-player or non-bridge load. Pass
                     // through unchanged so normal loads (main-menu, autosave,
                     // other forms during bridge) behave exactly as before.
                     const std::uint64_t hashBefore =
@@ -374,7 +374,7 @@ namespace Pulsar::InventorySync
                     return ret;
                 }
 
-                // Context (a) — PULSAR M.3 apply chain. KEEP-allowlist:
+                // Context (a) - PULSAR M.3 apply chain. KEEP-allowlist:
                 // drop non-KEEP chunks (world-state from client snapshot),
                 // pass KEEP chunks to PlayerCharacter::FinishLoadGame
                 // dispatch.
@@ -390,7 +390,7 @@ namespace Pulsar::InventorySync
                         return ok;
                     }
 
-                    // DROP — advance cursor past body manually, clear pending
+                    // DROP - advance cursor past body manually, clear pending
                     // state, loop to read next chunk header.
                     const auto sz =
                         *reinterpret_cast<std::uint32_t*>(base + kOff_curSize);
@@ -413,7 +413,7 @@ namespace Pulsar::InventorySync
                     *reinterpret_cast<std::uint32_t*>(base + kOff_curTag)  = 0;
                     *reinterpret_cast<std::uint32_t*>(base + kOff_curSize) = 0;
                     if (++dropCount > 4096) {
-                        // Sanity bound — should never hit; bail to avoid
+                        // Sanity bound - should never hit; bail to avoid
                         // infinite loop on pathological blob.
                         return 0;
                     }
@@ -423,12 +423,12 @@ namespace Pulsar::InventorySync
             }
         }
 
-        // L.7 V4.5 — PlayerCharacter::FinishLoadGame direct hook. RVA
+        // L.7 V4.5 - PlayerCharacter::FinishLoadGame direct hook. RVA
         // CORRECTED from 0xB230A0 to 0x1A4B590 based on V4.4 runtime
         // verification: `PlayerCharacter::GetSingleton()->vt[0x1D]` resolved
         // to image-base + 0x1A4B590 in 1.16.236, NOT 0xB230A0. The
         // M3_ChunkSwitch.txt decompile label "PlayerCharacter::FinishLoadGame
-        // @ 0x140B230A0" was incorrect for this build — 0xB230A0 is some
+        // @ 0x140B230A0" was incorrect for this build - 0xB230A0 is some
         // other Actor/ExtraData chunk processor (V4.x diagnostics showed
         // 14431 calls with formID=0 and zero singleton matches).
         //
@@ -455,7 +455,7 @@ namespace Pulsar::InventorySync
         {
             s_diag_finishCalls.fetch_add(1, std::memory_order_relaxed);
 
-            // V4.3 — V4.2 diagnostic showed formID at +0x28 is consistently 0
+            // V4.3 - V4.2 diagnostic showed formID at +0x28 is consistently 0
             // across 9009 calls. The function is recursively invoked by
             // FUN_1405E14D0 (BFCB sub-blob loader) with temporary structs that
             // have no formID at the expected offset. Pointer-comparison
@@ -536,7 +536,7 @@ namespace Pulsar::InventorySync
             return ret;
         }
 
-        // L.7 V6 — PerformGameReset + Player REFR re-init hooks.
+        // L.7 V6 - PerformGameReset + Player REFR re-init hooks.
         // V5.1 evidence: 300-462 bytes mutated in player struct during
         // bridge, but ZERO mutations wrapped by our 4 existing hooks. The
         // engine applies host player state via a code path outside chunk
@@ -545,7 +545,7 @@ namespace Pulsar::InventorySync
         //   FUN_141996BB0 (player REFR re-init, RVA 0x19942C0, takes player as 1st arg)
         //
         // Decompile RVAs may be wrong in this build (PC::FLG burned us
-        // before — was 0xB230A0 in doc, actually 0x1A4B590 at runtime).
+        // before - was 0xB230A0 in doc, actually 0x1A4B590 at runtime).
         // For now hook by RVA + log entry to verify they actually fire.
         // If they fire AND wrap the mutation, we have our skip target.
         static REL::Relocation<std::uintptr_t> s_performGameReset{
@@ -553,7 +553,7 @@ namespace Pulsar::InventorySync
         static REL::Relocation<std::uintptr_t> s_playerRefrReInit{
             REL::Offset{ 0x19942C0 } };
 
-        // FUN_141898AB0 — body=6749. Signature unknown beyond "takes some
+        // FUN_141898AB0 - body=6749. Signature unknown beyond "takes some
         // mgr/ctx args". Wrap as 4-arg fastcall for safety.
         using PerformGameResetFn = std::uint64_t(__fastcall*)(
             void*, void*, void*, void*);
@@ -626,7 +626,7 @@ namespace Pulsar::InventorySync
             }
         }
 
-        // FUN_141996BB0(player, 1, 0, 0) — player REFR re-init.
+        // FUN_141996BB0(player, 1, 0, 0) - player REFR re-init.
         using PlayerRefrReInitFn = std::uint64_t(__fastcall*)(
             void*, std::uint64_t, std::uint64_t, std::uint64_t);
         static PlayerRefrReInitFn s_origPlayerRefrReInit = nullptr;
@@ -716,11 +716,11 @@ namespace Pulsar::InventorySync
             }
         }
 
-        // L.7 V4.4 — BFCB inner-loader hook. FUN_1405E14D0 is what
+        // L.7 V4.4 - BFCB inner-loader hook. FUN_1405E14D0 is what
         // `0x140B230A0` calls when it encounters the BFCB tag (0x42434642)
         // in a parent chunk-switch, but the engine bridge load appears to
         // call FUN_1405E14D0 DIRECTLY on the live player (skipping the
-        // outer FinishLoadGame chunk switch — which is what V4.3 evidence
+        // outer FinishLoadGame chunk switch - which is what V4.3 evidence
         // suggests: 9009 calls into 0x140B230A0, none with live player).
         // Hook here to catch the actual inventory/AV/skills/perks apply.
         //
@@ -777,8 +777,8 @@ namespace Pulsar::InventorySync
                     s_diag_bfcbSkipped.fetch_add(1, std::memory_order_relaxed);
                     PLOG_INFO(
                         "[PULSAR] [L.7 V4.4-bfcb] BFCB inner-loader intercepted "
-                        "on PLAYER — skip apply, retain client state"sv);
-                    return;  // void return — just don't forward
+                        "on PLAYER - skip apply, retain client state"sv);
+                    return;  // void return - just don't forward
                 }
             }
 
@@ -788,7 +788,7 @@ namespace Pulsar::InventorySync
             __try {
                 s_origBfcbInner(a_form, a_buf, a_p3, a_p4);
             } __except (EXCEPTION_EXECUTE_HANDLER) {
-                // swallow — engine code threw inside orig; not our fault.
+                // swallow - engine code threw inside orig; not our fault.
             }
             if (pending) {
                 const std::uint64_t hashAfter = HashPlayerRegion();
@@ -879,7 +879,7 @@ namespace Pulsar::InventorySync
             }
         }
 
-        // L.7 V3.3 — per-form dispatcher hook. FUN_14181E030 receives
+        // L.7 V3.3 - per-form dispatcher hook. FUN_14181E030 receives
         // recordHeader as its 3rd parameter; formID lives at offset 0x40.
         // RE evidence: local RE notes line 516:
         //   `uVar26 = *(undefined4 *)(param_3 + 0x40);`
@@ -908,7 +908,7 @@ namespace Pulsar::InventorySync
                 formID = 0;
             }
 
-            // Save/restore for nested dispatch (defensive — engine should
+            // Save/restore for nested dispatch (defensive - engine should
             // not re-enter on the same thread, but cheap and safe).
             const std::uint32_t prevFormID = s_engineDispatchFormID;
             s_engineDispatchFormID = formID;
@@ -997,13 +997,13 @@ namespace Pulsar::InventorySync
             }
         }
 
-        // L.7 V2 — patch the global LoadFB vtable slot 0x06 so the
+        // L.7 V2 - patch the global LoadFB vtable slot 0x06 so the
         // chunk-reader hook runs on engine's own LoadFB instances too. The
-        // vtable lives in .rdata (read-only) — VirtualProtect to writable
+        // vtable lives in .rdata (read-only) - VirtualProtect to writable
         // for the single pointer write, restore protection after.
         //
         // Returns true if the patch is in place (or was already). Safe to
-        // call multiple times — guarded by s_engineVtPatched.
+        // call multiple times - guarded by s_engineVtPatched.
         static bool PatchEngineVtable() noexcept
         {
             if (s_engineVtPatched.load(std::memory_order_acquire)) return true;
@@ -1115,7 +1115,7 @@ namespace Pulsar::InventorySync
             if (!a_form || !a_blob || a_blobSize == 0) return false;
             if (a_blobSize > 0xFFFFFFFFu) return false;  // u32 capacity field
 
-            // L.7 V2 — mark this thread as "in PULSAR apply chain" so
+            // L.7 V2 - mark this thread as "in PULSAR apply chain" so
             // the global ChunkReaderHook (patched into the engine vtable)
             // uses KEEP-allowlist semantics instead of player-drop-all.
             // RAII so it's cleared even on exception unwind.
@@ -1131,7 +1131,7 @@ namespace Pulsar::InventorySync
             // V2 chunk-filter: swap in our custom vtable so the chunk
             // reader (vt[0x06]) drops world-state chunks before they
             // reach FinishLoadGame's switch dispatch. Fall back to the
-            // engine vtable if init failed (V1 behavior — overlay all
+            // engine vtable if init failed (V1 behavior - overlay all
             // chunks).
             auto* customVt = GetCustomVtable();
             *reinterpret_cast<std::uintptr_t*>(base + kOff_vtable) =
@@ -1142,7 +1142,7 @@ namespace Pulsar::InventorySync
             *reinterpret_cast<std::uint32_t*>(base + kOff_capacity) =
                 static_cast<std::uint32_t>(a_blobSize);
             *reinterpret_cast<std::uint32_t*>(base + kOff_position) = 0u;
-            // Sentinel @ +0x38 — engine-side aux-array fencepost; init must
+            // Sentinel @ +0x38 - engine-side aux-array fencepost; init must
             // be 0x80000000 to mark "stack array empty" (engine will grow
             // when needed).
             *reinterpret_cast<std::uint32_t*>(base + kOff_sentinel38) =
@@ -1150,30 +1150,30 @@ namespace Pulsar::InventorySync
             *reinterpret_cast<RE::TESForm**>(base + kOff_form) = a_form;
             *reinterpret_cast<std::uint32_t*>(base + kOff_saveVersion) =
                 ReadEngineSaveVersion();
-            // Sentinel @ +0xEF — loadFlag-like, expected 0xFF init.
+            // Sentinel @ +0xEF - loadFlag-like, expected 0xFF init.
             *reinterpret_cast<std::uint8_t*>(base + kOff_sentinelEF) = 0xFFu;
 
             // LoadGame (vt[0x1B]) is the engine's "zero state + re-init
-            // Actor-Value-Map mutex" pass — designed to run on a freshly
+            // Actor-Value-Map mutex" pass - designed to run on a freshly
             // constructed (not yet active) actor during save load. On a
             // *live* PlayerCharacter the mutex at +0xC0 is already
             // initialized and possibly held by another thread →
             // re-initializing it threw on first run (logs 16:23:42:
             // load=0 finish=1 init=1). We skip it.
             //
-            // FinishLoadGame (vt[0x1D]) is the TLV-chunk parser —
+            // FinishLoadGame (vt[0x1D]) is the TLV-chunk parser -
             // actually applies the blob. InitLoadGame (vt[0x1C]) does
             // post-apply cell registration + Activate. Buf.position must
             // be 0 before chunk parse.
             *reinterpret_cast<std::uint32_t*>(base + kOff_position) = 0u;
 
-            // L.7 V1 — diagnostic: hash player memory region BEFORE+AFTER
+            // L.7 V1 - diagnostic: hash player memory region BEFORE+AFTER
             // apply to verify whether vt[0x1D]+vt[0x1C] actually overwrites
             // live state on a post-bridge-load actor. If hashBefore == hashAfter,
             // apply is no-op → engine-applied host state persists. Different
             // hash → apply mutates state (then question becomes whether the
             // mutation contains the right blob).
-            // Region: player+0x100..+0x600 — typical Actor-state band including
+            // Region: player+0x100..+0x600 - typical Actor-state band including
             // ExtraData head, anim state, AV map root, perk array head.
             auto hashRegion = [](void* p) -> std::uint64_t {
                 if (!p) return 0;
@@ -1191,7 +1191,7 @@ namespace Pulsar::InventorySync
             };
             const std::uint64_t hashBefore = hashRegion(a_form);
 
-            // V5.1 — compare player byte-by-byte against the snapshot
+            // V5.1 - compare player byte-by-byte against the snapshot
             // captured in ArmForBridge. Tells us which 64-byte rows the
             // engine bridge mutated (regardless of whether the mutation
             // went through any of our hooked functions).
@@ -1209,7 +1209,7 @@ namespace Pulsar::InventorySync
             const std::uint64_t hashAfterFinish = hashRegion(a_form);
 
             // Re-zero position before InitLoadGame in case Finish moved
-            // the cursor — Init may walk the buffer too.
+            // the cursor - Init may walk the buffer too.
             *reinterpret_cast<std::uint32_t*>(base + kOff_position) = 0u;
             const bool okInit = SafeCallVtSlot(a_form, &buf, kSlot_InitLoadGame);
 
@@ -1443,7 +1443,7 @@ namespace Pulsar::InventorySync
                 if (!ReadProfileFile(blob, path)) {
                     PLOG_INFO(
                         "[PULSAR] [InventorySync] apply: no profile at {} "
-                        "(first MP connect — current state will be snapshotted on disconnect)"sv,
+                        "(first MP connect - current state will be snapshotted on disconnect)"sv,
                         path);
                     return;
                 }
@@ -1454,36 +1454,36 @@ namespace Pulsar::InventorySync
 
             // 3-call chain (LoadGame zeros, FinishLoadGame parses TLV chunks,
             // InitLoadGame reactivates). Forms::DeserializeForm only does
-            // the LoadGame zero — insufficient for real state restore.
+            // the LoadGame zero - insufficient for real state restore.
             const bool ok = ApplyBlobToForm(form, blob.data(), blob.size());
 
             PLOG_INFO(
                 "[PULSAR] [InventorySync] apply: 0x{:08X} ← {}B from {} → {}"sv,
                 fid, blob.size(), path, ok ? "ok" : "FAILED");
 
-            // L.7 Plan B — direct API restore. Runs AFTER the existing
+            // L.7 Plan B - direct API restore. Runs AFTER the existing
             // M.3 vt[0x1D]/vt[0x1C] chain so any items the chain managed to
             // restore stick; this pass converges any residual delta back to
             // the pre-bridge client state. Bypasses the engine apply
             // mechanism entirely (which V5/V6 evidence showed routes through
             // an unknown code path).
             //
-            // (2026-06-20) — dbAuth mid-session bridge (F8 / fast-travel):
+            // (2026-06-20) - dbAuth mid-session bridge (F8 / fast-travel):
             // RestoreClientState MOVES-out + clears g_cache, so the JOIN restore
             // already consumed it. A second bridge restore would then hit
-            // "cache is EMPTY — skipping restore" and leave the client wearing
+            // "cache is EMPTY - skipping restore" and leave the client wearing
             // the host's loadout. ReapplyCachedDbProfile re-SEEDS the cache from
             // the latest clean snapshot (within-session gains preserved) and
-            // runs RestoreClientState itself — the same proven path the both-down
+            // runs RestoreClientState itself - the same proven path the both-down
             // recovery uses. Returns false only when there is no dbAuth baseline
             // (bootstrap/legacy save), where the pre-bridge-captured cache is the
             // right source → fall through to the bare RestoreClientState.
             //
-            // v2 — the bridge LockCache (set in WorldSync::OnSaveReceived)
+            // v2 - the bridge LockCache (set in WorldSync::OnSaveReceived)
             // makes SeedCacheFromProfile skip ("cache locked, skip seed"), so the
             // re-seed silently no-ops and the restore still finds an EMPTY cache.
             // By the time DoApply runs the save-load is complete and we ARE the
-            // restore, so the lock has served its purpose — release it here so the
+            // restore, so the lock has served its purpose - release it here so the
             // deliberate re-seed can repopulate g_cache. (Both-down's
             // ReapplyCachedDbProfile runs on a LOCAL reload with no bridge lock,
             // which is why it was never hit; the F8/fast-travel bridge sets it.)
@@ -1510,10 +1510,10 @@ namespace Pulsar::InventorySync
         if (s_initialized.exchange(true)) return;
         std::error_code ec;
         std::filesystem::create_directories(ProfileDir(), ec);
-        PLOG_INFO("[PULSAR] [InventorySync] Init — profile dir {}"sv,
+        PLOG_INFO("[PULSAR] [InventorySync] Init - profile dir {}"sv,
                   ProfileDir());
 
-        // L.7 V3 — re-enabled 2026-05-12 after DMP analysis. V2 crash
+        // L.7 V3 - re-enabled 2026-05-12 after DMP analysis. V2 crash
         // root cause was infinite recursion: GetCustomVtable() captured
         // s_origChunkReader from s_customVt[6] *after* this PatchEngineVtable
         // already swapped engine vt[6] to HOOK → orig == HOOK → recursion.
@@ -1525,7 +1525,7 @@ namespace Pulsar::InventorySync
             PLOG_WARN("[PULSAR] [L.7 V3] engine vtable patch FAILED"sv);
         }
 
-        // L.7 V3.3 — also hook the per-form dispatcher so the chunk
+        // L.7 V3.3 - also hook the per-form dispatcher so the chunk
         // reader knows which form's chunks it is currently streaming.
         // Without this, the engine bridge's LoadFB instances leave buf+0xD8
         // null/garbage and the buf-side form check misses every player
@@ -1536,7 +1536,7 @@ namespace Pulsar::InventorySync
                 "[PULSAR] [L.7 V3.3] per-form dispatcher hook FAILED"sv);
         }
 
-        // L.7 V4 — primary intercept now. PC::FinishLoadGame is the
+        // L.7 V4 - primary intercept now. PC::FinishLoadGame is the
         // function that actually applies BFCB to live player; hooking it
         // bypasses uncertainty about whether engine routes player through
         // the per-form dispatcher / chunk-reader vtable.
@@ -1619,7 +1619,7 @@ namespace Pulsar::InventorySync
 
         const auto state = Pulsar::WorldSync::GetState();
         if (state != Pulsar::WorldSync::State::WAITING_FOR_SAVE) {
-            // Not in the snapshot window — reset latch so next cycle re-fires
+            // Not in the snapshot window - reset latch so next cycle re-fires
             s_snapshotDoneThisCycle.store(false, std::memory_order_release);
             return;
         }
@@ -1629,7 +1629,7 @@ namespace Pulsar::InventorySync
         auto* player = RE::PlayerCharacter::GetSingleton();
         if (!player || !player->parentCell) return;  // wait for load
 
-        // All gates passed — fire snapshot exactly once for this cycle.
+        // All gates passed - fire snapshot exactly once for this cycle.
         s_snapshotDoneThisCycle.store(true, std::memory_order_release);
         // Signal WorldSync to ignore L.7 same-cell-match for this
         // bridge cycle (cleared on apply or disconnect). Necessary because
@@ -1638,7 +1638,7 @@ namespace Pulsar::InventorySync
         s_preBridgeSnapshotPending.store(true, std::memory_order_release);
         PLOG_INFO(
             "[PULSAR] [InventorySync] TickPreBridgeSnapshot → window open, queue snapshot"sv);
-        // L.7 Plan B — capture inventory NOW (game-thread, player
+        // L.7 Plan B - capture inventory NOW (game-thread, player
         // alive, pre-bridge solo state). Cached for use in DoApply after
         // the engine bridge overwrites the live inventory with host's.
         DirectRestore::CaptureClientState();
@@ -1648,10 +1648,10 @@ namespace Pulsar::InventorySync
     void OnNetworkDisconnect()
     {
         // Called from network thread on peer disconnect. Host: no-op.
-        // Client: queue snapshot — captures whatever items/equipment the
+        // Client: queue snapshot - captures whatever items/equipment the
         // player had during the just-ended MP session.
         s_preBridgeSnapshotPending.store(false, std::memory_order_release);
-        // L.7 Plan B — invalidate direct-restore cache on disconnect
+        // L.7 Plan B - invalidate direct-restore cache on disconnect
         // so no stale items get re-applied if the user reconnects later.
         DirectRestore::Reset();
         auto& net = Pulsar::Network::GetSingleton();
@@ -1666,7 +1666,7 @@ namespace Pulsar::InventorySync
         return s_preBridgeSnapshotPending.load(std::memory_order_acquire);
     }
 
-    // V4.4 — one-shot diagnostic: read PC singleton's vt[0x1D] at runtime
+    // V4.4 - one-shot diagnostic: read PC singleton's vt[0x1D] at runtime
     // and compare to our hooked RVA. Confirms whether 0x140B230A0 is
     // actually PlayerCharacter::FinishLoadGame in this build.
     static void LogPcVtSlot1D()
@@ -1739,7 +1739,7 @@ namespace Pulsar::InventorySync
         // V3.3: log the first 30 dispatcher entries per bridge so we can
         // verify formID extraction works on real bridge data. After
         // confirmed-correct in production, lower to 0 to silence.
-        // V4: dispatcher logs no longer load-bearing — lower to 0.
+        // V4: dispatcher logs no longer load-bearing - lower to 0.
         s_diag_dispatchLogBudget.store(0, std::memory_order_release);
         PLOG_INFO(
             "[PULSAR] [InventorySync] ArmForBridge → preBridgeSnapshotPending=true (diag counters reset)"sv);
@@ -1748,7 +1748,7 @@ namespace Pulsar::InventorySync
     void OnLoadCompleted()
     {
         // Called from game thread when WorldSync state machine reaches
-        // LOADED + settle. Caller fires this every tick while settled —
+        // LOADED + settle. Caller fires this every tick while settled -
         // we only act on the rising edge (new load tick).
         auto& net = Pulsar::Network::GetSingleton();
         if (net.IsHost()) return;
@@ -1758,7 +1758,7 @@ namespace Pulsar::InventorySync
         if (lastLoad <= s_lastLoadConsumed.load(std::memory_order_acquire)) return;
 
         s_lastLoadConsumed.store(lastLoad, std::memory_order_release);
-        // Do NOT clear s_preBridgeSnapshotPending here — DoApply does it
+        // Do NOT clear s_preBridgeSnapshotPending here - DoApply does it
         // after the actual apply has run. Clearing at queue time created
         // a race where PKT_POSITION's strategy decision (~3ms later)
         // observed false and skipped teleport-to-host.

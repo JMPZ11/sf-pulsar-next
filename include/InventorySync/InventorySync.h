@@ -43,16 +43,16 @@ namespace Pulsar::InventorySync
     // host calls are no-ops.
     //
     // Order in a typical session:
-    //   1. TickPreBridgeSnapshot() — fired every game tick. When state =
+    //   1. TickPreBridgeSnapshot() - fired every game tick. When state =
     //      WAITING_FOR_SAVE AND player has parentCell, fires snapshot once
     //      per save-bridge cycle. This handles all order permutations:
     // User loads save then connects → fires immediately
     // User connects then loads save → fires when load completes
     // Save bridge starts before player loads → fires never (no
     //        solo state to capture; existing profile or no profile applies)
-    //   2. OnLoadCompleted() — fired after host save-bridge loads, settled.
+    //   2. OnLoadCompleted() - fired after host save-bridge loads, settled.
     //      Applies the snapshot → client retains their solo items.
-    //   3. OnNetworkDisconnect() — fired when peer disconnects. Snapshots
+    //   3. OnNetworkDisconnect() - fired when peer disconnects. Snapshots
     //      current state so any MP-session pickups carry over.
     void TickPreBridgeSnapshot();
     void OnNetworkDisconnect();
@@ -75,11 +75,11 @@ namespace Pulsar::InventorySync
     // teleport → cross-cell desync).
     bool IsPreBridgeSnapshotPending();
 
-    // L.7 V3 — arm the pre-bridge-snapshot flag for an incoming bridge
+    // L.7 V3 - arm the pre-bridge-snapshot flag for an incoming bridge
     // load. Called from WorldSync::OnSaveReceived so the flag is TRUE during
     // the chunk-read window for EVERY bridge cycle, not just the first one.
     // (TickPreBridgeSnapshot only fires on the WAITING_FOR_SAVE transition,
     // which doesn't occur for F8-from-host or other subsequent bridges.)
-    // Idempotent — safe to call when flag is already set.
+    // Idempotent - safe to call when flag is already set.
     void ArmForBridge();
 }

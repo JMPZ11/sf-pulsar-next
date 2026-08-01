@@ -48,7 +48,7 @@ namespace {
             static_cast<const uint8_t*>(form) + 0x2E);
     }
 
-    // ActivateArgs mirror — 32-byte struct also defined inside LootSync.
+    // ActivateArgs mirror - 32-byte struct also defined inside LootSync.
     // Defined locally because we pass it by void* across the module boundary
     // (LootSync::CallOrigActivateAsReplay takes void* args).
     struct ActivateArgs {
@@ -68,7 +68,7 @@ namespace {
     struct PendingDoor {
         uint32_t resolvedBase;
         float    px, py, pz;
-        uint32_t senderRefID;   // host runtime REFR id — try LookupByID first
+        uint32_t senderRefID;   // host runtime REFR id - try LookupByID first
                                 // (static/persistent doors share the FormID
                                 // across machines, so this resolves directly
                                 // even when the door's cell isn't player-local).
@@ -124,7 +124,7 @@ namespace {
         }
     }
 
-    // Diagnostic scan — counts all DOOR REFRs in a cell, plus how many match
+    // Diagnostic scan - counts all DOOR REFRs in a cell, plus how many match
     // the resolved base FormID and the closest base-match distance. Helps
     // distinguish "wrong resolved base" from "position drift > radius" from
     // "door in unloaded cell" when a no-match log fires.
@@ -317,7 +317,7 @@ void DrainPending()
     // F.12 jitter fix: a LINKED door pair (the two halves of an airlock /
     // double door) is activated as a group by the engine, so the host
     // broadcasts BOTH halves in the same batch. Activate is a TOGGLE, so
-    // replaying each half toggles the whole group — the second replay flips
+    // replaying each half toggles the whole group - the second replay flips
     // the pair shut again, which looks like open/close jitter on the client
     // (confirmed 2026-06-30: doors 0x1ED32A + 0x1ED49C, ~9u apart). Within
     // this drain batch, skip a door whose position is within the pair radius
@@ -339,7 +339,7 @@ void DrainPending()
         }
         if (linkedDup) {
             PLOG_INFO(
-                "[PULSAR] DoorSync: skip linked-pair partner @({:.0f},{:.0f},{:.0f}) — already toggled via engine link"sv,
+                "[PULSAR] DoorSync: skip linked-pair partner @({:.0f},{:.0f},{:.0f}) - already toggled via engine link"sv,
                 d.px, d.py, d.pz);
             continue;
         }
@@ -350,12 +350,12 @@ void DrainPending()
         // zu"). Skip the redundant replay.
         if (WasLocallyActivatedRecently(d.senderRefID)) {
             PLOG_INFO(
-                "[PULSAR] DoorSync: skip replay ref=0x{:08X} — local NPC opened it (anti-jitter)"sv,
+                "[PULSAR] DoorSync: skip replay ref=0x{:08X} - local NPC opened it (anti-jitter)"sv,
                 d.senderRefID);
             continue;
         }
 
-        // Door bases are statically authored — cross-machine FormID match
+        // Door bases are statically authored - cross-machine FormID match
         // works reliably. Larger radius than loot since doors don't move
         // and minor coordinate noise across machines is harmless.
         RE::TESObjectREFR* door = nullptr;
@@ -363,7 +363,7 @@ void DrainPending()
         // 2026-06-11: try the sender's runtime REFR id directly first. Static /
         // persistent doors (FF-prefix excluded) carry the SAME FormID on both
         // machines, so LookupByID resolves the exact door regardless of which
-        // cell the client player is standing in — fixes "NO MATCH" when the
+        // cell the client player is standing in - fixes "NO MATCH" when the
         // door's cell isn't player-local but is loaded (log 23:17: client had
         // ref=0x0110EDEE but playerCell doors=0 → base+pos scan missed it).
         if (d.senderRefID && (d.senderRefID & 0xFF000000u) != 0xFF000000u) {
@@ -436,11 +436,11 @@ void DrainPending()
 
         uint32_t matchedRefID = RawFormID(door);
 
-        // Activator must be non-null. Prefer the remote clone — same pattern
+        // Activator must be non-null. Prefer the remote clone - same pattern
         // as F.1.b/c/e.
         //
-        // 2026-04-29 — REMOVED player-fallback. The original comment claimed
-        // "Door open doesn't transfer ownership / move the player" — but
+        // 2026-04-29 - REMOVED player-fallback. The original comment claimed
+        // "Door open doesn't transfer ownership / move the player" - but
         // that's WRONG for cell-load doors (POI entrance, ship-cockpit, etc).
         // Activating a load-door teleports the activator into the linked
         // cell. With player-fallback active, host's "outside POI" door
@@ -454,7 +454,7 @@ void DrainPending()
         auto* clone = Pulsar::RemotePlayer::GetRemotePlayerManager().GetRemoteActor();
         if (!clone) {
             PLOG_INFO(
-                "[PULSAR] DoorSync: SKIP replay — clone not available (would teleport host) ref=0x{:08X}"sv,
+                "[PULSAR] DoorSync: SKIP replay - clone not available (would teleport host) ref=0x{:08X}"sv,
                 matchedRefID);
             continue;
         }

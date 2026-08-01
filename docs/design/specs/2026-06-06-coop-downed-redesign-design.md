@@ -1,7 +1,7 @@
-# Co-op Downed & Revive — Redesign (Keep-Alive Custom Downed State)
+# Co-op Downed & Revive - Redesign (Keep-Alive Custom Downed State)
 
 **Date:** 2026-06-06
-**Task:** Co-op Downed & Revive (Feature A) — player mortality sync
+**Task:** Co-op Downed & Revive (Feature A) - player mortality sync
 **Module:** `src/Coop/CoopMortality.cpp`
 **Status:** Design approved 2026-06-06, supersedes the death-mask / bleedout approaches.
 
@@ -14,13 +14,13 @@ This redesign delivers the **MVP**: a *stable* downed state (no fall-through, no
 flip) with a clean stand-up, using combat-end + F10 + both-down. Medpack revive
 and a proper downed pose are explicit follow-ups.
 
-## Background — why a redesign (do NOT re-try these)
+## Background - why a redesign (do NOT re-try these)
 
 Five in-game iterations on 2026-06-06 proved the player has **no usable engine
 downed-state**:
 
 - **Death corpse (kDead):** the PLAYER is never flagged `kDead` (boolBits 0x...1A2,
-  no bit 0x800) — player death is a *reload game-over*, not an NPC corpse. So
+  no bit 0x800) - player death is a *reload game-over*, not an NPC corpse. So
   `Actor::Resurrect` is a no-op on the player (it early-returns unless `IsDead()`),
   and there is no engine "revive the player" path. Clearing +0xF8 death bits or
   setting kDead+Resurrect both left the player ragdolled, head through the floor.
@@ -32,7 +32,7 @@ downed-state**:
 Conclusion: stop fighting the engine's death/bleedout. **Never let the player die;
 build the downed state ourselves while the player stays `alive` (life-state 0).**
 
-## Architecture — Keep-Alive (approved Approach 1)
+## Architecture - Keep-Alive (approved Approach 1)
 
 The player is held in the normal **alive** life-state the entire time they are
 downed. We intercept the engine's attempt to kill the player, suppress it, freeze
@@ -49,40 +49,40 @@ replaced by the components below. The death-tick hook (`FUN_141a5ba50`, REL::ID
 
 ## Components
 
-### 1. Entry trigger — life-state setter hook (retained, repurposed)
+### 1. Entry trigger - life-state setter hook (retained, repurposed)
 Hook `REL::ID 100787` (the life-state setter, `void __fastcall(Actor*, uint32 enum)`).
 For the local player only (`SafeIsLocalPlayer`), when the engine sets a death enum
 (1 or 2) and we are NOT both-down:
 - Set `g_localDowned` (atomic) on the false→true edge; `SendDownedState(true)`.
-- **Swallow** the call — return WITHOUT calling the original setter. The life-state
+- **Swallow** the call - return WITHOUT calling the original setter. The life-state
   is left untouched (stays `alive`/0). No bleedout, no death.
 - Repeated death-sets while already downed are likewise swallowed (cheap no-op;
   nothing is re-applied, so there is no flip).
 
 NPCs and non-death sets pass straight through to the original setter unchanged.
 HP is NOT raised here (the hook runs on engine worker threads;
-`ModActorValue` must run on the game thread) — see component 2.
+`ModActorValue` must run on the game thread) - see component 2.
 
 ### 2. HP clamp (game thread, `OnGameThreadTick`)
 While `g_localDowned`: clamp Health to a positive floor (`kDownedFloor = 25`) each
 frame via `SafeRaiseHealthTo` (ModActorValue kDamage += deficit, the proven path).
 With HP > 0 the engine stops issuing player death-sets → fully stable, no spam.
 
-### 3. Control-lock (NEW — the only open RE)
+### 3. Control-lock (NEW - the only open RE)
 On entry (game thread): disable player controls so the player is frozen
 (no movement / attack / activate). On revive: re-enable.
-**Open RE:** find the clean engine path — candidates: `RE::PlayerControls` /
+**Open RE:** find the clean engine path - candidates: `RE::PlayerControls` /
 `RE::ControlMap` toggle, or the function dialogue/cutscenes use to lock player input.
 The implementation plan's first task is to identify and verify this (versionlib +
-Ghidra-confirm only if needed; one agent max — see the token-budget rule). If a
+Ghidra-confirm only if needed; one agent max - see the token-budget rule). If a
 clean control-lock is not found quickly, MVP fallback = clamp movement
 (SpeedMult 0) + block weapon, documented as a stopgap.
 
-### 4. Revive — `ReviveLocalPlayer(hpFraction, reason)` (simplified)
+### 4. Revive - `ReviveLocalPlayer(hpFraction, reason)` (simplified)
 1. `g_localDowned = false`; `SendDownedState(false)`.
 2. Restore Health to `hpFraction * permanentMax` (floor fallback).
 3. Re-enable controls (component 3).
-No life-state change, no Resurrect — the player was always alive.
+No life-state change, no Resurrect - the player was always alive.
 Callers: Way B combat-end (existing manual `highActorHandles` hostile scan, revive
 at 0.25), F10 debug (revive at 0.5).
 
@@ -117,7 +117,7 @@ both down (g_localDowned && g_remoteDowned):
 - **In:** stable keep-alive downed state, control-lock, HP clamp, combat-end
   auto-revive (Way B, existing), F10 debug revive, both-down game-over, net-sync.
 - **Step 2 (next plan):** medpack revive via the Activate hook (F.7, REL::ID 63380)
-  — branch when the local player activates the downed remote clone → SendRevive.
+  - branch when the local player activates the downed remote clone → SendRevive.
   Replaces the proven-broken `GetAsyncKeyState(E)` poll (E is engine-bound to
   Activate → opens the "Reden" dialog).
 - **Polish (later):** a real downed pose/animation (MVP = upright frozen);
@@ -131,10 +131,10 @@ Continuous HP-bar cross-sync (separate pools by design). Clone aggro-draw
 ## Error handling
 All engine pointer derefs / virtual calls stay `__try/__except`-wrapped
 (no C++ destructor objects inside `__try`). The setter hook filters to the local
-player and passes everything else through untouched — NPC death/combat-sync must be
+player and passes everything else through untouched - NPC death/combat-sync must be
 unaffected. ENet sends are thread-safe (calls from the worker-thread hook are OK).
 
-## Testing (manual, in-game — no unit-test framework for engine behavior)
+## Testing (manual, in-game - no unit-test framework for engine behavior)
 1. One player down → **frozen upright, NO fall-through**, controls locked; partner
    sees the clone standing still. Log: single `entered downed` (no per-frame spam).
 2. Combat ends (all hostiles dead) → auto-revive, controls return, player moves.
@@ -146,4 +146,4 @@ unaffected. ENet sends are thread-safe (calls from the worker-thread hook are OK
 - **Control-lock RE** is the main unknown; MVP fallback documented (component 3).
 - HP clamp must actually stop the engine death-spam (high confidence; HP>0 removes
   the death trigger). If not, swallowing alone already keeps life-state alive.
-- "Frozen upright" may look odd — accepted for MVP; pose is later polish.
+- "Frozen upright" may look odd - accepted for MVP; pose is later polish.

@@ -35,7 +35,7 @@ namespace Pulsar::NPCSync {
     extern bool IsHostMode();  // defined below
 
     // ===================================================================
-    // Combat Sync V1 — DISCOVERY PROBE (2026-05-25). Read-only, no behavior
+    // Combat Sync V1 - DISCOVERY PROBE (2026-05-25). Read-only, no behavior
     // change. Logs per-NPC Health + IsDead on change, on BOTH host and client,
     // keyed by FormID. Goal: in a ground fight, compare HOST vs CLIENT logs for
     // the SAME FormID. Key question: when the CLIENT shoots an NPC, does the
@@ -51,7 +51,7 @@ namespace Pulsar::NPCSync {
         return s_av;
     }
 
-    // SEH-isolated read — no C++ destructibles inside __try.
+    // SEH-isolated read - no C++ destructibles inside __try.
     static bool CombatProbe_SafeRead(RE::Actor* a_actor, RE::ActorValueInfo* a_av,
                                      float& a_cur, float& a_max, bool& a_dead)
     {
@@ -155,7 +155,7 @@ namespace Pulsar::NPCSync {
     // Pin NPC->parentCell = player->parentCell. Same UAF fix as clone (T22):
     // when proc-gen tears down a POI chunk, the old CELL* is freed but the NPC
     // still holds a stale pointer; stage-1 of Actor::SetPosition derefs it.
-    // The player is the streaming anchor — its parentCell is live every frame.
+    // The player is the streaming anchor - its parentCell is live every frame.
     // Plain-C function because __try can't coexist with C++ unwinding (C2712).
     static int SafePinNpcParentCell(RE::Actor* actor, RE::TESObjectCELL* tgtCell)
     {
@@ -206,7 +206,7 @@ namespace Pulsar::NPCSync {
     }
 
     // Layer-3 outer: acquire loadedData read-lock, then call inner writer.
-    // No __try here — BSAutoReadLock needs C++ unwinding.
+    // No __try here - BSAutoReadLock needs C++ unwinding.
     static void SafeNpcWriteNode(RE::Actor* actor, const RE::NiPoint3A& pos)
     {
         auto guard = actor->loadedData.LockRead();
@@ -215,7 +215,7 @@ namespace Pulsar::NPCSync {
         UnsafeNpcWriteNodeTranslate(data->data3D.get(), pos);
     }
 
-    // Plain-C SEH helper — reads NiAVObject.world.translate (offset +0xB0).
+    // Plain-C SEH helper - reads NiAVObject.world.translate (offset +0xB0).
     // Caller holds any necessary locks on the data3D pointer; this function
     // just does the raw 12-byte read under SEH in case node has been freed.
     static void SafeReadNodeWorld(RE::NiAVObject* node, float out[3])
@@ -236,7 +236,7 @@ namespace Pulsar::NPCSync {
     // v7) confirmed this happens on dynamic-ref proc-gen NPCs: data.location
     // tracks host target but mesh.world stays stuck at spawn position.
     // Writing world directly on each apply tick keeps the renderer aligned
-    // with host — any engine rewrite via Update-delegation will be
+    // with host - any engine rewrite via Update-delegation will be
     // overwritten by our next 30 Hz tick.
     static void SafeWriteNodeWorld(RE::NiAVObject* node, const RE::NiPoint3A& pos)
     {
@@ -259,7 +259,7 @@ namespace Pulsar::NPCSync {
     // Trigger recursive downward-pass (NiNode::Update slot 73) with
     // `flags2` bit 11 SET so the collision-delegation branch is skipped
     // (T4 Section 3). That propagates `world = parent.world * local`
-    // through every skeleton bone — fixing the case where root.world
+    // through every skeleton bone - fixing the case where root.world
     // is at target but child bones' world stays at spawn.
     //
     // Raw NiUpdateData buffer layout:
@@ -289,7 +289,7 @@ namespace Pulsar::NPCSync {
     }
 
     // Proc-cell data-only write. We USED to also call SafeNpcWriteNode which
-    // writes NiAVObject.local.translate — but that's WORLD coords written into
+    // writes NiAVObject.local.translate - but that's WORLD coords written into
     // the node's LOCAL space. If the parent node's transform isn't identity
     // (common in proc cells), the renderer multiplies:
     //     world_draw = parent_matrix * (ourWorldX, ourWorldY, ourWorldZ)
@@ -306,7 +306,7 @@ namespace Pulsar::NPCSync {
     }
 
     // Phase E Task 3: SEH-wrapped graph-variable readers for NPCs.
-    // Actor inherits from IAnimationGraphManagerHolder — the same virtual
+    // Actor inherits from IAnimationGraphManagerHolder - the same virtual
     // getters used by Main.cpp::FillAnimationData for the Player. NPCs can
     // be in partial-spawn state (animationGraphManager null, graph vtable
     // torn mid-reinit), so wrap each read in __try. Plain-C helpers because
@@ -314,7 +314,7 @@ namespace Pulsar::NPCSync {
     // and HookedActorUpdate holds std::lock_guard / std::vector on its stack.
     //
     // BSFixedString is a POD ref-counted pointer, but its ctor/dtor touch a
-    // shared atomic — safe to construct on the caller side and hand in by
+    // shared atomic - safe to construct on the caller side and hand in by
     // pointer. We accept a pointer to avoid any C++ ctor inside the __try.
     static int SafeNpcGetGraphFloat(RE::Actor* actor, const RE::BSFixedString* varName, float* outVal)
     {
@@ -347,7 +347,7 @@ namespace Pulsar::NPCSync {
     // =====================================================================
     // T30 showed FUN_14179A510 can't accept TESNPC* source (reads +0x98
     // unconditionally, gets garbage, crashes). T33 found FUN_14207D3C0
-    // (PlaceActorAtMe) — the proper path — but it's Papyrus-VM-framed, not a
+    // (PlaceActorAtMe) - the proper path - but it's Papyrus-VM-framed, not a
     // clean C++ entry point.
     //
     // Solution: drive Papyrus's PlaceAtMe from C++ via GLOB signalling, same
@@ -377,7 +377,7 @@ namespace Pulsar::NPCSync {
     static std::atomic<uint32_t> g_spawnInFlightHostRef{ 0 };
     static std::atomic<uint64_t> g_spawnInFlightDeadline{ 0 };  // GetTickCount64() abort time
 
-    // GLOB helpers — LookupByEditorID returns nullptr in weird save states;
+    // GLOB helpers - LookupByEditorID returns nullptr in weird save states;
     // callers check.
     static RE::TESGlobal* ResolveGlob(const char* name)
     {
@@ -395,11 +395,11 @@ namespace Pulsar::NPCSync {
         return 0.0f;
     }
 
-    // Actor::Update signature — verified in Ghidra (see D:\PlusarCellsync\PULSAR_NPC_UPDATE_RE.md):
+    // Actor::Update signature - verified in Ghidra (see D:\PlusarCellsync\PULSAR_NPC_UPDATE_RE.md):
     //   VTABLE_Actor[0] (REL::ID 451610) is a SECONDARY sub-object vtable (COL offset=16, for
     //   Actor-as-TESObjectREFR subobject). Only companions reach slot 0x13F there.
     //   VTABLE_Actor[1] (REL::ID 451614) is the PRIMARY Actor vtable (COL offset=0).
-    //   Slot 0x13F on the primary is a 2-insn thunk to vftable[0x197] — the real Actor::Update.
+    //   Slot 0x13F on the primary is a 2-insn thunk to vftable[0x197] - the real Actor::Update.
     //   The main per-frame NPC loop (FUN_141A86730) dispatches through this primary slot.
     using ActorUpdate_t = void(*)(RE::Actor*, float);
     static ActorUpdate_t g_origActorUpdate = nullptr;
@@ -407,7 +407,7 @@ namespace Pulsar::NPCSync {
     // Host-side NPC tracking. Key = refFormID, updated from Actor::Update hook,
     // drained by OnGameThreadTick() send loop (Task 4).
     struct TrackedNPC {
-        uint32_t baseFormID = 0;       // TESNPC template — may be 0xFF-prefix (dynamic, per-process clone of a leveled list)
+        uint32_t baseFormID = 0;       // TESNPC template - may be 0xFF-prefix (dynamic, per-process clone of a leveled list)
         uint32_t sourceBaseFormID = 0; // Static source template from baseTemplateForm (TESNPC+0x130, T28). 0 if base is already static. Used by client for cross-machine spawn.
         uint32_t sourceLocalID    = 0; // Flag-aware plugin-local portion of the static source (T34). Only valid when sourcePlugin[0] is set.
         char     sourcePlugin[Pulsar::Network::NPC_SOURCE_PLUGIN_MAX] = {}; // Resolved once from host's TESDataHandler. Stable string across the session.
@@ -420,26 +420,26 @@ namespace Pulsar::NPCSync {
         bool     isDead = false;
         bool     weaponDrawn = false;
         uint64_t lastSentTick = 0;   // GetTickCount64() of last send
-        uint64_t lastCapturedTick = 0; // GetTickCount64() of last HookedActorUpdate capture — used for staleness prune (V4)
+        uint64_t lastCapturedTick = 0; // GetTickCount64() of last HookedActorUpdate capture - used for staleness prune (V4)
         bool     everSent = false;
     };
     static std::unordered_map<uint32_t, TrackedNPC> g_tracked;
     static std::mutex g_trackedMutex;
 
-    // Combat Sync V2 Step 1 — host-side queue of client-forwarded damage.
+    // Combat Sync V2 Step 1 - host-side queue of client-forwarded damage.
     // Filled on the ENet thread by OnDamageReceived; drained + applied on the
     // game thread in OnGameThreadTick (SetActorValue must run on game thread).
     static std::vector<Pulsar::Network::NpcDamageData> g_pendingDamage;
     static std::mutex g_pendingDamageMutex;
 
-    // Client-side AI suppression set — declared here so HookedActorUpdate can see it.
+    // Client-side AI suppression set - declared here so HookedActorUpdate can see it.
     // See detailed comment at full definition site further down.
     static std::unordered_set<uint32_t> g_remoteOwned;
     static std::mutex g_remoteOwnedMutex;
 
     // P1: tracked NPCs whose AI we block (EvaluatePackage + PerformAction)
     // so DirectControl can drive them as puppets. SEPARATE from g_remoteOwned so
-    // it ONLY feeds the AI-block hooks via IsRemoteOwned — not the capture/update
+    // it ONLY feeds the AI-block hooks via IsRemoteOwned - not the capture/update
     // logic that also reads g_remoteOwned. Populated only when npcDirectControl=1.
     static std::unordered_set<uint32_t> g_npcDcBlocked;
     static std::mutex g_npcDcBlockedMutex;
@@ -455,13 +455,13 @@ namespace Pulsar::NPCSync {
     // Apply-loop "first-time-seen" set. Separate from g_remoteOwned because we
     // add remoteOwned at spawn-DONE (to protect our own spawn from anti-dup).
     // `firstSync` semantics = "first time ApplyPending* runs its position write
-    // for this actor" — needed for the force-SetPosition-on-first-sync path
+    // for this actor" - needed for the force-SetPosition-on-first-sync path
     // that triggers the engine's 3D-stream. Using g_remoteOwned.insert().second
     // for firstSync meant firstSync was always false after we pre-inserted.
     static std::unordered_set<uint32_t> g_firstSynced;
     static std::mutex g_firstSyncedMutex;
 
-    // Combat Sync V2 Step 1 — client-side damage forwarding state, keyed by
+    // Combat Sync V2 Step 1 - client-side damage forwarding state, keyed by
     // LOCAL matched actor FormID.
     //   baseline       = the Health value we've already accounted for. Local
     //                    combat only ever lowers Health, so a read below
@@ -483,11 +483,11 @@ namespace Pulsar::NPCSync {
     static std::mutex g_dmgFwdMutex;
 
     // ===================================================================
-    // Corpse-loot sync (2026-06-11) — each machine rolls NPC loot with its
+    // Corpse-loot sync (2026-06-11) - each machine rolls NPC loot with its
     // OWN RNG, so corpse contents diverge between host and client (the
     // F.1.e take-sync then warns+skips on items the peer doesn't have).
     // Host = authority: ONE PKT_CORPSE_LOOT per corpse, sent ~1s after the
-    // death edge (the engine appends death items at kill time — an
+    // death edge (the engine appends death items at kill time - an
     // immediate capture would miss them). Client wipes its matched corpse
     // and applies the host list incl. mod arrays (epics render identically).
     // ===================================================================
@@ -543,7 +543,7 @@ namespace Pulsar::NPCSync {
 
     // Client: wipe the matched local corpse and apply the host's loot list.
     // Game thread, AFTER the corpse is dead (the engine appends its own death
-    // items at kill — applying earlier would mix both rolls). Replay guard
+    // items at kill - applying earlier would mix both rolls). Replay guard
     // keeps the M.2 inventory sinks from re-broadcasting our writes.
     static void ApplyCorpseLootIfPending(uint32_t a_hostRefID, RE::Actor* a_corpse)
     {
@@ -557,7 +557,7 @@ namespace Pulsar::NPCSync {
         }
         const bool prev = Pulsar::WorldSync::Loot::SetReplayingFromPacket(true);
 
-        // Wipe the local roll — negative AddObjectToContainer is the proven
+        // Wipe the local roll - negative AddObjectToContainer is the proven
         // DirectRestore removal primitive.
         CorpseInvEntry cur[48]{};
         const int n = SafeCollectInventory(a_corpse, cur, 48);
@@ -593,7 +593,7 @@ namespace Pulsar::NPCSync {
     struct CivilianSnapshot {
         float    posX, posY, posZ;
         float    rotZ;
-        uint64_t lastCapturedTick;  // GetTickCount64() — used for staleness prune + throttle
+        uint64_t lastCapturedTick;  // GetTickCount64() - used for staleness prune + throttle
     };
     static std::unordered_map<uint32_t, CivilianSnapshot> g_civilianSnapshots;
     static std::mutex                                     g_civilianSnapshotsMutex;
@@ -606,7 +606,7 @@ namespace Pulsar::NPCSync {
     static std::atomic<uint32_t> g_dbgCivApplied{ 0 };
     static std::atomic<uint32_t> g_dbgCivSkipDrift{ 0 };
 
-    // Plain-C SEH read of pos+rotZ. Same C2712 pattern as elsewhere — caller
+    // Plain-C SEH read of pos+rotZ. Same C2712 pattern as elsewhere - caller
     // owns C++ destructor scope.
     static int SafeReadActorPosRot(RE::Actor* a,
                                    float* outX, float* outY, float* outZ,
@@ -623,7 +623,7 @@ namespace Pulsar::NPCSync {
         }
     }
 
-    // Forward decl — defined alongside the tier classifier later in the file.
+    // Forward decl - defined alongside the tier classifier later in the file.
     static int SafeReadActorFormID(RE::Actor* actor, uint32_t* outFid);
 
     // Capture LOCAL-tier civilian within view radius for periodic broadcast.
@@ -636,7 +636,7 @@ namespace Pulsar::NPCSync {
         uint32_t refFormID = 0;
         if (!SafeReadActorFormID(actor, &refFormID)) return;
         if (refFormID == 0) return;
-        // Static-ref only — dynamic 0xFF refs differ per-machine, can't
+        // Static-ref only - dynamic 0xFF refs differ per-machine, can't
         // direct-LookupByID on client. Crowd ambient civilians (proc-spawned
         // from leveled lists) generally have static bases anyway, but their
         // REFR is dynamic; we skip those for V5.
@@ -662,7 +662,7 @@ namespace Pulsar::NPCSync {
         if (!SafeReadActorPosRot(actor, &x, &y, &z, &rotZ)) return;
 
         // Tighter than IsNPCWeSync's 400 m: civilians outside the 100 m
-        // visible radius aren't worth resyncing — both sides will redrift
+        // visible radius aren't worth resyncing - both sides will redrift
         // when player gets close again, snapshot kicks back in.
         constexpr float kRadiusSq = 100.0f * 100.0f;
         const float dx = x - player->data.location.x;
@@ -677,14 +677,14 @@ namespace Pulsar::NPCSync {
     }
 
     // Latch-set for "actor has has3D=true and stays that way". HookedActorUpdate
-    // uses this to fully skip Update once 3D is in — without the latch we'd
+    // uses this to fully skip Update once 3D is in - without the latch we'd
     // skip forever starting from has3D=false, which means the engine's load
     // queue never gets pumped and 3D never loads → invisible NPCs.
     static std::unordered_set<uint32_t> g_has3DReady;
     static std::mutex g_has3DReadyMutex;
 
     // =====================================================================
-    // T40 — PROC-GEN DETERMINISM CHECK
+    // T40 - PROC-GEN DETERMINISM CHECK
     // =====================================================================
     // Hypothesis: Host + Client have identical save-state (WorldSync loaded
     // host.sfs on client). If Starfield's proc-gen is deterministic on
@@ -692,7 +692,7 @@ namespace Pulsar::NPCSync {
     // the SAME enemies at the SAME positions.
     //
     // If true → we throw out PlaceAtMe-sync (Phase B/C) entirely, drop
-    // the anti-dup, drop g_remoteOwned — and only sync delta state
+    // the anti-dup, drop g_remoteOwned - and only sync delta state
     // (health, death, aggro) between already-identical native actors.
     // No more scene-graph attachment issues, no more dynamic-ref
     // mismatches, no more PlaceAtMe flood crash.
@@ -714,7 +714,7 @@ namespace Pulsar::NPCSync {
     static std::mutex g_procDumpMutex;
     static std::atomic<uint32_t> g_procDumpLastCell{ 0 };
 
-    // Active-cells registry — every HookedActorUpdate tick inserts the
+    // Active-cells registry - every HookedActorUpdate tick inserts the
     // actor's parentCell pointer. Union = all cells the engine has loaded,
     // regardless of whether they're the local player's parentCell. VehicleSync
     // (and any future code needing cross-cell iteration) queries this via
@@ -729,13 +729,13 @@ namespace Pulsar::NPCSync {
         return std::vector<RE::TESObjectCELL*>(g_activeCells.begin(), g_activeCells.end());
     }
 
-    // Plain-C SEH wrapper — no smart-pointers, no std::lock_guard, no C++
+    // Plain-C SEH wrapper - no smart-pointers, no std::lock_guard, no C++
     // unwinding allowed. Reads raw offsets per CommonLibSF layout:
-    //   TESForm+0x28 = formID (NOT 0x20 — that's formFlags)
+    //   TESForm+0x28 = formID (NOT 0x20 - that's formFlags)
     //   TESObjectREFR+0xB0 = parentCell*
     //   TESObjectREFR+0x98 = objectReference (TESBoundObject* via NiPointer raw)
     //   TESObjectREFR+0x8C = data.location (3 floats)
-    //   TESNPC+0x130 = baseTemplateForm (T28 RE — static source for 0xFF clones)
+    //   TESNPC+0x130 = baseTemplateForm (T28 RE - static source for 0xFF clones)
     static int SafeProcDumpGather(RE::Actor* a,
                                   uint32_t& refOut,
                                   uint32_t& cellIDOut,
@@ -773,12 +773,12 @@ namespace Pulsar::NPCSync {
 
     // Counter: how many times HookedActorUpdate saw any actor with
     // non-null parentCell, regardless of cell match. Helps debug why
-    // PROCDUMP count=0 — if this counter is also 0 the hook isn't
+    // PROCDUMP count=0 - if this counter is also 0 the hook isn't
     // firing, if it's high but PROCDUMP is 0 the filter is too strict.
     static std::atomic<uint64_t> g_procDumpHookSeen{ 0 };
     static std::atomic<uint64_t> g_procDumpProcCellSeen{ 0 };
 
-    // Distance-only filter v3 — drops proc-cell requirement since v2
+    // Distance-only filter v3 - drops proc-cell requirement since v2
     // showed procCellActors=0 even with 17000+ hook calls/10s. Either
     // parentCell offset is wrong for some subclass of Actor, or the
     // engine routes proc-gen NPCs through a non-0xFF cell somehow.
@@ -902,17 +902,17 @@ namespace Pulsar::NPCSync {
     }
 
     // =====================================================================
-    // V2 Civilian Filter  — tier classifier
+    // V2 Civilian Filter  - tier classifier
     // =====================================================================
     // Goal: drop civilian/crowd NPCs from sync entirely. Engine simulates
-    // AI deterministically on both sides — civilian NPCs at the same
+    // AI deterministically on both sides - civilian NPCs at the same
     // spawn points run the same wander/sit/converse packages naturally.
     // We only sync NPCs whose state would visibly diverge between host
     // and client:
     // Companions       (kPlayerTeammate)
     // In-combat actors (kSearchingInCombat / currentCombatTarget != 0)
     // Aggressive NPCs  (kAttackOnSight)
-    // Dying            (kDead — broadcast death once, then drop)
+    // Dying            (kDead - broadcast death once, then drop)
     //
     // Classification cached per-actor for 1s to avoid repeated reads on
     // a hot path (HookedActorUpdate fires per-actor per-frame). On cell
@@ -1034,11 +1034,11 @@ namespace Pulsar::NPCSync {
         // Exclude the PULSAR remote-player clone (the client's avatar that
         // we spawned on host via PlaceAtMe(playerBase)). Without this, the
         // host sees the clone as a dynamic actor with base=0x7 (player) and
-        // broadcasts it as an NPC — client then spawns a copy glued to its
+        // broadcasts it as an NPC - client then spawns a copy glued to its
         // own player position.
         //
         // Additional defense: explicitly reject PlayerBase (0x7) as a base
-        // even if GetRemoteActor() hasn't been assigned yet — early in the
+        // even if GetRemoteActor() hasn't been assigned yet - early in the
         // session the clone can be in g_tracked before RemotePlayer has
         // captured it. Either match drops.
         if (auto* remote = Pulsar::RemotePlayer::GetRemotePlayerManager().GetRemoteActor()) {
@@ -1052,7 +1052,7 @@ namespace Pulsar::NPCSync {
         if (!playerCell) return false;
 
         // Distance-based sync instead of strict cell-match. Starfield planet
-        // surfaces partition into many small proc cells — a POI at 200m has
+        // surfaces partition into many small proc cells - a POI at 200m has
         // a different parentCell than the player even though both are loaded.
         // Use a radius that matches the engine's active-ref loading range.
         constexpr float kSyncRadiusXY_sq = 400.0f * 400.0f;
@@ -1073,13 +1073,13 @@ namespace Pulsar::NPCSync {
     // Counter of in-cell captures for a periodic status log.
     static std::atomic<uint32_t> g_dbgSameCellCaptures{0};
 
-    // Cached ActorValueInfo for Health — resolved once when the game world is available.
+    // Cached ActorValueInfo for Health - resolved once when the game world is available.
     // Looked up lazily on first hook call because forms aren't loaded at plugin init.
     static std::atomic<RE::ActorValueInfo*> g_healthAV{ nullptr };
 
     // Pacify-caches: Aggression=0 + Confidence=0 make a remote-owned NPC
     // ignore/flee rather than attack. Applied once per remote-owned actor
-    // on first-sync — proper T35 AI-freeze is the real fix, this is the
+    // on first-sync - proper T35 AI-freeze is the real fix, this is the
     // stop-gap so client doesn't die to invisible enemies.
     static std::atomic<RE::ActorValueInfo*> g_aggressionAV{ nullptr };
     static std::atomic<RE::ActorValueInfo*> g_confidenceAV{ nullptr };
@@ -1100,7 +1100,7 @@ namespace Pulsar::NPCSync {
     // native (binder NativeFunction1<Actor,void,Actor*>) routes through the inner
     // engine kill FUN_141fcb950(self, killer, notSilent, VM*, stackID). It runs the
     // invulnerability check (VM/stackID are used ONLY in the "is invulnerable" error
-    // path — safe to pass null for a normal, already-damaged enemy) then the real
+    // path - safe to pass null for a normal, already-damaged enemy) then the real
     // kill FUN_1419088b0. No REL::ID exists for it (not in Address Library) → raw
     // RVA via REL::Offset, same pattern as MoveTo (Main.cpp:94) / SaveBuffer fns.
     // notSilent=true = normal Kill (vs KillSilent which passes 0 as arg 3).
@@ -1135,7 +1135,7 @@ namespace Pulsar::NPCSync {
 
     // SEH-wrapped "disable-ish": teleport the actor underground. Combined with
     // adding to g_remoteOwned (our Actor::Update skip set), this produces the
-    // "disappeared" effect — no visible, no AI, no combat — without touching
+    // "disappeared" effect - no visible, no AI, no combat - without touching
     // the engine's formFlags or triggering Disable cleanup paths (which we
     // saw corrupts our own fresh spawns).
     static int SafeActorTeleportAway(RE::Actor* actor)
@@ -1157,14 +1157,14 @@ namespace Pulsar::NPCSync {
     // since both machines deterministically proc-gen the same NPCs).
     // The collector still runs so g_procDumpTableV3 populates for the
     // matcher. AI suppression for matched NPCs happens via Aggression=0
-    // set in the apply loop — cleaner than Update-skip hacks.
+    // set in the apply loop - cleaner than Update-skip hacks.
     static constexpr bool kT40PassThrough = true;
 
     // Phase D: find a local native actor that corresponds to a host-NPC
     // state packet. Matching uses (effectiveBaseID + position proximity).
     //
     // `hostEffectiveID` priority:
-    //   1. Host's sourceBaseFormID (T28 — static template for dynamic 0xFF clones)
+    //   1. Host's sourceBaseFormID (T28 - static template for dynamic 0xFF clones)
     //   2. Else host's baseFormID (for static-ref NPCs like Sarah)
     //
     // Client's effectiveBaseID is computed the same way in SafeProcDumpGather.
@@ -1199,8 +1199,8 @@ namespace Pulsar::NPCSync {
 
     // Phase E Task 0 probe helper: walk actor->aiProcess->middleHigh->charController
     // and return the cc pointer, vtable pointer, and rigid-body pointer (cc+0x20).
-    // Plain-C — __try can't coexist with C++ unwinding (C2712). Returns 1 on
-    // successful deref (cc may still be nullptr if the chain has a gap — that's
+    // Plain-C - __try can't coexist with C++ unwinding (C2712). Returns 1 on
+    // successful deref (cc may still be nullptr if the chain has a gap - that's
     // a valid state during early-init/cell-transition, not an AV).
     static int SafeProbeCharController(RE::Actor* a_actor,
                                        void** out_cc,
@@ -1224,7 +1224,7 @@ namespace Pulsar::NPCSync {
         }
     }
 
-    // 2026-05-03 — engine-crash absorber for the original Actor::Update.
+    // 2026-05-03 - engine-crash absorber for the original Actor::Update.
     // Crash signature: ACCESS VIOLATION read at NULL+0x08 inside Starfield.exe
     // RVA 0x00566BF5, hit ~3min after dock when client sits in vanilla station
     // with FF-prefix Frontier crew clones still in update list.
@@ -1249,7 +1249,7 @@ namespace Pulsar::NPCSync {
         if (first) {
             PLOG_WARN(
                 "[PULSAR] NPCSync SAFE-UPDATE caught engine crash for actor "
-                "0x{:08X} — stale clone or torn internal state. Skipping this "
+                "0x{:08X} - stale clone or torn internal state. Skipping this "
                 "tick; engine retry or unregister will follow."sv, a_fid);
         }
     }
@@ -1282,14 +1282,14 @@ namespace Pulsar::NPCSync {
             return;
         }
 
-        extern bool IsHostMode();  // defined below — avoids Config include churn
+        extern bool IsHostMode();  // defined below - avoids Config include churn
 
         // T40: collect proc-cell actor state BEFORE any skip/anti-dup logic
         // runs. This captures the raw natives that the engine's own proc-gen
         // spawned, regardless of what we do with them afterward.
         SafeProcDumpCollect(a_actor);
 
-        // Combat Sync V1 discovery probe — runs for ALL actors on BOTH sides
+        // Combat Sync V1 discovery probe - runs for ALL actors on BOTH sides
         // (before the host/client split below), read-only health/death logging.
         CombatProbeObserve(a_actor);
 
@@ -1303,7 +1303,7 @@ namespace Pulsar::NPCSync {
         }
 
         // Phase E CLIENT dispatch:
-        //   * Always call origUpdate — the engine needs to tick the anim
+        //   * Always call origUpdate - the engine needs to tick the anim
         //     graph, propagate mesh.world.rotation from the skeleton, update
         //     the Havok body, and apply root-motion translate. Full-skip (a
         //     previous attempt) caused NPCs to hover above the ground with
@@ -1327,19 +1327,19 @@ namespace Pulsar::NPCSync {
             // Post-tick probe BEFORE our re-write: shows what origUpdate
             // left behind. If Speed=0 here while PRE said Speed=4.95, the
             // engine's AI/MovementController is overwriting our writes
-            // during its tick — then the anim-graph tick (also during
+            // during its tick - then the anim-graph tick (also during
             // origUpdate) would have read the reset value, not ours.
             if (a_actor) Pulsar::NPCSync::ReadGraphSnapshot(a_actor, "MID");
 
             // Post-tick: position override (plus rotation lerp + drift snap
             // when needed). Graph vars re-written here too as safety for
-            // the next-frame anim tick — cheap and idempotent.
+            // the next-frame anim tick - cheap and idempotent.
             if (a_actor) Pulsar::NPCSync::TickLerp(a_actor, 0.25f);
 
             if (a_actor) Pulsar::NPCSync::ReadGraphSnapshot(a_actor, "POST");
             return;
         }
-        // HOST: fall through to tracking code below — we still need
+        // HOST: fall through to tracking code below - we still need
         // the host to capture + stream NPC state to the client.
 
         // CLIENT: skip the original Update for actors that are being driven by
@@ -1356,7 +1356,7 @@ namespace Pulsar::NPCSync {
                 // Full skip of original Update. Earlier variant "let Update
                 // run while has3D=false so 3D loads" caused a render-thread
                 // NULL deref during bone/transform iteration (Starfield+0x30B350E,
-                // dump e54734b7-…-dmp, 2026-04-21 23:50) — the engine walks
+                // dump e54734b7-…-dmp, 2026-04-21 23:50) - the engine walks
                 // bone arrays on actors whose 3D state is half-initialized.
                 // Reverted to full skip; visible-invisible trade-off handled
                 // properly in T35 (flag-based AI freeze, not update-skip).
@@ -1364,7 +1364,7 @@ namespace Pulsar::NPCSync {
             }
 
             // Anti-dup: client's save-load + own proc-gen leave NATIVE
-            // enemies in the proc cell — duplicates of the host's NPCs that
+            // enemies in the proc cell - duplicates of the host's NPCs that
             // we already mirror via PlaceAtMe. User sees double mobs, client
             // AI runs on invisible-to-host natives, damage propagates
             // wrongly. Auto-disable every 0xFF-prefix NPC in the player's
@@ -1401,7 +1401,7 @@ namespace Pulsar::NPCSync {
                             firstSeenT = it->second;
                         }
                         if (nowT - firstSeenT < kAntiDupGraceMs) {
-                            // Still in grace window — run original Update so
+                            // Still in grace window - run original Update so
                             // the actor gets its normal per-frame tick while
                             // we decide. If it becomes remote-owned during
                             // the grace window, the early-return above fires
@@ -1526,14 +1526,14 @@ namespace Pulsar::NPCSync {
         // V2-Step-1c: IsDead() polling MISSES the death (a dead actor leaves the
         // per-frame update loop before the flag flips, so this capture rarely sees
         // it). Effective Health goes <=0 and stays negative for many frames before
-        // teardown — use that as the death signal so the host reliably broadcasts
+        // teardown - use that as the death signal so the host reliably broadcasts
         // isDead → client kills its matched enemy.
         bool  isDead    = a_actor->IsDead() || (healthAV && health <= 0.0f);
         bool  weaponDrawn = (a_actor->actorState2 & 0x3) >= 2;
 
         // Phase E Task 3: sample locomotion graph vars for NPC sync.
         // Mirrors the read path used by Main.cpp::FillAnimationData for the
-        // Player — GetGraphVariableImpl{Float,Int} are virtuals on
+        // Player - GetGraphVariableImpl{Float,Int} are virtuals on
         // IAnimationGraphManagerHolder, so the SAME call works on any Actor.
         // SEH-guarded via plain-C helpers because NPCs can be mid-spawn with
         // a partially-initialized animation graph (null graph manager, torn
@@ -1596,13 +1596,13 @@ namespace Pulsar::NPCSync {
             if (it != g_tracked.end()) {
                 // Mark dead for the next send so client can kill its clone,
                 // THEN the send-loop will erase. But we also stop updating
-                // position from here on — capture below is skipped.
+                // position from here on - capture below is skipped.
                 it->second.isDead = true;
             }
             return;
         }
 
-        // Capture base form ID — the TESNPC template — so the client can
+        // Capture base form ID - the TESNPC template - so the client can
         // resolve this actor even when the runtime FormID doesn't match.
         uint32_t baseFormID = 0;
         uint32_t sourceBaseFormID = 0;
@@ -1650,7 +1650,7 @@ namespace Pulsar::NPCSync {
         if (!baseStatic && !sourceStatic) return;
 
         // Resolve the source plugin once per (baseFormID, sourceBaseFormID)
-        // pair — TESFile.fileName pointer is stable for the session, so we
+        // pair - TESFile.fileName pointer is stable for the session, so we
         // only re-resolve if the effective static-base FormID changed.
         uint32_t effectiveStaticID =
             ((baseFormID & 0xFF000000) == 0xFF000000 && sourceBaseFormID)
@@ -1671,7 +1671,7 @@ namespace Pulsar::NPCSync {
             {
                 // Cache plugin-name by effectiveStaticID globally. Many NPCs
                 // in a POI share the same TESNPC/LVLN base form (proc-gen
-                // clones of one template) — without this cache each NPC's
+                // clones of one template) - without this cache each NPC's
                 // first-sight triggered a full DataHandler walk, which under
                 // POI load meant dozens of walks/second contending with
                 // engine mod-list access. Reduces the race surface suspected
@@ -1731,7 +1731,7 @@ namespace Pulsar::NPCSync {
             }
         }
         entry.lastCapturedTick = GetTickCount64();  // V4 staleness prune
-        // lastSentTick + everSent preserved across captures — updated by Task 4 send loop
+        // lastSentTick + everSent preserved across captures - updated by Task 4 send loop
 
         // Phase E smoke diag: once per 3s per-actor, log sampled values.
         // ~30 Hz capture would flood the log otherwise. No __try in scope here
@@ -1816,12 +1816,12 @@ namespace Pulsar::NPCSync {
     void OnGameThreadTick()
     {
         // T40: PROCDUMP tick fires on BOTH host and client. Has3D-check
-        // not needed — we just want raw positions of cell-native actors.
+        // not needed - we just want raw positions of cell-native actors.
         ProcDumpTick(IsHostMode());
 
         if (!IsHostMode()) return;
 
-        // Combat Sync V2 Step 1 — apply client-forwarded damage to the host's
+        // Combat Sync V2 Step 1 - apply client-forwarded damage to the host's
         // authoritative enemies. The host's own per-tick capture then broadcasts
         // the reduced Health + isDead back via PKT_NPC_STATE (existing path).
         {
@@ -1847,7 +1847,7 @@ namespace Pulsar::NPCSync {
 
                     RE::PlayerCharacter* hostPlayer = RE::PlayerCharacter::GetSingleton();
 
-                    // V2-Step-1d: explicit KILL — the client's local copy of this
+                    // V2-Step-1d: explicit KILL - the client's local copy of this
                     // enemy died. Kill the host's matched enemy outright, bypassing
                     // the damage-vs-regen race (some enemies regen faster than the
                     // forwarded net damage arrives, e.g. 0xFF0152AA oscillating 26..36).
@@ -1884,7 +1884,7 @@ namespace Pulsar::NPCSync {
             }
         }
 
-        // Corpse-loot sync — drain due one-shot inventory broadcasts (host).
+        // Corpse-loot sync - drain due one-shot inventory broadcasts (host).
         {
             std::vector<uint32_t> dueRefs;
             {
@@ -1902,14 +1902,14 @@ namespace Pulsar::NPCSync {
             for (uint32_t refID : dueRefs) {
                 RE::TESForm* form = RE::TESForm::LookupByID(refID);
                 if (!form) {
-                    PLOG_INFO("[CORPSE-LOOT] drain ref=0x{:08X} — form gone (despawned)"sv, refID);
+                    PLOG_INFO("[CORPSE-LOOT] drain ref=0x{:08X} - form gone (despawned)"sv, refID);
                     continue;
                 }
                 RE::Actor* corpse = form->As<RE::Actor>();
                 if (!corpse && form->Is(RE::FormType::kACHR))
                     corpse = reinterpret_cast<RE::Actor*>(form);
                 if (!corpse) {
-                    PLOG_INFO("[CORPSE-LOOT] drain ref=0x{:08X} — not an actor (type=0x{:02X})"sv,
+                    PLOG_INFO("[CORPSE-LOOT] drain ref=0x{:08X} - not an actor (type=0x{:02X})"sv,
                               refID, static_cast<uint8_t>(form->GetFormType()));
                     continue;
                 }
@@ -1918,7 +1918,7 @@ namespace Pulsar::NPCSync {
                 const int n = SafeCollectInventory(
                     corpse, inv, Pulsar::Network::kCorpseLootMaxItems);
                 if (n <= 0) {
-                    PLOG_INFO("[CORPSE-LOOT] drain ref=0x{:08X} — inventory empty (n=0)"sv, refID);
+                    PLOG_INFO("[CORPSE-LOOT] drain ref=0x{:08X} - inventory empty (n=0)"sv, refID);
                     continue;
                 }
 
@@ -1967,7 +1967,7 @@ namespace Pulsar::NPCSync {
             }
         }
 
-        // Periodic diagnostic — run even while not connected so we can verify the hook
+        // Periodic diagnostic - run even while not connected so we can verify the hook
         // standalone. Kept at the top so an early-return doesn't swallow it.
         uint64_t tickNow = GetTickCount64();
         static uint64_t s_lastLog = 0;
@@ -1998,7 +1998,7 @@ namespace Pulsar::NPCSync {
         uint32_t cellFormID = player->parentCell->formID;
 
         // V4 cell-change-clear removed. New Atlantis spans many cells
-        // (Concourse 0x0001259C, MAST 0x00014CB7, Spaceport 0x000151E9, …) —
+        // (Concourse 0x0001259C, MAST 0x00014CB7, Spaceport 0x000151E9, …) -
         // player crossing internal boundaries triggered g_tracked.clear()
         // every few seconds. Each clear stopped broadcasts for ~100ms while
         // entries re-populated, manifesting on the client as visible NPC
@@ -2077,7 +2077,7 @@ namespace Pulsar::NPCSync {
             // Dead NPCs need reliable delivery so the client actually kills the actor.
             net.Send(buf.data(), buf.size(), anyDead);
 
-            // After the final reliable send, drop dead NPCs from tracking — no
+            // After the final reliable send, drop dead NPCs from tracking - no
             // further updates needed for a corpse.
             if (anyDead) {
                 std::lock_guard lock(g_trackedMutex);
@@ -2088,7 +2088,7 @@ namespace Pulsar::NPCSync {
         }
 
         // V5 civilian-snapshot broadcast at 2 Hz. Slim packet, no health,
-        // no anim — just position. Lets client correct AI-divergence drift on
+        // no anim - just position. Lets client correct AI-divergence drift on
         // shared static-ref civilians while keeping bandwidth negligible.
         constexpr uint64_t kCivIntervalMs   = 500;
         constexpr size_t   kCivMaxPerBatch  = 64;   // 64 × 20 B = 1280 B payload, fits in any MTU
@@ -2145,10 +2145,10 @@ namespace Pulsar::NPCSync {
 
     // Client-side: queue of incoming updates, drained on game thread.
     struct PendingUpdate {
-        uint32_t refFormID;         // Host runtime ref (often 0xFF — won't resolve locally)
-        uint32_t baseFormID;        // Host's direct base — may be 0xFF (clone of leveled list)
+        uint32_t refFormID;         // Host runtime ref (often 0xFF - won't resolve locally)
+        uint32_t baseFormID;        // Host's direct base - may be 0xFF (clone of leveled list)
         uint32_t sourceBaseFormID;  // Static source template (T28, +0x130). HOST-LOCAL formID. 0 if base is static.
-        uint32_t sourceLocalID;     // Plugin-local portion — flag-aware (regular=24, medium=16, light=12 bits). 0 if no sourcePlugin.
+        uint32_t sourceLocalID;     // Plugin-local portion - flag-aware (regular=24, medium=16, light=12 bits). 0 if no sourcePlugin.
         char     sourcePlugin[Pulsar::Network::NPC_SOURCE_PLUGIN_MAX]; // Plugin filename owning the static source on host. Empty => fall back to legacy direct-ID path.
         float    posX, posY, posZ;
         float    rotZ;
@@ -2166,7 +2166,7 @@ namespace Pulsar::NPCSync {
 
     // Client-side: set of local Actor FormIDs that we've successfully applied a
     // remote update to. Used by the Actor::Update hook to SKIP the original AI
-    // processing for these actors — otherwise the host-driven position fights
+    // processing for these actors - otherwise the host-driven position fights
     // with the client AI's movement decisions 80 times per second (visible
     // jitter on Sarah and any other synced companion).
     // (declaration moved above HookedActorUpdate so the hook can reference it)
@@ -2216,7 +2216,7 @@ namespace Pulsar::NPCSync {
     }
 
     // Host-side: client forwarded combat damage for a host-matched NPC.
-    // ENet thread — only queues; applied on the game thread in OnGameThreadTick.
+    // ENet thread - only queues; applied on the game thread in OnGameThreadTick.
     void OnDamageReceived(const uint8_t* a_data, std::size_t a_length)
     {
         using namespace Pulsar::Network;
@@ -2314,7 +2314,7 @@ namespace Pulsar::NPCSync {
     {
         if (IsHostMode()) return;
 
-        // Phase D: apply runs on client — matcher-based (no PlaceAtMe).
+        // Phase D: apply runs on client - matcher-based (no PlaceAtMe).
         // Find local native NPC by (baseFormID + position-proximity),
         // apply position/health from host packet.
 
@@ -2335,7 +2335,7 @@ namespace Pulsar::NPCSync {
             return;
         }
 
-        // V5 drain civilian-snapshot queue. Independent of g_pending —
+        // V5 drain civilian-snapshot queue. Independent of g_pending -
         // civilians arrive at 2 Hz from host, only carry pos+rotZ+refFormID,
         // are direct-LookupByID (static-ref only). Drift threshold prevents
         // hot-snap on actors that are already close enough.
@@ -2407,7 +2407,7 @@ namespace Pulsar::NPCSync {
             // from host packets and neutralize her local AI.
             //
             // Spawn fallback (for Phase C dynamic 0xFF refs that don't exist
-            // on client) is currently disabled — FUN_14179A510 returns null
+            // on client) is currently disabled - FUN_14179A510 returns null
             // for TESNPC source. Needs T30 RE before re-enable.
             RE::Actor* actor = nullptr;
 
@@ -2424,21 +2424,21 @@ namespace Pulsar::NPCSync {
                     actor = form->As<RE::Actor>();
                     // Fallback: if As<Actor>() fails despite form being real
                     // (possible if the engine hasn't fully initialized the
-                    // class hierarchy yet), use the form directly — our
+                    // class hierarchy yet), use the form directly - our
                     // SEH-wrapped SetPosition calls it via Actor's vtable
                     // regardless, and if it's not an Actor the SEH catches.
                     if (!actor && form->Is(RE::FormType::kACHR)) {
                         actor = reinterpret_cast<RE::Actor*>(form);
                     }
                 }
-                // Only erase remap if form is DEFINITIVELY gone — not on a
+                // Only erase remap if form is DEFINITIVELY gone - not on a
                 // transient As<Actor> cast failure. Keep retrying.
                 if (!actor && !form) {
                     static uint64_t s_lastRemapGoneLog = 0;
                     uint64_t nowT = GetTickCount64();
                     if (nowT - s_lastRemapGoneLog > 3000) {
                         s_lastRemapGoneLog = nowT;
-                        PLOG_WARN("[PULSAR] NPCSync: remap gone hostRef=0x{:08X} localRef=0x{:08X} — form lookup returns null"sv,
+                        PLOG_WARN("[PULSAR] NPCSync: remap gone hostRef=0x{:08X} localRef=0x{:08X} - form lookup returns null"sv,
                                   u.refFormID, localRefID);
                     }
                     {
@@ -2447,7 +2447,7 @@ namespace Pulsar::NPCSync {
                     }
                     // Allow a fresh spawn attempt. Previously g_spawnAttempted kept
                     // the entry forever after the first successful spawn, so once
-                    // the engine GC'd a clone we'd never bring it back — stuck at
+                    // the engine GC'd a clone we'd never bring it back - stuck at
                     // applied=3 noForm=8 even though the host still sends updates.
                     {
                         std::lock_guard lk(g_spawnAttemptedMutex);
@@ -2458,7 +2458,7 @@ namespace Pulsar::NPCSync {
                     uint64_t nowT = GetTickCount64();
                     if (nowT - s_lastCastFailLog > 3000) {
                         s_lastCastFailLog = nowT;
-                        PLOG_WARN("[PULSAR] NPCSync: remap cast-fail hostRef=0x{:08X} localRef=0x{:08X} formType={} — keeping remap, retry next tick"sv,
+                        PLOG_WARN("[PULSAR] NPCSync: remap cast-fail hostRef=0x{:08X} localRef=0x{:08X} formType={} - keeping remap, retry next tick"sv,
                                   u.refFormID, localRefID,
                                   form ? (int)form->GetFormType() : -1);
                     }
@@ -2477,7 +2477,7 @@ namespace Pulsar::NPCSync {
 
             // Phase D: if no remap, find a local native actor matching
             // (effectiveBaseID + spawn-position). T40 verified proc-gen is
-            // deterministic — same save → same NPCs at (almost) same
+            // deterministic - same save → same NPCs at (almost) same
             // positions on both machines. We don't spawn anything
             // client-side: the engine already did that natively.
             //
@@ -2501,12 +2501,12 @@ namespace Pulsar::NPCSync {
                 uint32_t matchRef = FindLocalMatch(hostEffective, u.posX, u.posY, u.posZ, claimed);
                 if (matchRef == 0) {
                     // Engine hasn't proc-gen'd this NPC yet, or it's out of
-                    // our 400m collection range. Skip — retry when it
+                    // our 400m collection range. Skip - retry when it
                     // appears in g_procDumpTableV3 via HookedActorUpdate.
                     skippedNoForm++;
                     continue;
                 }
-                // Try resolving BEFORE writing remap — if LookupByID fails,
+                // Try resolving BEFORE writing remap - if LookupByID fails,
                 // don't commit (would trap us in remap-gone-erase-rematch loop).
                 RE::Actor* matchedActor = nullptr;
                 if (auto* form = RE::TESForm::LookupByID(matchRef)) {
@@ -2518,7 +2518,7 @@ namespace Pulsar::NPCSync {
                 if (!matchedActor) {
                     // matchRef is stale (actor destroyed between PROCDUMP
                     // capture and apply). Evict from candidate table and
-                    // skip this tick — next match attempt sees a fresh pool.
+                    // skip this tick - next match attempt sees a fresh pool.
                     std::lock_guard lk(g_procDumpMutex);
                     g_procDumpTableV3.erase(matchRef);
                     skippedNoForm++;
@@ -2529,7 +2529,7 @@ namespace Pulsar::NPCSync {
                     std::lock_guard lk(g_npcRemapMutex);
                     g_npcRemap[u.refFormID] = matchRef;
                 }
-                // NOTE: no g_remoteOwned.insert — with Phase D passthrough,
+                // NOTE: no g_remoteOwned.insert - with Phase D passthrough,
                 // engine Update runs natively for ALL actors on client. The
                 // remote-owned set is legacy from c5afce5 PlaceAtMe path.
                 PLOG_INFO("[PULSAR] NPCSync: MATCHED hostRef=0x{:08X} base=0x{:08X} src=0x{:08X} hostPos=({:.0f},{:.0f},{:.0f}) -> localRef=0x{:08X}"sv,
@@ -2545,15 +2545,15 @@ namespace Pulsar::NPCSync {
                 const uint32_t inFlight = g_spawnInFlightHostRef.load(std::memory_order_acquire);
                 const float curSpawnState = ReadGlob("PulsarSpawn");
 
-                // (1) Completion polling — in-flight spawn ready to collect?
+                // (1) Completion polling - in-flight spawn ready to collect?
                 if (inFlight == u.refFormID && curSpawnState == 11.0f) {
                     // Papyrus splits signed int32 FormIDs across two GLOBs
                     // using signed division: `hi = formID / 65536; lo = formID - hi*65536`.
                     // The correct decode is the INVERSE signed arithmetic:
-                    // `formID = (int32)hi * 65536 + (int32)lo` — same pattern
+                    // `formID = (int32)hi * 65536 + (int32)lo` - same pattern
                     // as RemotePlayerManager::ResolveLookMarker (line ~1041).
                     // Earlier bit-shift reassembly `(hi<<16)|(lo&0xFFFF)`
-                    // silently corrupts 0xFF-prefix IDs (signed negative) —
+                    // silently corrupts 0xFF-prefix IDs (signed negative) -
                     // e.g. hi=-254 lo=-63631 → real 0xFEFFF071 but shift-based
                     // decode gave 0xFF020771 (diff of +0x0300 = lo-byte bits
                     // from high-half negative sign-extension).
@@ -2591,7 +2591,7 @@ namespace Pulsar::NPCSync {
                         PLOG_INFO("[PULSAR] NPCSync: Papyrus spawn DONE hostRef=0x{:08X} base=0x{:08X} -> localRef=0x{:08X}"sv,
                                   u.refFormID, u.baseFormID, newLocalID);
 
-                        // Chain-request: disable the native ref — only if
+                        // Chain-request: disable the native ref - only if
                         // the host ref is static (same FormID exists on
                         // client). For dynamic refs (POI-spawned mobs), no
                         // client-side native exists, skip.
@@ -2621,11 +2621,11 @@ namespace Pulsar::NPCSync {
                         // Leave g_spawnAttempted set so we don't retry
                     }
                 }
-                // (2) Initiation — start a new spawn if slot is free and
+                // (2) Initiation - start a new spawn if slot is free and
                 //     Papyrus is idle. Accept both 2.0 (Papyrus-fallback
                 //     movement) and 3.0 (C++-takeover steady-state). After
                 //     initial clone spawn + C++ LookupByID, state sits at
-                //     3.0 — that's the normal case we hit during gameplay.
+                //     3.0 - that's the normal case we hit during gameplay.
                 else if (inFlight == 0 && (curSpawnState == 2.0f || curSpawnState == 3.0f)) {
                     bool alreadyTried = false;
                     {
@@ -2653,7 +2653,7 @@ namespace Pulsar::NPCSync {
                         spawnLocalID = u.sourceLocalID;
                     } else if (hostStaticFormID != 0 &&
                                (hostStaticFormID & 0xFF000000) != 0xFF000000) {
-                        // Local-ID extraction without flag info — safe for
+                        // Local-ID extraction without flag info - safe for
                         // regular-ESM (all vanilla + SS DLC) but wrong for ESL.
                         spawnLocalID = hostStaticFormID & 0xFFFFFFu;
                     }
@@ -2665,7 +2665,7 @@ namespace Pulsar::NPCSync {
                         continue;
                     }
 
-                    // Sanity probe — if the host told us the plugin name AND
+                    // Sanity probe - if the host told us the plugin name AND
                     // this machine doesn't have it loaded, log once per 3s
                     // so the user knows why the spawn is going to fail.
                     // Papyrus iterates known plugins anyway, so this is
@@ -2678,7 +2678,7 @@ namespace Pulsar::NPCSync {
                             uint64_t nowT = GetTickCount64();
                             if (nowT - s_lastNoPluginLog > 3000) {
                                 s_lastNoPluginLog = nowT;
-                                PLOG_WARN("[PULSAR] NPCSync: plugin '{}' not loaded on client — hostRef=0x{:08X} spawn will likely fail"sv,
+                                PLOG_WARN("[PULSAR] NPCSync: plugin '{}' not loaded on client - hostRef=0x{:08X} spawn will likely fail"sv,
                                           u.sourcePlugin, u.refFormID);
                             }
                         }
@@ -2709,17 +2709,17 @@ namespace Pulsar::NPCSync {
                               u.refFormID, u.baseFormID, u.sourceBaseFormID,
                               u.sourcePlugin[0] ? u.sourcePlugin : "(empty)",
                               spawnLocalID);
-                    // Don't apply this tick — wait for Papyrus to complete
+                    // Don't apply this tick - wait for Papyrus to complete
                     skippedNoForm++;
                     continue;
                 }
                 // (3) Otherwise: either another hostRef is in-flight (wait)
                 //     or Papyrus is mid-operation (wait). Skip this tick.
                 else {
-                    // Deadline check — if in-flight for >3s, Papyrus got stuck,
+                    // Deadline check - if in-flight for >3s, Papyrus got stuck,
                     // abandon and let the state recover.
                     if (inFlight != 0 && GetTickCount64() > g_spawnInFlightDeadline.load(std::memory_order_acquire)) {
-                        PLOG_WARN("[PULSAR] NPCSync: Papyrus spawn TIMEOUT hostRef=0x{:08X} — resetting slot"sv, inFlight);
+                        PLOG_WARN("[PULSAR] NPCSync: Papyrus spawn TIMEOUT hostRef=0x{:08X} - resetting slot"sv, inFlight);
                         WriteGlob("PulsarSpawn", 3.0f);
                         WriteGlob("PulsarDropHi", 0.0f);
                         WriteGlob("PulsarDropLo", 0.0f);
@@ -2742,7 +2742,7 @@ namespace Pulsar::NPCSync {
 
             // Phase D v10 ISOLATION: parent-cell pin DISABLED. Was needed
             // for PlaceAtMe'd clones whose cell got nulled by proc-gen.
-            // Native actors manage their own parentCell — pinning could
+            // Native actors manage their own parentCell - pinning could
             // corrupt engine state.
 
             if (!actor->parentCell) { skippedNoCell++; continue; }
@@ -2761,7 +2761,7 @@ namespace Pulsar::NPCSync {
             if (firstSync) {
                 // Diagnostic on first sync: is the actor's 3D actually loaded?
                 // If has3D=false the SetPosition writes land on an unloaded
-                // ref — invisible to the player. Indicates we need proper
+                // ref - invisible to the player. Indicates we need proper
                 // cell migration (MoveTo or SetParentCell via vtable), not
                 // just a pointer pin. Uses BSAutoReadLock → can't __try here,
                 // but the lock+check itself is engine-safe.
@@ -2802,7 +2802,7 @@ namespace Pulsar::NPCSync {
             }
             if (preNode) SafeReadNodeWorld(preNode, preMesh);
 
-            // Phase E — host-velocity-driven locomotion.
+            // Phase E - host-velocity-driven locomotion.
             //
             // Replaces the Phase D v14 throttled-SetPosition heuristic
             // (teleport-on-drift) with a proper locomotion pipeline:
@@ -2881,7 +2881,7 @@ namespace Pulsar::NPCSync {
                 }
 
                 // (1) Detect NEW client-dealt damage = a drop below baseline.
-                // V2-Step-1e (2026-06-11): ATTRIBUTION GATE — forward only when
+                // V2-Step-1e (2026-06-11): ATTRIBUTION GATE - forward only when
                 // the LOCAL player actually attacked within the last 3s (attack
                 // actions noted by the PerformAction hook). Without the gate,
                 // health drops caused by the partner-CLONE's replayed (visual)
@@ -2911,7 +2911,7 @@ namespace Pulsar::NPCSync {
                         ref.clientEngaged = true;        // self-classify as a combat enemy
                         st = ref;
                     } else {
-                        // Not ours — descend the baseline silently (no forward,
+                        // Not ours - descend the baseline silently (no forward,
                         // no engage). Host authority keeps correcting health for
                         // non-engaged enemies anyway.
                         std::lock_guard lk(g_dmgFwdMutex);
@@ -2922,7 +2922,7 @@ namespace Pulsar::NPCSync {
                 }
 
                 // (1b) V2-Step-1d: our LOCAL copy of this enemy died (client's real
-                // weapons killed it) but the host's copy may still be alive — host
+                // weapons killed it) but the host's copy may still be alive - host
                 // regen can outpace the forwarded net damage so it never reaches 0
                 // (seen: 0xFF0152AA oscillating 26..36, never dying). Forward an
                 // explicit KILL so the host kills its matched enemy outright now.
@@ -2930,7 +2930,7 @@ namespace Pulsar::NPCSync {
                     (curHealth <= 0.0f || actor->IsDead())) {
                     SendNpcDamage(u.refFormID, 0.0f, /*kill=*/true);
                     // RAGDOLL/LOOT FIX: the AI-blocked DirectControl puppet does NOT
-                    // run the engine death handler when our weapons drop it to 0 HP —
+                    // run the engine death handler when our weapons drop it to 0 HP -
                     // it stays standing + unlootable until the host round-trip kills
                     // it (the observed bug). Force the RE'd kill on our LOCAL copy now
                     // so it ragdolls + becomes lootable immediately. TickLerp's IsDead
@@ -2944,7 +2944,7 @@ namespace Pulsar::NPCSync {
                         Pulsar::NPCSync::ReleaseNpcDirectControl(
                             static_cast<uint32_t>(actor->formID));
                         localKilled = (SafeKillActor(actor, RE::PlayerCharacter::GetSingleton()) != 0);
-                        // #ragdoll — hold the body free through the async death gap.
+                        // #ragdoll - hold the body free through the async death gap.
                         Pulsar::NPCSync::MarkNpcKillPending(
                             static_cast<uint32_t>(actor->formID), 1500);
                     }
@@ -2966,7 +2966,7 @@ namespace Pulsar::NPCSync {
                 // (2) Apply host authority.
                 if (u.isDead) {
                     // V2-Step-1c: host says this enemy is dead. SetActorValue(0)
-                    // does NOT kill (proven 14:46) — fire the RE'd engine kill so
+                    // does NOT kill (proven 14:46) - fire the RE'd engine kill so
                     // the local matched enemy actually ragdolls. Covers host-killed
                     // enemies the client never shot (the reported gap). One-shot via
                     // killApplied; skip if the client's own combat already killed it.
@@ -2978,7 +2978,7 @@ namespace Pulsar::NPCSync {
                         Pulsar::NPCSync::ReleaseNpcDirectControl(
                             static_cast<uint32_t>(actor->formID));
                         SafeKillActor(actor, RE::PlayerCharacter::GetSingleton());
-                        // #ragdoll — hold the body free through the async death gap.
+                        // #ragdoll - hold the body free through the async death gap.
                         Pulsar::NPCSync::MarkNpcKillPending(
                             static_cast<uint32_t>(actor->formID), 1500);
                         PLOG_INFO("[COMBAT-DBG] client mirrored host-KILL local=0x{:08X} host=0x{:08X} engaged={} dead={}"sv,
@@ -2991,7 +2991,7 @@ namespace Pulsar::NPCSync {
                     }
                     // Corpse-loot sync: once the local matched corpse is actually
                     // dead, swap its locally-rolled inventory for the host's
-                    // authoritative list (one-shot — pending entry is consumed).
+                    // authoritative list (one-shot - pending entry is consumed).
                     if (actor->IsDead()) {
                         ApplyCorpseLootIfPending(u.refFormID, actor);
                     }
@@ -3006,11 +3006,11 @@ namespace Pulsar::NPCSync {
                     std::lock_guard lk(g_dmgFwdMutex);
                     g_dmgFwd[actor->formID].baseline = u.health;
                 }
-                // engaged + alive: skip health writes — local combat sim drives it.
+                // engaged + alive: skip health writes - local combat sim drives it.
             }
         }
 
-        // Periodic diagnostic — every 3s summarize apply stats
+        // Periodic diagnostic - every 3s summarize apply stats
         static uint64_t s_lastApplyLog = 0;
         uint64_t now = GetTickCount64();
         if (now - s_lastApplyLog > 3000) {

@@ -1,6 +1,6 @@
 // Diagnostic-only: trace area-transition behavior in co-op.
 // Logs cell changes, LoadingMenu open/close, and (on client) clone-vs-
-// player parentCell mismatches. Read-only — no packets sent.
+// player parentCell mismatches. Read-only - no packets sent.
 //
 // Goal: see what actually happens when host walks through a door,
 // fast-travels, lands on a planet, or streams an outpost cell. Outputs
@@ -45,14 +45,14 @@ namespace Pulsar::CellDiag
             // cell-change, schedule a check at +3s. If clone's 3D is
             // still detached at check time, force-respawn via Papyrus
             // pipeline. Engine doesn't auto-reattach 3D after position
-            // updates from network — only at cell-load streaming.
+            // updates from network - only at cell-load streaming.
             uint64_t pendingRespawnCheck = 0;
             uint64_t lastForceRespawnTick = 0;
             uint64_t postRespawnProbeTick = 0;
             // per-second respawn-recovery TRACE. Armed when a respawn/reparent
             // fires; samples clone refID/loadedData/data3D/children every ~1s until the
             // clone is genuinely visible (data3D + biped children>0) or 16s timeout.
-            // Diagnostic only — measures the EXACT empty-mesh window the user perceives
+            // Diagnostic only - measures the EXACT empty-mesh window the user perceives
             // (logs show ~5s but user reports 12-14s; this pins the true bottleneck).
             uint64_t respawnTraceStart = 0;   // tick the respawn fired (0 = not tracing)
             uint64_t respawnTraceNext  = 0;   // next per-second sample tick
@@ -61,10 +61,10 @@ namespace Pulsar::CellDiag
             uint64_t procReparentDueAt = 0;
             // Fix B: consecutive empty-NiNode detections. The destructive
             // ForceRespawn (2s gone-gap) only fires once this reaches the streak
-            // threshold — transient empties (engine sheds biped under load, then
+            // threshold - transient empties (engine sheds biped under load, then
             // re-attaches within a few seconds) self-heal first and never respawn.
             int      emptyNiNodeStreak = 0;
-            // Sprint 3: stable-state save probe — fire once per session
+            // Sprint 3: stable-state save probe - fire once per session
             // when player has been in real cell + no loadingMenu for 30s.
             uint64_t lastUnstableTick = 0;       // last time something changed
             bool     customSaveProbeFired = false;
@@ -73,7 +73,7 @@ namespace Pulsar::CellDiag
             // own auto-quicksave finish first (verified by user: every cell
             // transition triggers an engine quicksave).
             uint64_t pendingFormBroadcast = 0;
-            // Last MoveTo-refresh tick — debounce empty-NiNode fix attempts.
+            // Last MoveTo-refresh tick - debounce empty-NiNode fix attempts.
             uint64_t lastMoveRefreshTick = 0;
             // Phase K.1: snapshot of cell + worldspace at moment loadMenu
             // OPENED, so when it CLOSES we know the source-side of the
@@ -133,7 +133,7 @@ namespace Pulsar::CellDiag
             }
         }
 
-        // Dispatch PulsarFurnSync.DoMoveRefresh(clone, target) — engine's
+        // Dispatch PulsarFurnSync.DoMoveRefresh(clone, target) - engine's
         // cell-attach pipeline is invoked by MoveTo with abCopyCell=true and
         // re-streams 3D including biped attach. Workaround for empty NiNode
         // bug after PlaceAtMe-respawn during cell-transitions.
@@ -182,7 +182,7 @@ namespace Pulsar::CellDiag
             return r;
         }
 
-        // SEH-wrapped IsMenuOpen — caller provides the BSFixedString to
+        // SEH-wrapped IsMenuOpen - caller provides the BSFixedString to
         // avoid temp-with-dtor inside __try.
         bool RawCheckMenuOpen(RE::UI* ui, const RE::BSFixedString& name) noexcept
         {
@@ -229,7 +229,7 @@ namespace Pulsar::CellDiag
                 uint8_t** dataPtr = *reinterpret_cast<uint8_t***>(arr);
                 uint32_t size = *reinterpret_cast<uint32_t*>(arr + 0x0C);
                 // root-cause (2026-06-21): the old cap `size > 200` was FAR
-                // too low — a healthy actor's root NiNode has ~650-700 children
+                // too low - a healthy actor's root NiNode has ~650-700 children
                 // (verified: 647 host / 699 client). Any healthy clone tripped
                 // the cap and returned the default childCount=0, which CellDiag
                 // read as "empty-NiNode" → pre-Fix-C this drove the destructive
@@ -251,7 +251,7 @@ namespace Pulsar::CellDiag
                         continue;
                     }
                     if (i == 0) n.firstChildPtr = (uint64_t)child;
-                    // NiObjectNET name at +0x18 — points to const char*
+                    // NiObjectNET name at +0x18 - points to const char*
                     auto* namePtr = *reinterpret_cast<char**>(child + 0x18);
                     if (namePtr) {
                         if (i == 0) n.firstChildName = (uint64_t)namePtr;
@@ -271,11 +271,11 @@ namespace Pulsar::CellDiag
         }
 
         // SEH-wrapped peek into clone's 3D-load state. Returns:
-        //   loadedDataPtr  — refr+0xB8 (BSGuarded ptr)
-        //   data3DPtr      — *(loadedData+0x08) (NiAVObject*) — null if 3D
+        //   loadedDataPtr  - refr+0xB8 (BSGuarded ptr)
+        //   data3DPtr      - *(loadedData+0x08) (NiAVObject*) - null if 3D
         //                    detached after cell stream-out
-        //   cloneRefID     — clone's REFR FormID
-        //   posX/posY/posZ — clone's data.location (raw +0x8C)
+        //   cloneRefID     - clone's REFR FormID
+        //   posX/posY/posZ - clone's data.location (raw +0x8C)
         struct CloneVisual {
             uintptr_t loadedDataPtr;
             uintptr_t data3DPtr;
@@ -312,7 +312,7 @@ namespace Pulsar::CellDiag
         RawSnap p = RawSnapPlayer(player);
         if (!p.valid) return;
 
-        // LoadingMenu poll — BSFixedString constructed once per call but
+        // LoadingMenu poll - BSFixedString constructed once per call but
         // outside the __try.
         RE::BSFixedString loadingMenuName("LoadingMenu");
         auto* ui = RE::UI::GetSingleton();
@@ -327,7 +327,7 @@ namespace Pulsar::CellDiag
             s.lastCellID = p.cellID;
             // Sprint 1: schedule clone-3D check after settle-time
             s.pendingRespawnCheck = ::GetTickCount64() + kRespawnCheckDelayMs;
-            ///(2026-06-21) — clone RE-PARENT on proc-cell-change.
+            ///(2026-06-21) - clone RE-PARENT on proc-cell-change.
             // PROVEN: a clone moved across proc-cells via DoSetPosition keeps its
             // data3D + full biped (children=593) but is ORPHANED from the new
             // cell's render scene-graph → INVISIBLE, while NPCs (engine-loaded)
@@ -337,7 +337,7 @@ namespace Pulsar::CellDiag
             // invisible until the next cell-change happens to drop data3D. Fix:
             // force a respawn on every proc-cell-change (proc cooldown prevents
             // storms while walking; when the player stops, the last respawn makes
-            // the clone visible). NOTE: still flickers ~2s/respawn while walking —
+            // the clone visible). NOTE: still flickers ~2s/respawn while walking -
             // the no-flicker fix is a surgical 3D-reparent (future).
             {
                 const bool newIsProc = (p.cellID & 0xFF000000u) == 0xFF000000u;
@@ -370,7 +370,7 @@ namespace Pulsar::CellDiag
                 s.procReparentDueAt = 0;
                 if ((nowMs - s.lastForceRespawnTick) > kProcRespawnCooldownMs) {
                     // only act if the clone is GENUINELY orphaned. A visible
-                    // clone (3D still parented in the loaded grid) is LEFT ALONE — it
+                    // clone (3D still parented in the loaded grid) is LEFT ALONE - it
                     // survives across cells on its own, so no respawn, no flicker. An
                     // orphaned clone is MoveTo-reparented (no despawn). Only a truly
                     // dead clone (no 3D) gets the PlaceAtMe respawn.
@@ -378,7 +378,7 @@ namespace Pulsar::CellDiag
                     auto& mgr = Pulsar::RemotePlayer::GetRemotePlayerManager();
                     switch (mgr.ReparentCloneIfOrphaned()) {
                         case R::kVisible:
-                            // still visible — nothing to do; do NOT burn the cooldown.
+                            // still visible - nothing to do; do NOT burn the cooldown.
                             break;
                         case R::kReparented:
                             PLOG_INFO(
@@ -413,7 +413,7 @@ namespace Pulsar::CellDiag
                 p.cellID, p.x, p.y, p.z);
             // Pivot C ABANDONED 2026-04-26 after iter5. HookGuard worked
             // (SUSPENDED log verified at correct timing) but crash still
-            // happened — UAF source is NOT in our hooked functions. Engine-
+            // happened - UAF source is NOT in our hooked functions. Engine-
             // internal during cell-stream chaos, can't be guarded externally.
             // Pivoting to Companion/Follower approach: make the clone a
             // companion of the host player. Engine's own follower-on-transition
@@ -423,7 +423,7 @@ namespace Pulsar::CellDiag
             // }
             (void)kFormBlobDelayMs;
 
-            // Phase K.1 — snapshot source-side at OPEN, fire broadcast at CLOSE.
+            // Phase K.1 - snapshot source-side at OPEN, fire broadcast at CLOSE.
             if (inLoadMenu && !s.lastInLoadMenu) {
                 s.cellAtLoadMenuOpen = p.cellID;
                 if (player && player->parentCell && player->parentCell->cellWorldspace) {
@@ -439,7 +439,7 @@ namespace Pulsar::CellDiag
                     uint32_t newCell = pc->formID;
                     uint32_t newWS   = pc->cellWorldspace ? pc->cellWorldspace->formID : 0u;
                     bool destInterior = pc->IsInterior();
-                    // Phase K.6 (2026-04-27) — fire transit on EITHER cell
+                    // Phase K.6 (2026-04-27) - fire transit on EITHER cell
                     // change OR worldspace change. Takeoff/landing keep the
                     // player in the same cockpit cell (e.g. 0x05100136) but
                     // change worldspace (planet ↔ space). Without the WS
@@ -460,7 +460,7 @@ namespace Pulsar::CellDiag
             s.lastInLoadMenu = inLoadMenu;
         }
 
-        // Clone tracking — symmetric on both sides (each side has a clone
+        // Clone tracking - symmetric on both sides (each side has a clone
         // representing the other player). Logs cell-changes and 3D state.
         auto* clone = Pulsar::RemotePlayer::GetRemotePlayerManager().GetRemoteActor();
         uint32_t cloneCellID = RawSnapCloneCell(clone);
@@ -507,7 +507,7 @@ namespace Pulsar::CellDiag
                 Pulsar::Network::GetSingleton().IsConnected())
             {
                 PLOG_INFO(
-                    "[PULSAR] CELL: HOST cell-transition resync — sending newest save to client"sv);
+                    "[PULSAR] CELL: HOST cell-transition resync - sending newest save to client"sv);
                 Pulsar::Network::GetSingleton().SendSaveToClient();
             }
         }
@@ -535,7 +535,7 @@ namespace Pulsar::CellDiag
             if (!inLoadMenu &&
                 Pulsar::Network::GetSingleton().IsConnected()) {
                 CloneVisual cv = RawSnapCloneVisual(clone);
-                // Phase K.2 V4 (2026-04-27) — also respawn when data3D
+                // Phase K.2 V4 (2026-04-27) - also respawn when data3D
                 // exists but NiNode has no children (= empty-NiNode bug).
                 // Without this, cell-transition leaves a "ghost" clone:
                 // valid pointer, no biped → invisible avatar, makes peer
@@ -558,7 +558,7 @@ namespace Pulsar::CellDiag
                 }
                 uint32_t remoteCell = Pulsar::RemotePlayer::GetRemotePlayerManager()
                                           .GetRemoteCellID();
-                // Phase I — only enforce cell-match in INTERIOR cells.
+                // Phase I - only enforce cell-match in INTERIOR cells.
                 // Exterior cells of same worldspace are forgiving.
                 auto* localPlayer = RE::PlayerCharacter::GetSingleton();
                 auto* localParent = localPlayer ? localPlayer->parentCell : nullptr;
@@ -567,7 +567,7 @@ namespace Pulsar::CellDiag
                 // same template. K.6 V2-Probe (2026-04-29) verified content
                 // is identical across instances (matched=120/120). So if
                 // BOTH local and remote are FF-prefix, treat them as
-                // equivalent for respawn purposes — clone gets placed in
+                // equivalent for respawn purposes - clone gets placed in
                 // local cell at peer's coords, engine attaches 3D from the
                 // local instance's content.
                 const bool localIsProc  = (p.cellID    & 0xFF000000u) == 0xFF000000u;
@@ -580,7 +580,7 @@ namespace Pulsar::CellDiag
                 bool cooldownOK = (now - s.lastForceRespawnTick) > kRespawnCooldownMs;
 
                 // Fix C (2026-06-21): the empty-NiNode is PERSISTENT under combat
-                // load, not transient — each destructive respawn just makes a fresh
+                // load, not transient - each destructive respawn just makes a fresh
                 // EMPTY clone (refID churns E06->E98->2A24->..., biped never attaches)
                 // → the clone is invisible the whole time = "despawnt alle paar Sekunden".
                 // Root: the biped fails to attach to the proc-cell clone's 3D. The
@@ -588,7 +588,7 @@ namespace Pulsar::CellDiag
                 // without rebuilding it. So split by what's actually missing:
                 //   * data3D present, children==0  -> ManualAttachBiped IN-PLACE (no
                 //     despawn, no flicker). The destructive respawn was COUNTER-
-                //     productive — it destroyed the clone before the biped could attach.
+                //     productive - it destroyed the clone before the biped could attach.
                 //   * data3D == 0 (no 3D at all)   -> respawn (PlaceAtMe builds 3D),
                 //     debounced so transients don't flicker.
                 if (needsRespawnEmptyNode) {
@@ -600,7 +600,7 @@ namespace Pulsar::CellDiag
                             tag, cv.refID);
                         Pulsar::Cell3DAttach::ManualAttachBiped(clone);
                     }
-                    // Re-check — the attach may need a couple of retries; once children>0
+                    // Re-check - the attach may need a couple of retries; once children>0
                     // the next pass falls through to the healthy branch and stops.
                     s.pendingRespawnCheck = now + kRespawnCheckDelayMs;
                 } else if (needsRespawnNullData) {
@@ -633,7 +633,7 @@ namespace Pulsar::CellDiag
                         s.pendingRespawnCheck = now + kRespawnCheckDelayMs;
                         if (!cellMatch) {
                             PLOG_INFO(
-                                "[PULSAR] CELL: {} respawn deferred — cross-cell "
+                                "[PULSAR] CELL: {} respawn deferred - cross-cell "
                                 "(local=0x{:08X} remote=0x{:08X})"sv,
                                 tag, p.cellID, remoteCell);
                         } else if (!cdOK) {
@@ -642,7 +642,7 @@ namespace Pulsar::CellDiag
                                 tag, cdMs - (now - s.lastForceRespawnTick));
                         } else {
                             PLOG_INFO(
-                                "[PULSAR] CELL: {} no-3D streak {}/{} — waiting"sv,
+                                "[PULSAR] CELL: {} no-3D streak {}/{} - waiting"sv,
                                 tag, s.emptyNiNodeStreak, streakReq);
                         }
                     }
@@ -684,7 +684,7 @@ namespace Pulsar::CellDiag
             }
         }
 
-        // Post-respawn 3D inspector — fires once at +5s after auto-respawn.
+        // Post-respawn 3D inspector - fires once at +5s after auto-respawn.
         // Logs NiNode children of clone's data3D so we see whether biped /
         // skeleton attached or only root NiNode is present.
         //
@@ -694,7 +694,7 @@ namespace Pulsar::CellDiag
         // automatically by engine's follower-on-transition logic. That logic
         // identifies followers via the Teammate flag. By marking our clone
         // as a teammate, engine should bring it along on cell-transitions
-        // with proper biped attachment — bypassing the empty-NiNode bug
+        // with proper biped attachment - bypassing the empty-NiNode bug
         // entirely.
         if (s.postRespawnProbeTick != 0 && now >= s.postRespawnProbeTick) {
             s.postRespawnProbeTick = 0;
@@ -722,13 +722,13 @@ namespace Pulsar::CellDiag
                 (void)cv;
             } else {
                 PLOG_INFO(
-                    "[PULSAR] CELL: {} post-respawn-probe refID=0x{:08X} data3D=NULL — respawn failed to load 3D"sv,
+                    "[PULSAR] CELL: {} post-respawn-probe refID=0x{:08X} data3D=NULL - respawn failed to load 3D"sv,
                     tag, cv.refID);
             }
 
             // Pivot B iter1 DISABLED 2026-04-26: dispatch of MoveTo-refresh
             // crashed the client. Probe detected children=0 and called
-            // CallPapyrusMoveRefresh — game then crashed before next log
+            // CallPapyrusMoveRefresh - game then crashed before next log
             // line. MoveTo on an actor with empty NiNode is unsafe.
             //
             // Need a different approach for biped re-attach. Possible paths:
@@ -740,7 +740,7 @@ namespace Pulsar::CellDiag
             (void)kMoveRefreshCooldownMs;
         }
 
-        // Sprint 3 STABLE-STATE PROBE — DISABLED.
+        // Sprint 3 STABLE-STATE PROBE - DISABLED.
         // Iter results (REL::ID 98638 direct, mgr+0x948 default=0):
         //   mode 0 = load (per bit 0x4); 1,2 = silent no-op; 3 = hang/freeze.
         // Direct dispatcher call without engine state setup is unreliable.
@@ -748,12 +748,12 @@ namespace Pulsar::CellDiag
         // or reconnect-on-transition fallback.
         (void)s.customSaveProbeFired;
 
-        // Periodic snapshot every 5s — symmetric on both sides, includes
+        // Periodic snapshot every 5s - symmetric on both sides, includes
         // clone 3D state so we can detect data3D loss after transitions.
         if (now - s.lastSnapshotTick > 5000) {
             s.lastSnapshotTick = now;
             CloneVisual cv = RawSnapCloneVisual(clone);
-            ///RENDER-DIAG — also probe the clone's NiNode children +
+            ///RENDER-DIAG - also probe the clone's NiNode children +
             // flags. A clone that is data3D-present + same-cell + tracking but
             // INVISIBLE (while NPCs like Sarah render) is either: children==0 =
             // empty NiNode (biped detached → needs re-attach), or children>0 +

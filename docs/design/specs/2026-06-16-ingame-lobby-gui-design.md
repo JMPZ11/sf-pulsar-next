@@ -1,15 +1,15 @@
-# In-Game Lobby GUI (Teil 3) — Native Scaleform — Design
+# In-Game Lobby GUI (Teil 3) - Native Scaleform - Design
 
 **Datum:** 2026-06-16
 **Status:** Design (genehmigt: native Scaleform, In-Game-Hotkey)
 
 ## Ziel
 Ein per Hotkey im Spiel geöffnetes, **Starfield-natives** Menü zum Browsen/Hosten/Joinen
-von Lobbies — das In-Game-Frontend zur bestehenden STDB/Companion-Persistenz.
+von Lobbies - das In-Game-Frontend zur bestehenden STDB/Companion-Persistenz.
 
 ## Warum native Scaleform (nicht ImGui)
 ImGui-D3D12-Overlay ist hier eine Sackgasse: dokumentierter **Hard-Crash beim zweiten
-Render-Frame** (HDR-Swapchain R10G10B10A2, GPU/Driver-Crash, **SEH fängt ihn nicht** —
+Render-Frame** (HDR-Swapchain R10G10B10A2, GPU/Driver-Crash, **SEH fängt ihn nicht** -
 siehe `feedback_imgui_crash`). CommonLibSF hat dagegen die komplette Scaleform-Schicht
 gebunden (`ScaleformGFxMovie/Value/FunctionHandler`, `SWFToCodeFunctionHandler`,
 `IMenu`, `GameMenuBase`, `UIMessageQueue`, `UI`). Nativ = echter Game-Look, pausiert das
@@ -73,7 +73,7 @@ DLL geht in Host-Rolle. F10→`profile-out`→push bleibt wie gehabt.
 - Alle Datei-IO best-effort, Stale-Dateien consume-once wie beim bestehenden Handoff.
 
 ## Tests
-- **Headless zuerst:** Companion-`serve` cmd-watch-Loop gegen lokales STDB —
+- **Headless zuerst:** Companion-`serve` cmd-watch-Loop gegen lokales STDB -
   `pulsar_cmd.json` schreiben → Reducer-Aufruf + `lobbies.json`/`profile-in`/`ack` asserten.
   Voller Datei-Round-Trip ohne Spiel prüfbar.
 - **In-Game (User):** Hotkey öffnet Menü, Liste rendert, Host/Join-Klick schreibt cmd,
@@ -81,11 +81,11 @@ DLL geht in Host-Rolle. F10→`profile-out`→push bleibt wie gehabt.
 
 ## ⚠️ Risiko / Task 1 = RE-Spike (vor dem Bauen)
 Drei echte Unbekannte zuerst klären:
-1. **Menü-Registrierung** — Factory-RVA + `MENU_NAME`-Mechanismus, gegen **Ghidra**
-   verifizieren (CLibSF-Scaleform-Bindings vorher prüfen — wir hatten schon falsche
+1. **Menü-Registrierung** - Factory-RVA + `MENU_NAME`-Mechanismus, gegen **Ghidra**
+   verifizieren (CLibSF-Scaleform-Bindings vorher prüfen - wir hatten schon falsche
    Dock-Bindings; `feedback_clibsf_dock_bindings_wrong`).
 2. **`.swf`-Lade-Pfad** (vermutlich `Data/Interface/`) + **ActionScript-Version** Starfields.
-3. **Authoring-Toolchain:** JPEXS/ffdec (open-source) vs. Flex-SDK — minimales Test-Movie,
+3. **Authoring-Toolchain:** JPEXS/ffdec (open-source) vs. Flex-SDK - minimales Test-Movie,
    das einen C++-Callback auslöst, bevor die echte UI gebaut wird.
 
 ## Bewusst raus (YAGNI v1)

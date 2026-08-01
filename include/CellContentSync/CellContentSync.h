@@ -5,7 +5,7 @@
 
 namespace Pulsar::CellContentSync {
 
-    // K.6 V1 — Cell-Content-Sync (TiltedEvolution-Pattern, Path B).
+    // K.6 V1 - Cell-Content-Sync (TiltedEvolution-Pattern, Path B).
     //
     // Goal: when host enters a procedural or static cell, snapshot every
     // "interesting" REFR (loot, container, door, activator, furniture, dead
@@ -26,17 +26,17 @@ namespace Pulsar::CellContentSync {
 
     // Called by TransitSync::OnLocalTransit on host side after a cell change
     // has been detected and the K.1 PKT_TRANSIT was broadcast.
-    // We do NOT enumerate immediately — proc-cell construction continues for
+    // We do NOT enumerate immediately - proc-cell construction continues for
     // a beat or two after loadMenu CLOSED. Instead, queue a deferred enum
     // that fires from Tick() once the cell has settled.
     void OnHostCellChanged(std::uint32_t prevCellFormID,
                             std::uint32_t newCellFormID);
 
-    // Game-thread tick — drains a queued cell enumeration once the settle
+    // Game-thread tick - drains a queued cell enumeration once the settle
     // window has elapsed. Called from Main.cpp's permanent task.
     void Tick();
 
-    // Network-thread entry — receiver side (client). V1 logs only.
+    // Network-thread entry - receiver side (client). V1 logs only.
     void OnPacketReceived(const std::uint8_t* data, std::size_t length);
 
 }  // namespace Pulsar::CellContentSync

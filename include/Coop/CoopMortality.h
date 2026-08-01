@@ -12,20 +12,20 @@ namespace Pulsar::Coop::Mortality
     // True while the remote partner (= their clone on THIS machine) is downed
     // (bleedout pose, life-state mirrored from PKT_PLAYER_DOWNED). Other modules
     // gate clone-mutating ops on this: e.g. EquipSync's apply (DoEquipArmor/Weapon)
-    // must NOT run while the clone is downed — its 3D/graph update resets the
+    // must NOT run while the clone is downed - its 3D/graph update resets the
     // bleedout/knee pose (confirmed: armor sync blocked the downed animation).
     bool IsRemoteDowned();
 
     // True while THIS (local) player is downed (HP hit 0 → bleedout). EquipSync
     // gates its SEND on this: while locally downed, do NOT scan/broadcast our worn
-    // equipment — the equip read/refresh disturbs the local bleedout pose.
+    // equipment - the equip read/refresh disturbs the local bleedout pose.
     bool IsLocalDowned();
 
     // called by ShipCombatSync when the (shared) ship's hull reaches 0.
     // The ship explodes but the player isn't killed (no death to intercept), so
     // route the local player into the downed state directly (sets local-downed +
     // notifies the peer). Both machines call it → OnGameThreadTick's both-downed
-    // game-over reloads BOTH sides — same scheme as a both-down death. Idempotent;
+    // game-over reloads BOTH sides - same scheme as a both-down death. Idempotent;
     // no-op if not connected or already downed. Game thread.
     void TriggerShipDowned();
 

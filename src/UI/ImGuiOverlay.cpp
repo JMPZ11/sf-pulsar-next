@@ -225,7 +225,7 @@ namespace Pulsar::UI
             if (backIdx >= s_bufferCount || !s_backBuffers[backIdx])
                 return 0;
 
-            // Hard fence wait — GPU must be completely idle before we reuse allocator
+            // Hard fence wait - GPU must be completely idle before we reuse allocator
             s_fenceValue++;
             s_cmdQueue->Signal(s_fence, s_fenceValue);
             if (s_fence->GetCompletedValue() < s_fenceValue) {

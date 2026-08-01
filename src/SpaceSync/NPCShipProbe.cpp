@@ -1,4 +1,4 @@
-// M.1 V1 — NPC Ship Discovery probe.
+// M.1 V1 - NPC Ship Discovery probe.
 //
 // Periodically (5s) while player is in space, enumerate parentCell.references
 // and report:
@@ -183,12 +183,12 @@ void Tick()
     const std::uint64_t startMs = g_firstSpaceTickMs.load(std::memory_order_relaxed);
     if (startMs && (nowMs - startMs) > kProbeWindowMs) return;
 
-    // V1.1 — playerCell is the ship-INTERIOR-cell when piloting. NPC ships
+    // V1.1 - playerCell is the ship-INTERIOR-cell when piloting. NPC ships
     // live in the SPACE-cell, which is the parentCell of the player's ship
     // REFR (not the player itself).
     auto* playerCellInterior = player->parentCell;
 
-    // Player ship handle — also used as the gateway to the space cell.
+    // Player ship handle - also used as the gateway to the space cell.
     auto* playerShip = SafeGetSpaceship(player);
     RE::TESObjectCELL* spaceCell = nullptr;
     __try {
@@ -201,7 +201,7 @@ void Tick()
     const std::uint32_t cellFormID = cell->formID;
     const std::uint32_t interiorFormID = playerCellInterior ? playerCellInterior->formID : 0u;
 
-    // Player ship handle — exclude from "NPC ship" tally.
+    // Player ship handle - exclude from "NPC ship" tally.
     std::uint32_t playerShipFormID = 0;
     if (playerShip) {
         __try { playerShipFormID = playerShip->formID; } __except (EXCEPTION_EXECUTE_HANDLER) {}
@@ -270,7 +270,7 @@ void Tick()
 
         if (p.refFormID == playerShipFormID) continue;
 
-        // Probe GetSpaceship — for diagnosis we want to see what it returns
+        // Probe GetSpaceship - for diagnosis we want to see what it returns
         // on space-cell refs.
         auto* shipRef = SafeGetSpaceship(ref);
         std::uint32_t shipFID = 0;
@@ -279,7 +279,7 @@ void Tick()
             ++shipsTotal;
         }
 
-        // Skip refs that GetSpaceship resolves to the player-ship — those are
+        // Skip refs that GetSpaceship resolves to the player-ship - those are
         // crew/items inside our own ship, not interesting for NPC-ship sync.
         if (shipFID == playerShipFormID && playerShipFormID != 0) continue;
 

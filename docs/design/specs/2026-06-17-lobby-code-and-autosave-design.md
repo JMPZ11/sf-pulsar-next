@@ -1,4 +1,4 @@
-# Lobby Join-Code + Auto-Save — Design
+# Lobby Join-Code + Auto-Save - Design
 
 **Date:** 2026-06-17
 **Status:** Approved (brainstorming)
@@ -6,33 +6,33 @@
 
 ## Goal
 
-1. **Lobby Join-Code** — let a player join a friend's lobby by typing a short code, instead of finding it in the public browser. The lobby stays publicly listed; the code is a convenience shortcut.
-2. **Auto-Save** — automatically persist the local player's character profile to the cloud on co-op disconnect and on game exit, so progress made during a session is never lost. Auto-restore-on-join already exists and is unchanged.
+1. **Lobby Join-Code** - let a player join a friend's lobby by typing a short code, instead of finding it in the public browser. The lobby stays publicly listed; the code is a convenience shortcut.
+2. **Auto-Save** - automatically persist the local player's character profile to the cloud on co-op disconnect and on game exit, so progress made during a session is never lost. Auto-restore-on-join already exists and is unchanged.
 
 Architectural guardrail (unchanged): STDB carries only meta/persistence. Real-time co-op stays on ENet/relay. The model is host-authoritative world + per-player character profile restored onto the host's world.
 
 ---
 
-## Feature 1 — Lobby Join-Code
+## Feature 1 - Lobby Join-Code
 
 ### Decision summary
 - Listing model: **public by default; code is an additional shortcut** (lobby remains in the browser).
 - No new join reducer: because the lobby is public and already in every client's subscription, code→lobby is resolved **client-side in the companion**, then runs the existing join path.
 
-### Module (`lobby/server/spacetimedb/Lib.cs`) — schema change
+### Module (`lobby/server/spacetimedb/Lib.cs`) - schema change
 - Add a public column `string Code` to the `Lobby` table.
 - Generate in `CreateLobby` using `ctx.Rng` (deterministic, reducer-safe): 6 characters from the unambiguous alphabet `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (no `0/O/1/I`).
-- Collision check: regenerate (up to ~5 tries) if an **open** lobby already holds that code. Closed lobbies keep their old code (ignored — only open lobbies are joinable).
+- Collision check: regenerate (up to ~5 tries) if an **open** lobby already holds that code. Closed lobbies keep their old code (ignored - only open lobbies are joinable).
 - `CloseHostedLobbies` / close paths need no change (Code travels with the row; the status filter excludes closed lobbies from resolution).
 
 ### Companion (`lobby/companion/Program.cs`)
 - **Host ack carries the code.** After `CreateLobby` commits, read the host's own lobby row from the local cache (`Lobby.Iter()` where `HostIdentity == sender && Status=="open"`) and include `code` in the host ack (`WriteAck` gains an optional `code` field).
-- **New command action `joinCode`** (`HandleCommandFile`): read `code` + `passwordHash` from the cmd file, normalize the code (trim + uppercase), find the lobby in the local cache where `Code==code && Status=="open"`. If found, set `s_joinCmd/s_joinLobby/s_joinDirectAddr/s_joinVersion` exactly like the existing `join` action and call `JoinLobby(lobbyId, passwordHash)` — reusing the existing `OnJoinLobby` + `ResolveAwaitedJoin` grant-resolution path verbatim. If not found, `WriteAck(cmdId, false, "code not found")`.
-- `WriteLobbies` may optionally include `code` per lobby (harmless — lobby is public); not required for the join path.
+- **New command action `joinCode`** (`HandleCommandFile`): read `code` + `passwordHash` from the cmd file, normalize the code (trim + uppercase), find the lobby in the local cache where `Code==code && Status=="open"`. If found, set `s_joinCmd/s_joinLobby/s_joinDirectAddr/s_joinVersion` exactly like the existing `join` action and call `JoinLobby(lobbyId, passwordHash)` - reusing the existing `OnJoinLobby` + `ResolveAwaitedJoin` grant-resolution path verbatim. If not found, `WriteAck(cmdId, false, "code not found")`.
+- `WriteLobbies` may optionally include `code` per lobby (harmless - lobby is public); not required for the join path.
 
 ### GUI (`lobby/companion-gui/MainForm.cs`)
 - **Host:** when the host ack returns a `code`, display it prominently (e.g. a read-only label "Invite code: 7G4K2P") with a "Copy" button (copies the bare code, or a short "Join my PULSAR lobby with code: 7G4K2P" string).
-- **Join:** add a single-line "Code" textbox + "Join by code" button next to the existing lobby list. Clicking writes a `joinCode` cmd. If the selected lobby in the list has a password, the existing password prompt applies; for code-join, prompt for a password only if the resolved lobby needs one — simplest: always allow an optional password field, pass its hash (empty hash for open lobbies is already handled).
+- **Join:** add a single-line "Code" textbox + "Join by code" button next to the existing lobby list. Clicking writes a `joinCode` cmd. If the selected lobby in the list has a password, the existing password prompt applies; for code-join, prompt for a password only if the resolved lobby needs one - simplest: always allow an optional password field, pass its hash (empty hash for open lobbies is already handled).
 - Password handling stays orthogonal and unchanged.
 
 ### Edge cases
@@ -42,7 +42,7 @@ Architectural guardrail (unchanged): STDB carries only meta/persistence. Real-ti
 
 ---
 
-## Feature 2 — Auto-Save (event-based)
+## Feature 2 - Auto-Save (event-based)
 
 ### Decision summary
 - Triggers: **co-op disconnect** (primary, reliable, in-DLL) + **game exit** (best-effort, covers solo). No periodic save.
@@ -51,9 +51,9 @@ Architectural guardrail (unchanged): STDB carries only meta/persistence. Real-ti
 
 ### DLL (`src/Lobby/LobbyHandoff.*`, `src/Network/NetworkHost.*`, `src/Main.cpp`)
 - Reuse the existing capture (`SerializeProfile` → write `profile-out`) used by the manual F10 path. Auto-save calls the same capture at:
-  - **Co-op disconnect:** hook the existing NetworkHost disconnect/session-end path. This is the main case — loot/credits/items gained during the session are written back.
+  - **Co-op disconnect:** hook the existing NetworkHost disconnect/session-end path. This is the main case - loot/credits/items gained during the session are written back.
   - **Game exit:** a best-effort SFSE shutdown hook (or process-exit). If unreliable, disconnect-capture still covers the co-op case.
-- Capture is read-only (reads inventory/credits/AVs) but still gated by the existing teardown gates (player valid, not in death/load teardown) to avoid mid-teardown access — same gating discipline as the downed/revive work.
+- Capture is read-only (reads inventory/credits/AVs) but still gated by the existing teardown gates (player valid, not in death/load teardown) to avoid mid-teardown access - same gating discipline as the downed/revive work.
 - The DLL does **not** manage a version number (see below).
 
 ### Companion (`lobby/companion/Program.cs`)
@@ -69,8 +69,8 @@ Architectural guardrail (unchanged): STDB carries only meta/persistence. Real-ti
 - On join, the companion writes `profile-in` (download), the DLL applies it when the player is ready (`TickApplyProfile`). Optionally surface "restored your character" in the GUI log.
 
 ### Edge cases / known limits (out of scope for this work)
-- **Credits apply stays gated** (`kApplyCreditsOnRestore=false`) — needs a real money API; tracked separately.
-- **Mods re-roll on restore**  — the blob *stores* mods, but apply is a separate fix.
+- **Credits apply stays gated** (`kApplyCreditsOnRestore=false`) - needs a real money API; tracked separately.
+- **Mods re-roll on restore**  - the blob *stores* mods, but apply is a separate fix.
 - LWW assumes one player on one machine; concurrent multi-device edits for the same identity can clobber (acceptable for alpha).
 - Game-exit capture reliability is a risk; disconnect-capture is the dependable path.
 
@@ -101,7 +101,7 @@ Architectural guardrail (unchanged): STDB carries only meta/persistence. Real-ti
 - Regenerate companion bindings after the module change; rebuild companion + GUI; refresh `lobby/_dist/LobbyTools`; push the private deploy repo for the VPS pull.
 
 ## Out of scope (future)
-- Private/invite-only (code-only, hidden) lobbies — the code column is the groundwork.
+- Private/invite-only (code-only, hidden) lobbies - the code column is the groundwork.
 - Friends list / recent players, auto-reconnect, deep-link invites.
 - Character progression (level/XP/skills), appearance, ships in the blob.
 - Credits money API, mods re-roll , periodic auto-save.

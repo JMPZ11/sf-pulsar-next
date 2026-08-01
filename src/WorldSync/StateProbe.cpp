@@ -17,7 +17,7 @@ namespace Pulsar::WorldSync::StateProbe {
 
         using PreLoadInit_t = void(__fastcall*)(char a_param);
 
-        // V13m — the bit-0x4 load wrapper FUN_141843BF0 (the relaunch+int3 trap).
+        // V13m - the bit-0x4 load wrapper FUN_141843BF0 (the relaunch+int3 trap).
         // Widest-scalar return so whatever the original leaves in RAX/AL (the safe
         // loader FUN_1418436E0 returns a byte) is forwarded to the engine caller.
         using LoadWrap_t = std::uintptr_t(__fastcall*)(std::uintptr_t a_p1, std::uintptr_t a_p2,
@@ -27,7 +27,7 @@ namespace Pulsar::WorldSync::StateProbe {
         constexpr std::uintptr_t kPreLoadInitRVA  = 0x1898210ULL;
         constexpr std::uintptr_t kGuardByteRVA    = 0x5E71706ULL;
         constexpr std::uintptr_t kCounterRVA      = 0x5E6D6DCULL;
-        // FUN_141843BF0 (RVA 0x1841460) — bit-0x4 in-process load wrapper; the
+        // FUN_141843BF0 (RVA 0x1841460) - bit-0x4 in-process load wrapper; the
         // single chokepoint that contains the "counter>1 && in-game → relaunch+int3"
         // trap (Ghidra-verified 1.16.236, double-checked).
         constexpr std::uintptr_t kLoadWrapRVA     = 0x1841460ULL;
@@ -40,7 +40,7 @@ namespace Pulsar::WorldSync::StateProbe {
         static LoadWrap_t             g_origLoadWrap    = nullptr;
         static std::atomic<bool>      g_installed{ false };
         static std::atomic<uint32_t>  g_probeCounter{ 0 };
-        // V13f: separate counter — only the HOOK entries (real engine load
+        // V13f: separate counter - only the HOOK entries (real engine load
         // events), not manual DumpManual calls. WorldSync's load-start
         // detection compares this against a captured-at-arm value.
         static std::atomic<uint32_t>  g_entryHookCount{ 0 };
@@ -266,13 +266,13 @@ namespace Pulsar::WorldSync::StateProbe {
                     "[PULSAR] [L.7 PROBE] orig FUN_14189A8E0 threw"sv);
             }
 
-            // Post-init snapshot — see what the engine actually mutated.
+            // Post-init snapshot - see what the engine actually mutated.
             const Snapshot post = Capture(n);
             Emit(post, "EXIT ");
         }
 
         // ----------------------------------------------------------------
-        // V13m — relaunch-trap neutralizer (the real root-cause fix).
+        // V13m - relaunch-trap neutralizer (the real root-cause fix).
         //
         // FUN_141843BF0 (kLoadWrapRVA) is the engine's bit-0x4 in-process load
         // wrapper.  Ghidra-verified body (1.16.236):
@@ -287,7 +287,7 @@ namespace Pulsar::WorldSync::StateProbe {
         // safe loader works unbounded once the counter stays ≤1).  Per-caller counter
         // clears (WorldSync V13i, CoopMortality) are RACY: they only cover their own
         // load path and stop running once the triggering tick ends.  The both-downed
-        // game-over crash was exactly this — the game-over reload succeeded (counter
+        // game-over crash was exactly this - the game-over reload succeeded (counter
         // cleared in the death-tick window) but left the counter at 2, and the next
         // FUN_141843BF0 call (a co-op resync load) saw 2>1 → int3.
         //
@@ -339,7 +339,7 @@ namespace Pulsar::WorldSync::StateProbe {
         const auto fnAddr = REL::Offset(kPreLoadInitRVA).address();
         if (!fnAddr) {
             PLOG_WARN(
-                "[PULSAR] [L.7 PROBE] FUN_14189A8E0 addr unresolved — probe disabled"sv);
+                "[PULSAR] [L.7 PROBE] FUN_14189A8E0 addr unresolved - probe disabled"sv);
             g_installed = false;
             return;
         }
@@ -366,18 +366,18 @@ namespace Pulsar::WorldSync::StateProbe {
         }
 
         PLOG_INFO(
-            "[PULSAR] [L.7 PROBE] FUN_14189A8E0 hook installed @ 0x{:X} — "
+            "[PULSAR] [L.7 PROBE] FUN_14189A8E0 hook installed @ 0x{:X} - "
             "every load fires a snapshot (entry+exit) tagged "
             "[L.7 PROBE #N ENTRY] / [L.7 PROBE #N EXIT]"sv,
             fnAddr);
         NASLOG("L.7 PROBE FUN_14189A8E0 hook installed");
 
-        // V13m — install the relaunch-trap neutralizer on FUN_141843BF0.
+        // V13m - install the relaunch-trap neutralizer on FUN_141843BF0.
         // This is the authoritative fix for the "Nth in-process load → relaunch+int3"
         // crash class (the both-downed game-over host crash); covers every load path.
         const auto wrapAddr = REL::Offset(kLoadWrapRVA).address();
         if (!wrapAddr) {
-            PLOG_WARN("[PULSAR] [L.7 V13m] FUN_141843BF0 addr unresolved — relaunch trap NOT neutralized"sv);
+            PLOG_WARN("[PULSAR] [L.7 V13m] FUN_141843BF0 addr unresolved - relaunch trap NOT neutralized"sv);
             return;
         }
         void* wrapTarget = reinterpret_cast<void*>(wrapAddr);

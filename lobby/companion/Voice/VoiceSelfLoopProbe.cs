@@ -3,7 +3,7 @@ using NAudio.Wave;
 
 namespace Pulsar.Companion.Voice;
 
-// `companion voiceprobe` — captures the default mic, encodes to Opus, decodes,
+// `companion voiceprobe` - captures the default mic, encodes to Opus, decodes,
 // and plays it back so you hear yourself with a short delay. Confirms NAudio +
 // Concentus work on THIS machine before the 2-player test. No network, no DB.
 public static class VoiceSelfLoopProbe

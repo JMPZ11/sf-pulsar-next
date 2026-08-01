@@ -40,7 +40,7 @@ namespace Pulsar::Network
         void SendSaveToClient(const std::string& a_path = {});
         // Host-side: trigger quicksave, poll until new save is written, then send it.
         void BeginHostQuicksaveTransfer();
-        // L.7 V8b — host-side: trigger a CUSTOM-named save (mode=1 via
+        // L.7 V8b - host-side: trigger a CUSTOM-named save (mode=1 via
         // SaveLoadManager dispatch REL::ID 98640) instead of a quicksave,
         // poll until the new file appears, then send it. The point is that
         // engine-side, a regular save load goes through the full state-init
@@ -51,7 +51,7 @@ namespace Pulsar::Network
         void Disconnect();  // Graceful disconnect (client or host)
         void SetPeerTimeout(uint32_t a_ms);
         void ResetTeleport();
-        // Phase 3i v17.1 — suppress next ResetTeleport call. Used by DockSync
+        // Phase 3i v17.1 - suppress next ResetTeleport call. Used by DockSync
         // forward-bridge: the save itself places client at host's position so
         // the auto-teleport that fires on the next PKT_POSITION would push
         // them OUT of the cockpit cell into NULL state. DockSync sets this
@@ -62,7 +62,7 @@ namespace Pulsar::Network
         bool IsHost() const { return m_isHost; }
         bool IsConnected() const { return m_peer != nullptr; }
         bool IsActive() const { return m_host != nullptr; }
-        // L.7 V9.4 — true only after ENet's OnConnect callback fires (peer
+        // L.7 V9.4 - true only after ENet's OnConnect callback fires (peer
         // fully established). enet_host_connect returns a peer in CONNECTING
         // state immediately; sends queued before the callback can be silently
         // dropped. The handshake-on-reconnect bug was caused by the client's
@@ -146,12 +146,12 @@ namespace Pulsar::Network
         // observed + cleared by game-thread tick which then calls Disconnect()
         // safely (game-thread context).
         std::atomic<bool> m_pendingReconnect{ false };
-        // L.7 V9.4 — set on OnConnect, cleared on OnDisconnect. Lets callers
+        // L.7 V9.4 - set on OnConnect, cleared on OnDisconnect. Lets callers
         // (e.g. ClientSendHandshake) wait for the peer to be ENET_PEER_STATE_
         // CONNECTED instead of just checking m_peer != null.
         std::atomic<bool> m_connectionEstablished{ false };
 
-        // L.7 V3.1 — pending-Connect queue. Connect() called while the
+        // L.7 V3.1 - pending-Connect queue. Connect() called while the
         // player isn't fully spawned (main menu, no save loaded) stashes the
         // address+port here and returns true. Update() drains it on the
         // first tick where IsPlayerReadyForConnect() reports true. Lets the
@@ -175,7 +175,7 @@ namespace Pulsar::Network
         uintmax_t   m_quicksaveCandidateSize = 0;  // last observed size
         uint64_t    m_quicksaveSizeStableSince = 0;
 
-        // L.7 D1 — debounce the auto-bridge fired on every PKT_HANDSHAKE.
+        // L.7 D1 - debounce the auto-bridge fired on every PKT_HANDSHAKE.
         // A lossy ENet link (timeout 5s) re-handshakes after a hiccup; without
         // this, the host re-sends the bridge save to a client that is ALREADY
         // in-world, forcing a save-reload mid-session → clone freed mid-load →

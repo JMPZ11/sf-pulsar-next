@@ -27,9 +27,9 @@ namespace {
     using AttachFn    = void** (__fastcall*)(void* a_actor, void** a_out);
     // FUN_1404f0f20() -> ptr; +0xAF0 = the fallback light manager.
     using MgrProvFn   = void* (__fastcall*)();
-    // FUN_1424a79c0(x,on) — register/activate the light with the renderer (1=on).
+    // FUN_1424a79c0(x,on) - register/activate the light with the renderer (1=on).
     using EnableFn    = void  (__fastcall*)(void* a_x, char a_on);
-    // FUN_14036bdb0(light) — DETACH a light from the scene graph: it does
+    // FUN_14036bdb0(light) - DETACH a light from the scene graph: it does
     // parent->RemoveChild(light) via light+0x38, then runs PostAttachActions. The
     // engine headlamp OFF calls this BEFORE dropping its owning ref. NOTE: it MUST
     // be passed the light* (earlier code called it arg-less → no-op → OFF failed).
@@ -96,7 +96,7 @@ namespace {
             // 1) prefer a valid SHADOW manager
             if (MgrValid(m1) && MgrIsShadow(m1)) return m1;
             if (MgrValid(m2) && MgrIsShadow(m2)) return m2;
-            // 2) fallback: any valid manager (non-shadow — last resort)
+            // 2) fallback: any valid manager (non-shadow - last resort)
             if (MgrValid(m1)) return m1;
             if (MgrValid(m2)) return m2;
             return nullptr;
@@ -106,7 +106,7 @@ namespace {
     static long RefCount(void* a_obj) noexcept   // 32-bit refcount at +0x8
     { return *reinterpret_cast<long*>(reinterpret_cast<std::uint8_t*>(a_obj) + kRefCountOff); }
 
-    // g_attach (FUN_141a41570) reads *(actor+0xDE8) and traverses the 3D — it FAULTS
+    // g_attach (FUN_141a41570) reads *(actor+0xDE8) and traverses the 3D - it FAULTS
     // on some clones (client log: 7954/7954 host-clone creates died here, node never
     // set). Isolate it so a fault falls back to the clone's 3D root instead of
     // aborting the whole create.
@@ -119,7 +119,7 @@ namespace {
         return nodeOut;
     }
 
-    // DIAG — per-create snapshot (POD so it can be filled inside __try; the
+    // DIAG - per-create snapshot (POD so it can be filled inside __try; the
     // caller logs it outside, since REX::INFO uses C++ objects).
     struct CreateDiag { void* mgr; bool mgrShadow; void* node; void* light; void* lightVt; long rc; bool attachFaulted; };
 
@@ -131,7 +131,7 @@ namespace {
     static void* CreateCloneLight(void* a_clone, void* a_d3d, CreateDiag* a_d) noexcept
     {
         void* light = nullptr;
-        // g_attach is fragile — resolve it in its OWN SEH so a fault falls back to
+        // g_attach is fragile - resolve it in its OWN SEH so a fault falls back to
         // the 3D root rather than aborting (this is what stranded the client).
         bool attachFaulted = false;
         void* attachNode = SafeAttachNode(a_clone, &attachFaulted);
@@ -206,7 +206,7 @@ namespace {
         } __except (EXCEPTION_EXECUTE_HANDLER) { a_d->faulted = true; }
     }
 
-    // Destroy + log (logging lives OUTSIDE the __try frame — REX::INFO uses C++
+    // Destroy + log (logging lives OUTSIDE the __try frame - REX::INFO uses C++
     // objects, forbidden in a __try body by C2712).
     static void DestroyAndLog(void* a_light, const char* a_tag) noexcept
     {
@@ -218,7 +218,7 @@ namespace {
                   d.rcBefore, d.rcAfterDetach, d.old, d.destroyed, d.faulted);
     }
 
-    // DIAG — dump first 0x100 bytes of a light object as qword rows (so we
+    // DIAG - dump first 0x100 bytes of a light object as qword rows (so we
     // can eyeball pointers + interpret dwords as floats). POD SEH frame.
     static void DumpLightObj(const char* a_tag, void* a_obj) noexcept
     {
@@ -305,7 +305,7 @@ void ApplyToClone(RE::Actor* a_clone, bool a_wantOn)
                       d.lightVt == shadowVt, d.rc);
         }
     } else {
-        if (g_litLight) {   // real OFF — destroy the light (engine OFF sequence)
+        if (g_litLight) {   // real OFF - destroy the light (engine OFF sequence)
             DestroyAndLog(g_litLight, "toggle-off");
             g_litLight = nullptr;
         }
@@ -329,7 +329,7 @@ void ReleaseForClone(RE::Actor* a_clone)
 void ForgetAll()
 {
     // Save-load full reset already freed the underlying objects (including our
-    // light, since its node was destroyed) — do NOT touch the freed light; just
+    // light, since its node was destroyed) - do NOT touch the freed light; just
     // forget the tracking so we never deref it.
     g_litLight = nullptr;
     g_litClone = nullptr;

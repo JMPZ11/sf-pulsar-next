@@ -1,11 +1,11 @@
-# PULSAR Lobby — SpacetimeDB server on a Debian 13 VPS (Docker).
+# PULSAR Lobby - SpacetimeDB server on a Debian 13 VPS (Docker).
 #
 # Topology: spacetimedb is reachable ONLY on the internal compose network;
 # Caddy terminates TLS and reverse-proxies wss/https -> spacetimedb:3000.
 # Port 3000 is never published to the host. See README.md for the runbook.
 #
 # Version is pinned to v2.5.0 to match the module (SpacetimeDB.Runtime 2.5.*)
-# and the companion (SpacetimeDB.ClientSDK 2.5.*). Do NOT use :latest — a newer
+# and the companion (SpacetimeDB.ClientSDK 2.5.*). Do NOT use :latest - a newer
 # server may break protocol compatibility with the 2.5 client.
 
 services:
@@ -34,7 +34,7 @@ services:
     expose:
       - "3000"
     volumes:
-      - stdb-data:/stdb        # database state — MUST persist
+      - stdb-data:/stdb        # database state - MUST persist
       # JWT signing keys (id_ecdsa) live in the server's HOME, NOT in the data
       # dir. Without persisting them they regenerate on every container
       # recreation, invalidating EVERY previously issued token (clients AND the
@@ -73,7 +73,7 @@ services:
     ports:
       - "${PULSAR_RELAY_PORT:-7777}:${PULSAR_RELAY_PORT:-7777}/udp"
     expose:
-      - "7778"               # read-only session stats (monitoring) — internal only
+      - "7778"               # read-only session stats (monitoring) - internal only
     restart: unless-stopped
 
   # Live monitoring dashboard. Reads container metrics from the docker socket
@@ -93,7 +93,7 @@ services:
       CADDY_CONTAINER: pulsar-caddy
       CERT_HOST: ${DOMAIN}                # probed for TLS-cert expiry
       WATCH_CONTAINERS: pulsar-stdb,pulsar-caddy,pulsar-relay,pulsar-monitor
-      # Publisher/owner identity — shown as a system connection, not a player.
+      # Publisher/owner identity - shown as a system connection, not a player.
       OWNER_IDENTITY: "0xc200e8cbe5bb04e3a2ccbbe0d96e48ead61a8fbd975ab488b48fc735c38a11aa"
     volumes:
       # Read-only docker socket -> container CPU/RAM/net stats and relay logs.

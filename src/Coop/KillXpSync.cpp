@@ -26,10 +26,10 @@ using namespace std::string_view_literals;
 namespace Pulsar::Coop::KillXp
 {
     // ----------------------------------------------------------------
-    // Engine XP-award primitive — FUN_141962310 (1.16.236) = REL::ID(101322).
+    // Engine XP-award primitive - FUN_141962310 (1.16.236) = REL::ID(101322).
     // float(Actor* target /*RCX*/, float xp /*XMM1*/, int source /*R8*/,
     //       char applyMult /*R9*/, void* p5, void* victim /*p6*/, void* p7);
-    // RETURNS the final (post-multiplier) awarded XP as a FLOAT in XMM0 — verified
+    // RETURNS the final (post-multiplier) awarded XP as a FLOAT in XMM0 - verified
     // by 244 disasm (`vmovss xmm0,[rbp+0x28]; ret`). Declaring it uint64_t (RAX)
     // read garbage → the v1/v2 capture saw finalXp=0 and bailed. It is a float.
     // Entry guard proceeds iff xp>0 OR source∈{10,11} (244 confirmed
@@ -151,7 +151,7 @@ namespace Pulsar::Coop::KillXp
         // local FormID as the dedup token so client→host sharing still works. For
         // a host-driven (tracked) NPC the key IS the host-canonical FormID and
         // matches both sides; for a local NPC the keys differ across machines so a
-        // simultaneous both-shoot double-counts (accepted for Alpha — reads as a
+        // simultaneous both-shoot double-counts (accepted for Alpha - reads as a
         // teamwork bonus). Solo kills always share correctly one-for-one.
         if (key == 0) key = victimFid;
 
@@ -174,7 +174,7 @@ namespace Pulsar::Coop::KillXp
             : 0.0f;
 
         if (a_source == kSourceKill) {
-            // One-shot raw diag — confirms target/victim/xp/ret for the first kill.
+            // One-shot raw diag - confirms target/victim/xp/ret for the first kill.
             static std::atomic<bool> s_killDiag{ false };
             if (!s_killDiag.exchange(true)) {
                 auto* pc = RE::PlayerCharacter::GetSingleton();
@@ -216,7 +216,7 @@ namespace Pulsar::Coop::KillXp
         // (mid-function or already hooked), 0x00 = unmapped. None is a valid
         // function entry → refuse the hook rather than corrupt the engine.
         if (pro[0] == 0xFF || pro[0] == 0xE9 || pro[0] == 0xE8 || pro[0] == 0x00) {
-            PLOG_WARN("[KILLXP] prologue 0x{:02X} is not a function entry — REFUSING hook (address wrong for this version)"sv, pro[0]);
+            PLOG_WARN("[KILLXP] prologue 0x{:02X} is not a function entry - REFUSING hook (address wrong for this version)"sv, pro[0]);
             return;
         }
 

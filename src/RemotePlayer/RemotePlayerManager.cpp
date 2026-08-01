@@ -1,7 +1,7 @@
 #include "PCH.h"
 #include "RemotePlayer/RemotePlayerManager.h"
 #include "RemotePlayer/EquipSync.h"   // kSyncWeapons/kSyncArmor gates
-#include "Coop/CoopMortality.h"        // IsRemoteDowned() — gate equip-apply while downed
+#include "Coop/CoopMortality.h"        // IsRemoteDowned() - gate equip-apply while downed
 #include "VehicleSync/VehicleSync.h"
 #include "FlashlightSync/FlashlightSync.h"
 #include "Network/NetworkHost.h"
@@ -44,7 +44,7 @@ namespace Pulsar::RemotePlayer
 {
     static RemotePlayerManager g_remotePlayerManager;
 
-    // weapon-swap fix fwd-decl — defined near DoEquipWeapon, used in ProcessPending.
+    // weapon-swap fix fwd-decl - defined near DoEquipWeapon, used in ProcessPending.
     static void SafeForceWeaponSheathedState(RE::Actor* a_actor) noexcept;
 
     RemotePlayerManager& GetRemotePlayerManager()
@@ -60,7 +60,7 @@ namespace Pulsar::RemotePlayer
 
     // also block the PLAYER-clone's engine AI-eval in proc cells (static
     // cells already block it). The April-2026 silent-death from blocking it came
-    // from the clone losing collision/navmesh upkeep — but DoSetPosition now drives
+    // from the clone losing collision/navmesh upkeep - but DoSetPosition now drives
     // its Havok body every frame, so that prerequisite is gone. Gated for instant
     // revert: set false to fall back to the StopCombat-only safety net (Layer 1).
     static std::atomic<bool> g_blockPlayerCloneAiInProc{ true };
@@ -116,7 +116,7 @@ namespace Pulsar::RemotePlayer
 
     // Returns true if this actor is one we drive remotely (player's clone OR
     // NPCSync-spawned remote NPC clone). Same AI-suppression treatment as
-    // the player clone — static cells block AI, proc cells pass through
+    // the player clone - static cells block AI, proc cells pass through
     // (collision/navmesh state still needed).
     static bool IsRemoteOwnedActor(RE::Actor* a_actor)
     {
@@ -141,7 +141,7 @@ namespace Pulsar::RemotePlayer
 
         // 2026-04-19 REVERT: in proc cells EvaluatePackage must pass through.
         // Test showed blocking it causes silent-death crash after ~6s of walking
-        // (no log marker — process dies in an engine thread). Empirically the
+        // (no log marker - process dies in an engine thread). Empirically the
         // engine relies on package-eval for clone's collision/navmesh state even
         // when action-dispatch is fully blocked. Static cells still get the full
         // block (cities work fine with this). Planet clones get AI-eval pass-
@@ -161,17 +161,17 @@ namespace Pulsar::RemotePlayer
             }
             if (IsActorInProcCell(a_this) == 1) {
                 // the PLAYER-clone never needs its own AI in proc cells now
-                // that DoSetPosition drives its Havok body every frame — block its
+                // that DoSetPosition drives its Havok body every frame - block its
                 // AI-eval so the engine combat package can't autonomously fire its
                 // (now weapon-synced) gun. Gated for instant revert if the April
                 // silent-death returns (then Layer-1 StopCombat carries it). Only the
-                // player-clone — NPC clones keep their existing proc-cell behavior.
+                // player-clone - NPC clones keep their existing proc-cell behavior.
                 if (a_this == s_hookCloneActor &&
                     g_blockPlayerCloneAiInProc.load(std::memory_order_relaxed)) {
-                    return;  // block — no AI eval for the player clone
+                    return;  // block - no AI eval for the player clone
                 }
                 // P1: the 2026-04-19 proc-cell silent-crash was blocking AI
-                // here WITHOUT a position writer — the engine relied on package-eval
+                // here WITHOUT a position writer - the engine relied on package-eval
                 // for the actor's collision/navmesh state. We now drive the Havok
                 // CC body every frame (SafeNpcHavokBodySetPos), which maintains that
                 // state, so retry the block in proc cells for DirectControl-puppet
@@ -182,7 +182,7 @@ namespace Pulsar::RemotePlayer
                 }
                 return;
             }
-            return;  // static-cell remote-owned — block AI
+            return;  // static-cell remote-owned - block AI
         }
         SafeCallEvaluatePackage(a_this, a_immediate, a_resetAI);
     }
@@ -258,11 +258,11 @@ namespace Pulsar::RemotePlayer
         } __except(1) { return false; }
     }
 
-    // L.7 D3 — SEH-guard GetAnimationGraphManagerImpl. The clone's
+    // L.7 D3 - SEH-guard GetAnimationGraphManagerImpl. The clone's
     // IAnimationGraphManagerHolder subobject (actor+0x60) has a null/garbage
     // vtable while the clone is being torn down / rebuilt during rapid space
     // transitions (host takeoff/gravjump/landing). The virtual call through it
-    // then faults (READ at 0x18 in DoSetPosition — the 2026-05-25 space-flight
+    // then faults (READ at 0x18 in DoSetPosition - the 2026-05-25 space-flight
     // CTD; clone was 0x0 / "No MovementController" in the log). DoSetPosition
     // runs on BSTaskPool threads concurrently with clone respawn, so it races
     // the teardown. Skipping graph writes for one tick is harmless (the next
@@ -280,7 +280,7 @@ namespace Pulsar::RemotePlayer
 
     // SEH: is the clone fully 3D-attached? loadedData @ actor+0xB8 (BSGuarded
     // ptr), data3D @ loadedData+0x08 (NiAVObject*). After a both-down reload the
-    // clone respawns but its 3D is null for a few frames — running DoEquipArmor's
+    // clone respawns but its 3D is null for a few frames - running DoEquipArmor's
     // Set3DUpdateFlag (vt+0x4b0) on it then null-vtable-faults (host crash 18:31).
     static bool SafeCloneHas3D(RE::Actor* a_actor)
     {
@@ -309,7 +309,7 @@ namespace Pulsar::RemotePlayer
 
     // SEH-guarded NotifyAnimationGraphImpl. The clone (m_remoteActor) can be
     // non-null but pointing at an actor the engine invalidated (remote player
-    // death/reload/cell-stream) — an unguarded virtual call then faults with
+    // death/reload/cell-stream) - an unguarded virtual call then faults with
     // READ at 0xFFFFFFFFFFFFFFFF (null vtable slot). Mirrors SafeGetAnimGraphManager's
     // guard. Returns true on success, false on AV (skipping one anim event is harmless).
     static bool SafeNotifyAnimGraph(RE::Actor* a_actor, const RE::BSFixedString& a_event)
@@ -336,7 +336,7 @@ namespace Pulsar::RemotePlayer
     using PerformAction_t = uint8_t(__fastcall*)(void*);
     static PerformAction_t s_origPerformAction = nullptr;
 
-    // downed pose — while the remote player is downed, the per-tick anim
+    // downed pose - while the remote player is downed, the per-tick anim
     // sync must assert iSyncBleedout=1 on the clone instead of zeroing it
     // (the hard 0 yanked the clone straight back out of the bleedout state).
     static std::atomic<bool> s_cloneBleedoutPose{ false };
@@ -345,7 +345,7 @@ namespace Pulsar::RemotePlayer
         s_cloneBleedoutPose.store(a_on, std::memory_order_relaxed);
     }
 
-    // downed — while the LOCAL player is downed, swallow their combat
+    // downed - while the LOCAL player is downed, swallow their combat
     // actions in the PerformAction hook (first person still has the weapon
     // usable otherwise: fire/reload/draw all dispatch through here).
     static std::atomic<bool> s_playerCombatBlock{ false };
@@ -356,7 +356,7 @@ namespace Pulsar::RemotePlayer
 
     // Combat V2-1e: timestamp of the local player's last ATTACK action
     // (fire/melee/throw). NPCSync's damage-forward gates on this so only
-    // player-attributable health drops get forwarded — without it, the
+    // player-attributable health drops get forwarded - without it, the
     // clone's replayed (visual) projectiles and NPC-vs-NPC fights were
     // misclassified as client damage and forwarded (double counting).
     static std::atomic<std::uint64_t> s_lastLocalPlayerAttackMs{ 0 };
@@ -365,7 +365,7 @@ namespace Pulsar::RemotePlayer
         return s_lastLocalPlayerAttackMs.load(std::memory_order_relaxed);
     }
 
-    // downed pose — generic PerformAction on any actor (player or clone),
+    // downed pose - generic PerformAction on any actor (player or clone),
     // same ActionData layout the clone fire-sync uses. Calls the MinHook
     // trampoline directly, so the clone AI-action filter does not interfere.
     bool PerformActionOnActor(RE::Actor* a_actor, uint32_t a_actionFormID)
@@ -386,7 +386,7 @@ namespace Pulsar::RemotePlayer
     }
 
     // Track which action IDs we've already logged (log each unique action once with name)
-    // Accessed from multiple action-dispatch threads — must be protected by s_actionLogMutex.
+    // Accessed from multiple action-dispatch threads - must be protected by s_actionLogMutex.
     static std::unordered_set<uint32_t> s_loggedActionIDs;
     static std::mutex s_actionLogMutex;
 
@@ -399,14 +399,14 @@ namespace Pulsar::RemotePlayer
             case 0x0002FFA9: // ActionInitializeGraphToBaseState
             // 2026-04-19 REMOVED: ActionFall (0x000937F4) + ActionLand (0x000937F5).
             // These fire when the engine's physics detects the clone is airborne
-            // (which it is — we snap Z to host's jump apex). The engine's Fall/Land
+            // (which it is - we snap Z to host's jump apex). The engine's Fall/Land
             // handling then mutates physics state that races with our SetPosition
             // writes and crashed the client (2026-04-19 log timestamp 18:20:28).
             // Jump animation is driven by iSyncJumpState graph variable + the
             // direct target-Z during jump states, so Fall/Land actions are
             // redundant now.
             //
-            // ActionSighted (0x00004A57) NOT whitelisted — triggers engine timeout
+            // ActionSighted (0x00004A57) NOT whitelisted - triggers engine timeout
             // that auto-releases after ~3s. Graph vars control sighted state instead.
                 return true;
             default:
@@ -417,7 +417,7 @@ namespace Pulsar::RemotePlayer
     // 2026-04-24: name-prefix whitelist for locomotion / pose actions.
     // Graph-var writes (FacingBackward, IsBoostPackActive, iSyncStrafeState,
     // TurnDeltaSmoothed, ...) need the engine's Action dispatch to trigger
-    // the anim state-machine transitions — without those events the graph
+    // the anim state-machine transitions - without those events the graph
     // var sits read but never commits the new state. The original whitelist
     // was formID-only and let only 2 init actions through, so Boost/Walk/
     // Backward/Turn/Strafe events never reached the clone's anim tree.
@@ -427,7 +427,7 @@ namespace Pulsar::RemotePlayer
     // ActionSwim*, ActionIdle*, ActionJump*, ActionLand, ActionFall, etc.
     // Combat / fire / interact actions (ActionAttack*, ActionFire*, Action-
     // Reload*, ActionActivate*) are NOT prefixed with any of these and
-    // remain blocked — preserves the Sarah-combat / shooting-crash fixes.
+    // remain blocked - preserves the Sarah-combat / shooting-crash fixes.
     static bool IsLocomotionAction(RE::BGSAction* action)
     {
         if (!action) return false;
@@ -447,13 +447,13 @@ namespace Pulsar::RemotePlayer
             // cover / fire ANIMATIONS. Without them a synced combat NPC can't
             // enter the combat-movement state → "tippel steps" instead of a real
             // walk/strafe, and never plays the fire/cover anim. (Movement DECISION
-            // is still blocked via EvaluatePackage — this only lets the anims play;
+            // is still blocked via EvaluatePackage - this only lets the anims play;
             // host-authoritative fire timing is a later step.)
             "ActionCombat",  "ActionChange",  "ActionFire",
             "ActionAttack",  "ActionShoot",   "ActionReload",
             "ActionAim",     "ActionCover",   "ActionMelee",
             "ActionPowerAttack",
-            // Weapon-ready / alert stance — needed to enter the combat-movement
+            // Weapon-ready / alert stance - needed to enter the combat-movement
             // state (ActionGunReady/GunAlert were BLOCKED → tippel-steps).
             "ActionGun",
         };
@@ -519,7 +519,7 @@ namespace Pulsar::RemotePlayer
 
     // Layer 3: write the 3D node's local.translate under loadedData's
     // BSReadWriteLock read-lock. Prevents the proc-cell data3D-detach race
-    // documented in T2/T4. No __try here — BSAutoReadLock needs unwinding.
+    // documented in T2/T4. No __try here - BSAutoReadLock needs unwinding.
     static void SafeProcCellWriteNode(RE::Actor* actor, const RE::NiPoint3A& pos)
     {
         auto guard = actor->loadedData.LockRead();
@@ -528,7 +528,7 @@ namespace Pulsar::RemotePlayer
         UnsafeWriteNodeTranslate(data->data3D.get(), pos);
     }
 
-    // Havok Stage-3 emulation — reversed from Actor::SetPosition via Ghidra T1
+    // Havok Stage-3 emulation - reversed from Actor::SetPosition via Ghidra T1
     // (VA 0x14193B410 decomp). Calls hknpBody::setPosition + setLinearVelocity(0)
     // + updateBroadphase + cleanup, all without going through Stage 1
     // (cell-refmap) which is the proc-cell crasher.
@@ -568,7 +568,7 @@ namespace Pulsar::RemotePlayer
             void* ccObj = *reinterpret_cast<void**>(middleHigh + 0x458);
             if (!ccObj) return;
 
-            // Havok-attach gate — TWO levels (matches slot 87's null checks):
+            // Havok-attach gate - TWO levels (matches slot 87's null checks):
             //   CC+0x20 = body wrapper (null until attach start)
             //   *(CC+0x20)+0x20 = inner Havok object (null until attach complete)
             uintptr_t bodyWrapper = *reinterpret_cast<uintptr_t*>(
@@ -582,7 +582,7 @@ namespace Pulsar::RemotePlayer
 
             alignas(16) float pos4[4] = { x, y, z, 0.0f };
 
-            // Only setPosition — setLinearVelocity (slot 85 path) has separate
+            // Only setPosition - setLinearVelocity (slot 85 path) has separate
             // null constraints we haven't fully RE'd yet.
             using SetPosFn = void(__fastcall*)(void*, float*, char, char);
             auto setPos = reinterpret_cast<SetPosFn>(vtable[0x240 / 8]);
@@ -597,8 +597,8 @@ namespace Pulsar::RemotePlayer
         SafeHavokBodySetPositionImpl(actor, pos.x, pos.y, pos.z);
     }
 
-    // Havok setLinearVelocity — vtable slot 79 (byte 0x278). T8 reversed the
-    // signature as `void(ccObj, float* vel4)` — 2 params, 4-float vector.
+    // Havok setLinearVelocity - vtable slot 79 (byte 0x278). T8 reversed the
+    // signature as `void(ccObj, float* vel4)` - 2 params, 4-float vector.
     // Needed so the NPC anim graph sees proper physics state during jumps:
     // graph checks hknpBody.linearVelocity.z to pick JumpUp / JumpApex /
     // JumpFall transitions. Without this write, graph sees zero velocity +
@@ -630,7 +630,7 @@ namespace Pulsar::RemotePlayer
             auto setVel = reinterpret_cast<SetVelFn>(vtable[0x278 / 8]);
             setVel(ccObj, vel4);
         } __except (EXCEPTION_EXECUTE_HANDLER) {
-            // Velocity write raced with body detach — same pattern as setPos.
+            // Velocity write raced with body detach - same pattern as setPos.
         }
     }
 
@@ -709,12 +709,12 @@ namespace Pulsar::RemotePlayer
 
         RE::Actor* actor = SafeReadActor(actionData);
         if (!actor) {
-            // Can't identify actor safely — just forward to original and bail.
+            // Can't identify actor safely - just forward to original and bail.
             return s_origPerformAction(actionData);
         }
 
         // 2026-04-20: widened to all remote-owned actors (player clone +
-        // NPCSync-spawned NPC clones). Same blocking logic — NPC clones
+        // NPCSync-spawned NPC clones). Same blocking logic - NPC clones
         // should only play anims driven by host packets, not engine actions.
         if (IsRemoteOwnedActor(actor)) {
             // P3 combat-live: let this NPC's own combat actions (fire/attack/
@@ -728,7 +728,7 @@ namespace Pulsar::RemotePlayer
 
             ///(2026-06-20): while the remote partner is DOWNED, the
             // engine's own state machine fires ActionBleedoutStop (0x00013ECA) on
-            // the FULL-HEALTH clone ~0.5s after we put it into engine-bleedout —
+            // the FULL-HEALTH clone ~0.5s after we put it into engine-bleedout -
             // which cancels the downed knee-pose and stands the clone right back up
             // ("kurz auf den Boden, kommt dann wieder hoch", verified Sottle log
             // 09:57:55). Swallow Stop while the remote is downed so the pose holds.
@@ -744,7 +744,7 @@ namespace Pulsar::RemotePlayer
                 return 0;
             }
 
-            // Seated bypass — when VehicleSync has the clone in a sit state,
+            // Seated bypass - when VehicleSync has the clone in a sit state,
             // let EVERYTHING through so the engine's sit/stand sequence can
             // actually play. Our normal PerformAction block caused the sit
             // to start (engine queued ActionGetUp) but then immediately get
@@ -786,7 +786,7 @@ namespace Pulsar::RemotePlayer
             }
 
             // During force window: allow forced actions but block conflicting ones
-            // e.g. SneakStart triggers engine ActionSheathe — block if weapon should stay drawn
+            // e.g. SneakStart triggers engine ActionSheathe - block if weapon should stay drawn
             if (g_forceAnimation) {
                 // Block sheathe if weapon should be drawn
                 if (formID == 0x00046BAF && g_wantWeaponDrawn) {  // ActionSheathe
@@ -860,7 +860,7 @@ namespace Pulsar::RemotePlayer
                     }
                 }
                 // while the local player is downed, swallow combat actions
-                // entirely — no shot fires, no fire-packet to the peer. Locomotion
+                // entirely - no shot fires, no fire-packet to the peer. Locomotion
                 // and ActionBleedout* don't match any of these substrings.
                 if (editorID && s_playerCombatBlock.load(std::memory_order_relaxed)) {
                     std::string_view bname(editorID);
@@ -941,7 +941,7 @@ namespace Pulsar::RemotePlayer
         void* funcPtr = *reinterpret_cast<void**>(ptrAddr);
 
         if (!funcPtr) {
-            PLOG_WARN("[PULSAR] DAT_145fb7bf0 is null — PerformAction not registered yet"sv);
+            PLOG_WARN("[PULSAR] DAT_145fb7bf0 is null - PerformAction not registered yet"sv);
             return;
         }
 
@@ -968,8 +968,8 @@ namespace Pulsar::RemotePlayer
     using AnimGraphUpdateFn = void(__fastcall*)(void* thisPtr, void* updateData);
     static AnimGraphUpdateFn s_origAnimGraphUpdate = nullptr;
     static void** s_cloneGraphVtableCopy = nullptr;
-    static void** s_origGraphVtable = nullptr;   // original class vtable — to restore on despawn
-    static void*  s_cloneGraphChannelObj = nullptr;  // graph channel object — to restore vtable into
+    static void** s_origGraphVtable = nullptr;   // original class vtable - to restore on despawn
+    static void*  s_cloneGraphChannelObj = nullptr;  // graph channel object - to restore vtable into
     static bool s_animHookInstalled = false;
     static constexpr int ANIM_GRAPH_UPDATE_VTIDX = 4;  // BSAnimationGraph::Update
 
@@ -991,7 +991,7 @@ namespace Pulsar::RemotePlayer
         ForceSetGraphIntDirectImpl(graphPtr, fnPtr, &varName, val);
     }
 
-    // downed pose — set an int graph variable on ANY actor's active graph.
+    // downed pose - set an int graph variable on ANY actor's active graph.
     // Used by CoopMortality to hold iSyncBleedout=1 on the LOCAL player while
     // downed (the engine life-state-8 path locks player movement input).
     bool SetActorGraphInt(RE::Actor* a_actor, const char* a_name, int32_t a_value)
@@ -1009,10 +1009,10 @@ namespace Pulsar::RemotePlayer
     }
 
     // T122: bool graph-var writes. Starfield stores bool vars separately from
-    // ints, so SetVariableInt (vt[0x20]) does NOT write bool vars — the graph
+    // ints, so SetVariableInt (vt[0x20]) does NOT write bool vars - the graph
     // ignores the write. BGS convention places SetVariableBool at a neighbour
     // slot; vt[0x22] is the expected slot (0x20=int, 0x21=float, 0x22=bool).
-    // We call both 0x22 and 0x1F as a fallback — only the real one lands,
+    // We call both 0x22 and 0x1F as a fallback - only the real one lands,
     // the other is a harmless no-op on the wrong-typed variable.
     static int ForceSetGraphBoolDirectImpl(void* graphPtr, void* fnPtr, const void* namePtr, bool val)
     {
@@ -1042,9 +1042,9 @@ namespace Pulsar::RemotePlayer
         bool    isCompletelyStopped;   // bit 7
         bool    bPlayerMoveStartActive;// bit 8
         bool    weaponDrawn;           // bit 9
-        bool    seated;                // bit 10 — host occupiedFurniture != 0
-        bool    hostSighted;           // bit 11 — host is aiming (RMB held)
-        bool    flashlight;            // bit 12 — helmet headlamp on 
+        bool    seated;                // bit 10 - host occupiedFurniture != 0
+        bool    hostSighted;           // bit 11 - host is aiming (RMB held)
+        bool    flashlight;            // bit 12 - helmet headlamp on 
     };
 
     static UnpackedAnimFlags UnpackAnimFlags(uint16_t flags)
@@ -1062,7 +1062,7 @@ namespace Pulsar::RemotePlayer
         };
     }
 
-    // SEH wrapper — graph channel object may be freed by engine refcount after anim graph re-init.
+    // SEH wrapper - graph channel object may be freed by engine refcount after anim graph re-init.
     // No C++ objects on stack (SEH constraint). Clears stale pointers on exception so DoDespawn
     // won't write to freed memory.
     static int SafeCallOrigAnimGraphUpdate(void* thisPtr, void* updateData)
@@ -1118,7 +1118,7 @@ namespace Pulsar::RemotePlayer
         auto** originalVtable = *reinterpret_cast<void***>(graphChannelObj);
         if (!originalVtable) return false;
 
-        // Read current vtable[4] — this is the Update function
+        // Read current vtable[4] - this is the Update function
         s_origAnimGraphUpdate = reinterpret_cast<AnimGraphUpdateFn>(originalVtable[ANIM_GRAPH_UPDATE_VTIDX]);
         s_origGraphVtable = originalVtable;      // save original vtable ptr (for restore on despawn)
         s_cloneGraphChannelObj = graphChannelObj;
@@ -1154,8 +1154,8 @@ namespace Pulsar::RemotePlayer
     using PostAnimUpdateFn = void(__fastcall*)(void* thisPtr);
     static PostAnimUpdateFn s_origPostAnimUpdate = nullptr;
     static void** s_postAnimVtableCopy = nullptr;
-    static void** s_origPostAnimVtable = nullptr;  // original vtable ptr — to restore on despawn
-    static void*  s_postAnimFunctorPtr = nullptr;  // functor object — to restore vtable into
+    static void** s_origPostAnimVtable = nullptr;  // original vtable ptr - to restore on despawn
+    static void*  s_postAnimFunctorPtr = nullptr;  // functor object - to restore vtable into
     static bool s_postAnimHookInstalled = false;
 
     static void __fastcall HookedPostAnimChannelUpdate(void* thisPtr)
@@ -1186,7 +1186,7 @@ namespace Pulsar::RemotePlayer
             }
         }
 
-        // Sinus head nod test DISABLED — was conflicting with DirectAt
+        // Sinus head nod test DISABLED - was conflicting with DirectAt
         // PostAnimHook kept for future use (e.g. post-DirectAt yaw correction)
     }
 
@@ -1206,7 +1206,7 @@ namespace Pulsar::RemotePlayer
         PLOG_INFO("[PULSAR] PostAnimHook: original vtable[1] = 0x{:X}"sv,
                   reinterpret_cast<uintptr_t>(s_origPostAnimUpdate));
 
-        // Create vtable copy (small — only needs ~4 entries)
+        // Create vtable copy (small - only needs ~4 entries)
         constexpr int VTABLE_SIZE = 8;
         s_postAnimVtableCopy = new void*[VTABLE_SIZE];
         for (int i = 0; i < VTABLE_SIZE; i++) {
@@ -1279,7 +1279,7 @@ namespace Pulsar::RemotePlayer
             pitchRot.MakeIdentity();
             pitchRot[1][1] = cosA;  pitchRot[1][2] = -sinA;
             pitchRot[2][1] = sinA;  pitchRot[2][2] = cosA;
-            // Write ONLY world transform — animation overwrites local, but
+            // Write ONLY world transform - animation overwrites local, but
             // maybe renderer reads world independently
             bone->world.rotate = bone->world.rotate * pitchRot;
             return 1;
@@ -1297,7 +1297,7 @@ namespace Pulsar::RemotePlayer
         return s_vtable;
     }
 
-    // Raw SEH wrapper — set or update ExtraDirectAtTarget
+    // Raw SEH wrapper - set or update ExtraDirectAtTarget
     static int SafeSetDirectAtTargetRaw(RE::Actor* actor, RE::TESObjectREFR* target, void* vtable)
     {
         __try {
@@ -1336,7 +1336,7 @@ namespace Pulsar::RemotePlayer
         return SafeSetDirectAtTargetRaw(actor, target, vt);
     }
 
-    // Resolve Health ActorValueInfo once — BSFixedString has a C++ dtor and
+    // Resolve Health ActorValueInfo once - BSFixedString has a C++ dtor and
     // cannot live inside an __try (C2712), so the lookup sits outside the
     // SEH wrapper below.
     static RE::ActorValueInfo* GetHealthAV()
@@ -1405,8 +1405,8 @@ namespace Pulsar::RemotePlayer
         m_pendingForceRespawn = true;
     }
 
-    // (2026-06-24) — smooth the proc-cell clone flicker AT THE ROOT.
-    // Insight (user): the clone's 3D survives across MANY cells on its own — the
+    // (2026-06-24) - smooth the proc-cell clone flicker AT THE ROOT.
+    // Insight (user): the clone's 3D survives across MANY cells on its own - the
     // engine keeps it in the loaded cell-grid; it only goes invisible once its
     // home cell actually UNLOADS (data3D detaches from the render scene-graph).
     // The previous "respawn on every proc-cell SETTLE" was premature: it tore down
@@ -1434,7 +1434,7 @@ namespace Pulsar::RemotePlayer
                 state = (ld->data3D->parent != nullptr) ? 1 : 2;
         } __except (EXCEPTION_EXECUTE_HANDLER) { state = 0; }
 
-        if (state == 1) return CloneReparentResult::kVisible;   // still visible — let it survive across cells
+        if (state == 1) return CloneReparentResult::kVisible;   // still visible - let it survive across cells
         if (state == 0) return CloneReparentResult::kDead;      // genuinely gone → caller respawns
 
         // state == 2: orphaned 3D → re-attach via MoveTo into the player's cell.
@@ -1518,7 +1518,7 @@ namespace Pulsar::RemotePlayer
 
     void RemotePlayerManager::RequestFire(uint32_t actionFormID)
     {
-        // V2-1f: queue instead of single slot — preserves every action and its
+        // V2-1f: queue instead of single slot - preserves every action and its
         // order (Fire/Release/Reload) for a lossless 1:1 replay on the clone.
         m_lastFireAction = actionFormID;
         std::lock_guard lk(m_fireQueueMutex);
@@ -1564,9 +1564,9 @@ namespace Pulsar::RemotePlayer
 
         // Skip all animation-graph ops when (a) clone is C++-spawned (CloneManager
         // proof-of-concept) OR (b) clone is in a procedural cell (0xFF-prefix
-        // cellFormID — planet surface). Verified 2026-04-19: identical graph ops
+        // cellFormID - planet surface). Verified 2026-04-19: identical graph ops
         // that run for 2+ min in static cells crash ~30s in procedural cells.
-        // Graph ops themselves are not the root cause — they're a trigger specific
+        // Graph ops themselves are not the root cause - they're a trigger specific
         // to the procedural-cell environment. Skipping them here is a MVP
         // workaround until the underlying proc-cell issue is understood.
         bool skipCloneGraphOps = false;
@@ -1632,17 +1632,17 @@ namespace Pulsar::RemotePlayer
         // Equip ops: pending flag consumption must be atomic or ENet packets
         // arriving between .load() and the false-store would be dropped. Use
         // exchange, and only consume when we can actually run the op (actor
-        // present, graph ops allowed) — otherwise keep the flag pending.
+        // present, graph ops allowed) - otherwise keep the flag pending.
         //
         // F.2-v2 crash fix (2026-06-11): ALSO gate on Cell3DAttach::IsQuiet().
         // During a load (both-down game-over reload), m_remoteActor is a STALE
-        // freed pointer (not null — the despawn hasn't run yet), so the null
+        // freed pointer (not null - the despawn hasn't run yet), so the null
         // check passes and DoEquipWeapon's AddObjectToContainer faulted on the
         // garbage vtable (host crash 17:56, fault in AddObjectToContainer
         // vt[0x9A]=+0x4D0 on rdx=0x7F7F... garbage). IsQuiet() is false while
         // the loadMenu is open + grace, so the flag stays pending and the
         // equip applies AFTER the post-reload respawn gives a fresh clone.
-        // IsQuiet() is TRUE while a transition (loadMenu+grace) is in flight —
+        // IsQuiet() is TRUE while a transition (loadMenu+grace) is in flight -
         // that's exactly when applies must be DROPPED. ALSO require the clone to
         // be fully 3D-attached AND to have settled for >3s since its last spawn:
         // a freshly-respawned clone (both-down reload) has a graph still being
@@ -1653,10 +1653,10 @@ namespace Pulsar::RemotePlayer
         const uint64_t spawnedAt = m_cloneSpawnedAtMs.load(std::memory_order_relaxed);
         const bool cloneSettled = spawnedAt != 0
                                   && (GetTickCount64() - spawnedAt) > 3000;
-        // (2026-06-20): don't equip-apply on a DOWNED clone — DoEquipArmor/
+        // (2026-06-20): don't equip-apply on a DOWNED clone - DoEquipArmor/
         // Weapon's 3D/graph update would disturb the bleedout/knee pose. (The MAIN
         // stand-up cause was the per-tick weapon-DRAW, handled separately by forcing
-        // the clone holstered while downed — see the weapon-draw block below. This
+        // the clone holstered while downed - see the weapon-draw block below. This
         // gate is the equip-apply half of the same protection. Pending flag survives
         // → equip applies after revive.)
         const bool equipSafe = !Pulsar::Cell3DAttach::IsQuiet()
@@ -1670,7 +1670,7 @@ namespace Pulsar::RemotePlayer
             && m_pendingEquip.exchange(false)) {
             if (EquipSync::kSyncWeapons) DoEquipWeapon();
         }
-        // ARMOR equip-apply ON  — biped-slot visuals, graph-safe.
+        // ARMOR equip-apply ON  - biped-slot visuals, graph-safe.
         if (EquipSync::kSyncArmor && m_remoteActor && !skipCloneGraphOps && equipSafe
             && m_pendingArmor.exchange(false)) {
             DoEquipArmor();
@@ -1687,7 +1687,7 @@ namespace Pulsar::RemotePlayer
                 m_remoteActor->DrawWeaponMagicHands(true);
                 s_forceAnimUntil = kNow + 300;
                 // 2026-04-20: bumped 500→2000ms. Log showed that 500ms was
-                // too short — engine didn't register drawn-state before our
+                // too short - engine didn't register drawn-state before our
                 // holster, so the holster became a non-transition and the
                 // engine never fired ActionInitializeGraphToBaseState.
                 // User's manual draw+holster that fixed it had ~2.3s gap.
@@ -1704,11 +1704,11 @@ namespace Pulsar::RemotePlayer
             }
         }
 
-        // Deferred weapon re-draw after a swap — 2-stage. The new weapon equips
+        // Deferred weapon re-draw after a swap - 2-stage. The new weapon equips
         // HOLSTERED and the equip needs ~800ms to settle; the normal per-tick draw
         // is suppressed while a redraw is pending (an early draw poisons the graph's
         // "weapon out" intent → weapon stuck on the back). Stage 1 forces a holster
-        // (unconditional — actorState2 can't be trusted on a clone), stage 2 draws a
+        // (unconditional - actorState2 can't be trusted on a clone), stage 2 draws a
         // few ticks later → a real holster->draw transition pulls it into the hand.
         if (m_pendingRedraw > 0 && GetTickCount64() >= m_pendingRedraw && !skipCloneGraphOps) {
             uint64_t now = GetTickCount64();
@@ -1739,7 +1739,7 @@ namespace Pulsar::RemotePlayer
             }
         }
 
-        // Fire sync — forward combat actions directly via PerformAction.
+        // Fire sync - forward combat actions directly via PerformAction.
         // 2026-04-20: proc-cell gate REMOVED. The original 2026-04-19 crash
         // that motivated the gate was likely the same parentCell-UAF that
         // T22 diagnosed and our parentCell-pin now fixes. If it still crashes
@@ -1751,7 +1751,7 @@ namespace Pulsar::RemotePlayer
             // V2-1f (2026-06-11): drain ALL queued fire actions in arrival order.
             // The old single-slot pending (m_pendingFireAction overwrite) LOST
             // actions whenever several PKT_FIRE arrived between game-thread
-            // drains — ENet pumps events in batches, so auto-fire weapons
+            // drains - ENet pumps events in batches, so auto-fire weapons
             // dropped shots / shifted reloads and the clone's visual fire ran
             // out of sync with the sender ("länger geschossen / später
             // nachgeladen"). With the correct weapon+mods from F.2-v2 AND a
@@ -1774,7 +1774,7 @@ namespace Pulsar::RemotePlayer
                 *reinterpret_cast<RE::TESForm**>(actionData + 0x18) = actionForm;
                 *reinterpret_cast<void**>(actionData + 0x28) = s_aoVtable.get();
 
-                // Skip ActionSightedRelease — it breaks the aimed pose
+                // Skip ActionSightedRelease - it breaks the aimed pose
                 // iSyncSighted graph var controls sighted state instead
                 if (fireFormID == 0x00004A58) {  // ActionSightedRelease
                     continue;
@@ -1813,7 +1813,7 @@ namespace Pulsar::RemotePlayer
 
         // Layer 1: keep the player-clone out of autonomous engine combat (it's
         // now weapon-synced; its AI was machine-gunning NPCs in proc cells). Belt to
-        // the AI-eval block above — also covers reactive combat and the block being
+        // the AI-eval block above - also covers reactive combat and the block being
         // toggled off. Not gated on skipCloneGraphOps (StopCombat is not a graph op).
         if (m_remoteActor) {
             NeutralizeCloneCombatSafe(m_remoteActor);
@@ -1828,7 +1828,7 @@ namespace Pulsar::RemotePlayer
             }
         }
 
-        // Weapon draw/sheathe — PerformAction hook blocks ALL actions on clone
+        // Weapon draw/sheathe - PerformAction hook blocks ALL actions on clone
         // g_forceAnimation bypasses the block for our forced calls (Skyrim Together pattern)
         // Debounce: wait 500ms for stable state before acting (prevents rapid toggle)
         // Defer: don't draw until weapon is actually equipped on the clone
@@ -1845,7 +1845,7 @@ namespace Pulsar::RemotePlayer
             // a combat-ready stance that stands it straight back out of the bleedout/
             // knee pose (root cause of "downed clone keeps standing up when equip sync
             // is on"; with sync off there's no weapon to draw, so it held). Forcing
-            // wantDrawn=false makes the clone holster — which is ALSO the graph kick
+            // wantDrawn=false makes the clone holster - which is ALSO the graph kick
             // that PLAYS the bleedout anim (matches: holstering triggered it in-game).
             if (Pulsar::Coop::Mortality::IsRemoteDowned()) {
                 wantDrawn = false;
@@ -1855,14 +1855,14 @@ namespace Pulsar::RemotePlayer
             g_wantWeaponDrawn = wantDrawn;
 
             // Draw/holster is EDGE-triggered off our own intent (m_weaponDrawn).
-            // NOTE: actorState2&0x3 is NOT a reliable "drawn" indicator on a clone —
+            // NOTE: actorState2&0x3 is NOT a reliable "drawn" indicator on a clone -
             // it stays 0 even after a successful DrawWeaponMagicHands (verified
             // 2026-06-20: a verify-loop polling it never converged and spammed the
             // draw every 600ms). So we never poll the engine; we drive intent.
             uint64_t now = GetTickCount64();
 
             // Weapon-swap settle window: the 2-stage deferred re-draw owns the draw
-            // state. Don't fire a normal draw while a redraw is pending — an early
+            // state. Don't fire a normal draw while a redraw is pending - an early
             // draw before the new weapon's equip settles gets swallowed and leaves it
             // stuck holstered on the back.
             if (m_pendingRedraw == 0 && m_pendingRedrawDrawAt == 0) {
@@ -1880,7 +1880,7 @@ namespace Pulsar::RemotePlayer
             }
         }
 
-        // Seated sync — bit 10 of animFlags. When host occupies furniture,
+        // Seated sync - bit 10 of animFlags. When host occupies furniture,
         // make the local clone sit in the nearest FURN-REFR via Bethesda's
         // native activation path. VehicleSync keeps the FURN position
         // following the clone so engine-seat-anchoring carries the clone
@@ -1892,7 +1892,7 @@ namespace Pulsar::RemotePlayer
                 m_targetPosData.x, m_targetPosData.y, m_targetPosData.z);
         }
 
-        // flashlight — mirror the peer's helmet headlamp onto the clone by
+        // flashlight - mirror the peer's helmet headlamp onto the clone by
         // driving the engine headlamp setup (creates a real BSShadowLight at
         // clone+0xEB0). ApplyToClone no-ops when already in the desired state.
         if (m_remoteActor && m_hasPosition && !skipCloneGraphOps) {
@@ -1900,7 +1900,7 @@ namespace Pulsar::RemotePlayer
                 m_remoteActor, UnpackAnimFlags(m_targetPosData.animFlags).flashlight);
         }
 
-        // Sneak sync — force crouch/stand based on sender state
+        // Sneak sync - force crouch/stand based on sender state
         if (m_remoteActor && m_hasPosition && !skipCloneGraphOps) {
             bool wantSneak = (UnpackAnimFlags(m_targetPosData.animFlags).iSyncRelaxReadySneak == 2);
             static bool s_cloneSneaking = false;
@@ -1916,7 +1916,7 @@ namespace Pulsar::RemotePlayer
             }
         }
 
-        // Jump sync — fire JumpUp/JumpFall/JumpDown events on clone
+        // Jump sync - fire JumpUp/JumpFall/JumpDown events on clone
         // 2026-04-20: removed 400ms cooldown. The cooldown was swallowing
         // rapid transitions (JumpUp→JumpFall in ~50ms, or short jumps where
         // 2→0 ground-reset happened within the cooldown window). Result:
@@ -1941,7 +1941,7 @@ namespace Pulsar::RemotePlayer
             // JumpFall synthetically so the clone's graph transitions properly.
             if (s_syntheticFallAt > 0 && now >= s_syntheticFallAt) {
                 s_syntheticFallAt = 0;
-                // Only fire if we're still in "up" state — if state already
+                // Only fire if we're still in "up" state - if state already
                 // transitioned to 2 or 0, real path already fired JumpFall/Down.
                 if (s_cloneJumpState == 1 && m_remoteActor) {
                     g_forceAnimation = true;
@@ -1952,7 +1952,7 @@ namespace Pulsar::RemotePlayer
                 }
             }
 
-            // #clone-jump landing watchdog — the single JumpDown fired on the 2→0
+            // #clone-jump landing watchdog - the single JumpDown fired on the 2→0
             // transition sometimes fails to pull the clone's graph out of JumpFall
             // (short / low-ceiling jumps: the fall→land transition needs the clone's
             // physics to settle, which lags the one-shot event). Without a retry the
@@ -1992,7 +1992,7 @@ namespace Pulsar::RemotePlayer
                 // Fire multiple events to ensure jump animation triggers.
 
                 if (netJump == 1) {
-                    // Jump start — cover the full jump arc (~1-1.5s).
+                    // Jump start - cover the full jump arc (~1-1.5s).
                     g_forceAnimation = true;
                     RE::BSFixedString e1("JumpUp");
                     SafeNotifyAnimGraph(m_remoteActor, e1);
@@ -2006,7 +2006,7 @@ namespace Pulsar::RemotePlayer
                     // the clone into a sustained boost-hover pose (the "Kugel"/tucked
                     // ball) that the brief jump-boost never cleanly exits. Treat the
                     // boost as a CONTINUATION of the jump instead: re-affirm JumpUp (keep
-                    // the jump pose, no boost pose on the clone — cosmetic), extend the
+                    // the jump pose, no boost pose on the clone - cosmetic), extend the
                     // window, and keep a synthetic-fall fallback so the descent triggers.
                     g_forceAnimation = true;
                     RE::BSFixedString e1("JumpUp");
@@ -2015,24 +2015,24 @@ namespace Pulsar::RemotePlayer
                     if (s_syntheticFallAt == 0) s_syntheticFallAt = now + 400;
                     PLOG_INFO("[PULSAR] Forced jump: boost-as-JumpUp (state={} prev={})"sv, netJump, prevJump);
                 } else if (netJump == 2) {
-                    // Fall phase — real state 2 received, cancel synthetic.
+                    // Fall phase - real state 2 received, cancel synthetic.
                     // Also covers boost-descent (3→2 when boost ends).
                     s_syntheticFallAt = 0;
                     g_forceAnimation = true;
-                    // #clone-jump — boost is now treated as JumpUp (no boost pose), so
+                    // #clone-jump - boost is now treated as JumpUp (no boost pose), so
                     // the descent is a plain fall; no BoostDown needed.
                     RE::BSFixedString e1("JumpFall");
                     SafeNotifyAnimGraph(m_remoteActor, e1);
                     s_forceAnimUntil = now + 700;
                     PLOG_INFO("[PULSAR] Forced jump: JumpFall (state={} prev={})"sv, netJump, prevJump);
                 } else if (netJump == 0 && (prevJump == 2 || prevJump == 1 || prevJump == 3)) {
-                    // Landing — cancel any pending synthetic fall.
+                    // Landing - cancel any pending synthetic fall.
                     s_syntheticFallAt = 0;
                     g_forceAnimation = true;
                     RE::BSFixedString e1("JumpDown");
                     SafeNotifyAnimGraph(m_remoteActor, e1);
                     s_forceAnimUntil = now + 400;
-                    // #clone-jump — arm the landing watchdog so a JumpDown that didn't
+                    // #clone-jump - arm the landing watchdog so a JumpDown that didn't
                     // take (graph still in fall) is re-asserted over the next ~600ms.
                     s_landReassertUntil = now + 600;
                     PLOG_INFO("[PULSAR] Forced jump: JumpDown (state={} prev={})"sv, netJump, prevJump);
@@ -2177,7 +2177,7 @@ namespace Pulsar::RemotePlayer
         s_clonePitchActor = nullptr;
         s_clonePitchBoneCache.resolved = false;
         std::memset(s_clonePitchBoneCache.bones, 0, sizeof(s_clonePitchBoneCache.bones));
-        // Restore original vtables on old clone — prevents use-after-free when engine
+        // Restore original vtables on old clone - prevents use-after-free when engine
         // still holds animation update references to the freed clone actor
         if (s_cloneGraphChannelObj && s_origGraphVtable) {
             *reinterpret_cast<void***>(s_cloneGraphChannelObj) = s_origGraphVtable;
@@ -2276,7 +2276,7 @@ namespace Pulsar::RemotePlayer
 
             // Combat V2-1e: the clone's replayed fire actions spawn REAL engine
             // projectiles. Damage is synced over the network (damage-forward),
-            // so the clone's own bullets must be COSMETIC — otherwise its hits
+            // so the clone's own bullets must be COSMETIC - otherwise its hits
             // land on top of the forwarded damage (double counting both ways).
             {
                 static RE::ActorValueInfo* s_admAV = nullptr;
@@ -2292,7 +2292,7 @@ namespace Pulsar::RemotePlayer
                 }
             }
 
-            // Bisect: in procedural cells, do NOTHING to the clone — no hook
+            // Bisect: in procedural cells, do NOTHING to the clone - no hook
             // registration (so PerformAction hook ignores it), no AttackingDisabled
             // flag, no CC creation. Engine AI runs freely on the clone.
             bool isProcCell = (m_remoteActor->parentCell &&
@@ -2355,7 +2355,7 @@ namespace Pulsar::RemotePlayer
                 }
             }
 
-            // CC creation for proc-cell clone — REQUIRED. T9 RE found the
+            // CC creation for proc-cell clone - REQUIRED. T9 RE found the
             // real gate: CC+0x20 starts null, gets set by engine's Havok-
             // attach pipeline asynchronously. SafeHavokBodySetPosition checks
             // that gate and skips frames until attachment completes. Once
@@ -2444,15 +2444,15 @@ namespace Pulsar::RemotePlayer
     // --- Weapon equip ---
 
     // Direct call to ActorEquipManager::EquipObject using verified REL::IDs
-    // IDs.h has REL::ID(0) placeholders — we bypass with correct IDs for v1.16.236
+    // IDs.h has REL::ID(0) placeholders - we bypass with correct IDs for v1.16.236
     static bool DirectEquipObject(RE::Actor* a_actor, const RE::BGSObjectInstance& a_object)
     {
-        // ActorEquipManager::Singleton: REL::ID(938503) — already works in IDs.h
+        // ActorEquipManager::Singleton: REL::ID(938503) - already works in IDs.h
         static REL::Relocation<RE::ActorEquipManager**> singleton{ REL::ID(938503) };
         auto* mgr = *singleton;
         if (!mgr) return false;
 
-        // ActorEquipManager::EquipObject: REL::ID(101949) — verified for v1.16.236
+        // ActorEquipManager::EquipObject: REL::ID(101949) - verified for v1.16.236
         using EquipFn = bool(*)(RE::ActorEquipManager*, RE::Actor*, const RE::BGSObjectInstance&,
                                 const RE::BGSEquipSlot*, bool, bool, bool, bool, bool);
         static REL::Relocation<EquipFn> equipFn{ REL::ID(101949) };
@@ -2465,7 +2465,7 @@ namespace Pulsar::RemotePlayer
         auto* mgr = *singleton;
         if (!mgr) return false;
 
-        // ActorEquipManager::UnequipObject: REL::ID(101951) — verified for v1.16.236
+        // ActorEquipManager::UnequipObject: REL::ID(101951) - verified for v1.16.236
         using UnequipFn = bool(*)(RE::ActorEquipManager*, RE::Actor*, const RE::BGSObjectInstance&,
                                   const RE::BGSEquipSlot*, bool, bool, bool, bool, const RE::BGSEquipSlot*);
         static REL::Relocation<UnequipFn> unequipFn{ REL::ID(101951) };
@@ -2474,7 +2474,7 @@ namespace Pulsar::RemotePlayer
 
     // clear the clone's weapon-draw state (Actor+0xFC low 3 bits) to SHEATHED.
     // DrawWeaponMagicHands(true) early-returns ("already drawn") when those bits are
-    // 2/3 — which is the case after a swap (the pose stays drawn). Clearing them makes
+    // 2/3 - which is the case after a swap (the pose stays drawn). Clearing them makes
     // the next draw a real 0->drawn transition so the engine re-attaches the new weapon
     // mesh from the holster node (R_BackPackHolster) to the hand node (Weapon).
     // RE 2026-06-20: DrawWeaponMagicHands = FUN_1419164f0, reads (actor+0xFC)&7.
@@ -2492,7 +2492,7 @@ namespace Pulsar::RemotePlayer
         // the save-load reload frees the clone + its light; drop our
         // tracking WITHOUT DecRef (touching the freed light would UAF).
         Pulsar::FlashlightSync::ForgetAll();
-        // Null cached clone pointers — the engine frees the actors during the reload.
+        // Null cached clone pointers - the engine frees the actors during the reload.
         m_remoteActor = nullptr;
         m_lookMarker  = nullptr;
         m_spawned     = false;
@@ -2518,7 +2518,7 @@ namespace Pulsar::RemotePlayer
         m_weaponDrawChangeTime = 0;
         m_pendingRedraw = 0;
         m_pendingRedrawDrawAt = 0;
-        PLOG_INFO("[PULSAR] InvalidateCloneOnSaveLoad — clone ptr + spawn GLOB cleared (both-down UAF guard)"sv);
+        PLOG_INFO("[PULSAR] InvalidateCloneOnSaveLoad - clone ptr + spawn GLOB cleared (both-down UAF guard)"sv);
     }
 
     void RemotePlayerManager::DoEquipWeapon()
@@ -2560,7 +2560,7 @@ namespace Pulsar::RemotePlayer
             RE::ITEM_TRANSFER_REASON::kNone);
 
         // F.2-v2: write the sender's mod array + sentinel onto the freshly
-        // added inventory item BEFORE the equip resolves instance data — the
+        // added inventory item BEFORE the equip resolves instance data - the
         // clone then renders the weapon with the partner's actual attachments
         // and tier instead of a bare/proc-gen-rolled base item.
         {
@@ -2585,7 +2585,7 @@ namespace Pulsar::RemotePlayer
         });
 
         // Equip via ActorEquipManager (verified REL::IDs for v1.16.236)
-        // Weapon appears holstered on clone's back — "weapon drawn" state requires
+        // Weapon appears holstered on clone's back - "weapon drawn" state requires
         // deeper engine control (Havok Pose Buffer or weapon state hook)
         RE::BGSObjectInstance objInstance(weaponForm, invInstData);
         DirectEquipObject(m_remoteActor, objInstance);
@@ -2686,7 +2686,7 @@ namespace Pulsar::RemotePlayer
     {
         if (!m_globsResolved) return;
 
-        // Phase I — drop position applies while we're mid cell-transition.
+        // Phase I - drop position applies while we're mid cell-transition.
         // Stale incoming PKT_POSITION (with peer's pre-transition coords)
         // applied during our local transition causes clone cell-flip
         // pingpong (verified 2026-04-27 log 20:11:08.959). After the quiet
@@ -2710,7 +2710,7 @@ namespace Pulsar::RemotePlayer
             postSpawnGraphGate = (spawnedAt != 0 && (GetTickCount64() - spawnedAt) < 3000);
         }
 
-        // Phase I — drop position applies if remote player's parentCell
+        // Phase I - drop position applies if remote player's parentCell
         // doesn't match local AND we are in an INTERIOR cell. Exterior
         // cells of the same worldspace handle cross-cell SetPosition
         // gracefully (engine re-grids the actor); only interior procedural
@@ -2725,7 +2725,7 @@ namespace Pulsar::RemotePlayer
             bool isInterior = localParent && localParent->IsInterior();
             // K.6 V2-Probe (2026-04-29): proc-cells (FF-prefix) are per-
             // machine instances of identical content. Don't suppress
-            // cross-cell SetPosition between two proc-instances — the
+            // cross-cell SetPosition between two proc-instances - the
             // clone needs to be placed in OUR local instance at peer's
             // coords. Engine handles the 3D-attach via local cell content.
             const bool localIsProc  = (localCell  & 0xFF000000u) == 0xFF000000u;
@@ -2739,10 +2739,10 @@ namespace Pulsar::RemotePlayer
             // moment host+client weren't in the byte-identical cell FormID (every
             // proc-POI), and stayed frozen = "teammate gone". We now APPLY
             // unconditionally: the clone is pinned to OUR local cell (see parentCell
-            // pin below) and just placed at the peer's coords — which map correctly
+            // pin below) and just placed at the peer's coords - which map correctly
             // because the instances are content-identical. Worst case is occasional
             // misplacement in a genuinely-different *static* interior (rare in co-op,
-            // both players are together) — far better than a permanently frozen clone.
+            // both players are together) - far better than a permanently frozen clone.
             if (isInterior && remoteCell != 0 && localCell != 0 &&
                 localCell != remoteCell && !procEquivalent)
             {
@@ -2758,13 +2758,13 @@ namespace Pulsar::RemotePlayer
                         "content-equiv) remote=0x{:08X} local=0x{:08X}"sv,
                         remoteCell, localCell);
                 }
-                // Option 2 — NO suppression return; fall through and apply.
+                // Option 2 - NO suppression return; fall through and apply.
             }
         }
 
         // Note: Starfield's SFSE AddPermanentTask dispatches to a worker pool
         // (we observed 6+ distinct tids in one session). ALL of those threads
-        // are part of the engine's synchronized task graph — they're "safe" for
+        // are part of the engine's synchronized task graph - they're "safe" for
         // Havok writes in the same sense the engine's own 51 setPosition
         // callers are (T19). We don't need to lock to a single tid. The race
         // between our writes and proc-gen is handled by SEH + CC-attach-gate
@@ -2783,12 +2783,12 @@ namespace Pulsar::RemotePlayer
             // 2026-04-20 Pin clone->parentCell to player's parentCell.
             // T22 (Ghidra) verified: proc-gen does NOT race the cell-hashmap
             // and runs on the main thread. The prior "Cell-Hashmap-Race" crash
-            // hypothesis was wrong — the actual bug is **UAF on clone->parentCell**:
+            // hypothesis was wrong - the actual bug is **UAF on clone->parentCell**:
             // when proc-gen tears down a POI chunk, it frees the TESObjectCELL
             // object, but clone refs keep their stale parentCell pointer.
             // Stage-1 of Actor::SetPosition then derefs freed memory.
             //
-            // The player is the streaming anchor — their parentCell is guaranteed
+            // The player is the streaming anchor - their parentCell is guaranteed
             // live every frame. Assigning clone->parentCell = player->parentCell
             // closes the UAF window and lets us run normal Actor::SetPosition on
             // planets (no more Split-Path needed → 60Hz Havok instead of 10Hz,
@@ -2843,7 +2843,7 @@ namespace Pulsar::RemotePlayer
             }
 
             // Position sync. During jumps the lerp smoothing is too slow for
-            // the ballistic arc — the clone's Z stays near ground while the
+            // the ballistic arc - the clone's Z stays near ground while the
             // anim graph already plays the jump anim (tucking legs), producing
             // the "legs-inside-body" artifact. During a jump state, feed target
             // position directly so the clone's body follows the real arc.
@@ -2854,12 +2854,12 @@ namespace Pulsar::RemotePlayer
                 isJumpingForPos ? targetZ : m_lerpZ);
 
             // 2026-04-20 SPLIT PATH retained for proc cells. parentCell pin
-            // above fixes the UAF (T22), but T22 scenario (c) — "fresh cell,
-            // hashmap not yet constructed" — still triggers AVs in proc cells.
+            // above fixes the UAF (T22), but T22 scenario (c) - "fresh cell,
+            // hashmap not yet constructed" - still triggers AVs in proc cells.
             // City/static cells are safe (parentCell is stable & fully built),
             // so Actor::SetPosition is used there. Proc cells retain
             // data.location + Havok-direct 10Hz bypass.
-            // Skip clone SetPosition while seated — the engine's sit-anchor
+            // Skip clone SetPosition while seated - the engine's sit-anchor
             // binds the clone to the FURN's sit marker and moves it when
             // the FURN moves. Forcing clone.pos every tick yanks it out of
             // the anchor; ActionGetUp fires, Bethesda cancels the sit, and
@@ -2873,7 +2873,7 @@ namespace Pulsar::RemotePlayer
                 uint64_t now = GetTickCount64();
                 if (now - s_lastSitLog > 3000) {
                     s_lastSitLog = now;
-                    PLOG_INFO("[PULSAR] RemotePlayer: clone seated — position driven by FURN sit-anchor"sv);
+                    PLOG_INFO("[PULSAR] RemotePlayer: clone seated - position driven by FURN sit-anchor"sv);
                 }
             } else if (isProcCell) {
                 SafeWriteActorDataLocation(m_remoteActor, pos, m_lerpRotZ);
@@ -2881,12 +2881,12 @@ namespace Pulsar::RemotePlayer
                 // 2026-04-24 raised 33→16 (30Hz→60Hz) after CrashGuard::Init
                 // (T114) gates the 0x30B350E bone-array NULL-deref. The old
                 // 2026-04-20 60Hz retest that crashed "beim 2. Jump" was the
-                // same bone-crash signature — that vector is now guarded.
+                // same bone-crash signature - that vector is now guarded.
                 // 60Hz fixes the 0.5m-Jump-Bug (Gravity zog body zwischen
                 // 33ms-Writes runter) und glättet Walk-Anim sichtbar.
                 //
                 // Skip-if-unchanged during jumps: host-packet rate is 30 Hz
-                // but our Havok-write is 60 Hz — without this guard we'd
+                // but our Havok-write is 60 Hz - without this guard we'd
                 // write the SAME pos twice per packet, which Havok
                 // interprets as a teleport-to-same-spot and its stabilizer
                 // induces visible jitter on the airborne body. Only write
@@ -2919,8 +2919,8 @@ namespace Pulsar::RemotePlayer
 
             // Fix A: position is now applied (clone snaps to its synced spot
             // immediately after a respawn instead of clinging to the player's head).
-            // Everything below — DirectControl SetSpeed + the anim-graph variable
-            // sync + Action firings — touches the (possibly still-rebuilding) anim
+            // Everything below - DirectControl SetSpeed + the anim-graph variable
+            // sync + Action firings - touches the (possibly still-rebuilding) anim
             // graph and pure-virtual-crashes during the post-spawn window, so skip
             // it until the graph has settled (~3s). This matches what the old full
             // early-return did, minus the position it was wrongly blocking.
@@ -2928,14 +2928,14 @@ namespace Pulsar::RemotePlayer
 
             // Animation: use DirectControl to set speed → engine picks correct locomotion
             // During jump (iSyncJumpState != 0), set speed to 0 so locomotion doesn't override jump anim
-            // 2026-04-19: Proc-cell skip removed — original crash source was NPCSync,
+            // 2026-04-19: Proc-cell skip removed - original crash source was NPCSync,
             // not DirectControl. DirectControl has its own SEH wrapper below.
             if (s_directCtrlEnabled && s_directCtrlVtable) {
                 float netSpeed = m_targetPosData.vars.speed;
                 if (m_targetPosData.vars.iSyncJumpState != 0) {
                     netSpeed = 0.0f;  // Let jump animation play without locomotion interference
                 }
-                // vtable[3] = SetSpeed(float) — immediate, engages locomotion system
+                // vtable[3] = SetSpeed(float) - immediate, engages locomotion system
                 if (!SafeCallDCSetSpeed(s_directCtrl, s_directCtrlVtable[3], netSpeed)) {
                     PLOG_WARN("[PULSAR] SEH in DirectControl SetSpeed, falling back"sv);
                     s_directCtrlEnabled = false;
@@ -2946,12 +2946,12 @@ namespace Pulsar::RemotePlayer
             // and per-instance vtable patching on a refcounted graph channel causes crashes
             // when ActionInitializeGraphToBaseState rebuilds the graph (channel freed ~5s post-spawn).
 
-            // PostAnimHook removed: same per-instance vtable lifetime issue as AnimHook —
+            // PostAnimHook removed: same per-instance vtable lifetime issue as AnimHook -
             // actor+0x40 functor vtable patch causes crashes when the engine frees/rebuilds
             // the post-anim functor independently of the actor lifetime.
 
             // === Bone pitch overlay (world transform, 1000hz) ===
-            // Bone pitch test removed — using LookAt marker approach
+            // Bone pitch test removed - using LookAt marker approach
 
             // Skip graph-variable writes only for C++-spawned clones.
             // Graph-var writes re-enabled 2026-04-19 after SetPosition-race
@@ -2979,7 +2979,7 @@ namespace Pulsar::RemotePlayer
                         // iState: 10=normal, 11=sneak, 17=combat
                         // relax: 0=relaxed, 1=ready(weapon up), 2=sneak
                         bool isSneaking = (v.iSyncRelaxReadySneak == 2);
-                        // When weapon drawn: ALWAYS ready (1) — host relaxes after 3s
+                        // When weapon drawn: ALWAYS ready (1) - host relaxes after 3s
                         // but clone needs to stay in ready pose for pitch aim to work
                         bool isWeaponReady = m_weaponDrawn || (v.iSyncRelaxReadySneak == 1);
                         int32_t npcIState = isSneaking ? 11 : (isWeaponReady ? 17 : 10);
@@ -2990,12 +2990,12 @@ namespace Pulsar::RemotePlayer
                         // Sighted (iSyncSighted=1): weapon aims, follows pitch for shooting
                         // Sighted for 8s after last shot, then back to Ready
                         {
-                            // Use atomics — DoSetPosition runs on BSTaskPool threads concurrently.
+                            // Use atomics - DoSetPosition runs on BSTaskPool threads concurrently.
                             // Non-atomic check+set causes every thread to fire ActionSightedRelease.
                             static std::atomic<uint64_t> s_lastShotTime{ 0 };
                             static std::atomic<bool> s_inSighted{ false };
 
-                            // Host RMB-aim trigger — 2026-04-25: any tick where host
+                            // Host RMB-aim trigger - 2026-04-25: any tick where host
                             // has iSyncSighted=1 and weapon is drawn, keep sighted
                             // timer fresh + fire ActionSighted once if not yet in.
                             bool hostSightedTick = UnpackAnimFlags(m_targetPosData.animFlags).hostSighted;
@@ -3020,12 +3020,12 @@ namespace Pulsar::RemotePlayer
                                 }
                             }
 
-                            // Track fire actions — any shot resets the timer
+                            // Track fire actions - any shot resets the timer
                             uint32_t lastAction = m_lastFireAction.load();
                             if (lastAction == 0x00004A5C || lastAction == 0x00004A5A ||
                                 lastAction == 0x00004A57) {  // FireAuto, FireSingle, Sighted
                                 s_lastShotTime.store(GetTickCount64());
-                                // Fire ActionSighted on clone — CAS ensures only one thread does it
+                                // Fire ActionSighted on clone - CAS ensures only one thread does it
                                 bool wasNotSighted = false;
                                 if (s_inSighted.compare_exchange_strong(wasNotSighted, true) &&
                                     m_remoteActor && s_origPerformAction) {
@@ -3076,7 +3076,7 @@ namespace Pulsar::RemotePlayer
                             ForceSetGraphIntDirect(graph.get(), setIntFn, "iSyncGunDown", 0);
                         }
 
-                        // Floats — Speed + CurrentSpeed must match (Sarah pattern)
+                        // Floats - Speed + CurrentSpeed must match (Sarah pattern)
                         RE::BSFixedString nSpeed("Speed"), nCurSpeed("CurrentSpeed"),
                                           nDir("Direction"), nTurn("TurnDelta"),
                                           nLook("LookHeadingOffset");
@@ -3090,22 +3090,22 @@ namespace Pulsar::RemotePlayer
                         // NPC locomotion blend tree still plays forward anim for
                         // Direction=0.5. NT_LOCOMOTION_BLEND in biped_readylocomotion
                         // must use an additional blend-weight var the Player-graph
-                        // supplies. Accepted as limit — fluid backward requires full
+                        // supplies. Accepted as limit - fluid backward requires full
                         // NPC anim-graph swap (Beta scope).
 
-                        // Integers — mapped to NPC values
+                        // Integers - mapped to NPC values
                         ForceSetGraphIntDirect(graph.get(), setIntFn, "iState", npcIState);
                         ForceSetGraphIntDirect(graph.get(), setIntFn, "iSyncIdleLocomotion", v.iSyncIdleLocomotion);
                         ForceSetGraphIntDirect(graph.get(), setIntFn, "iSyncSprintState", v.iSyncSprintState);
                         ForceSetGraphIntDirect(graph.get(), setIntFn, "iSyncRelaxReadySneak", npcRelax);
 
-                        // HeadTracking ON — needed for SetLookAt/DirectAt to work
+                        // HeadTracking ON - needed for SetLookAt/DirectAt to work
                         ForceSetGraphIntDirect(graph.get(), setIntFn, "bHeadTrackingActive", 1);
                         ForceSetGraphIntDirect(graph.get(), setIntFn, "bNoHeadTrack", 0);
 
                         // REMOVED 2026-04-19: IsPlayer/IsNPC/iIsPlayer/IsFirstPerson
                         // writes on NPC clones. T12/T16 confirmed these variables
-                        // are registered ONLY on the Player anim graph — setting
+                        // are registered ONLY on the Player anim graph - setting
                         // them on an NPC graph is a silent no-op (GetGraphVariable
                         // returns false, setter just aborts). Wasted cycles with
                         // no effect. Clone uses NPC graph transitions regardless.
@@ -3113,7 +3113,7 @@ namespace Pulsar::RemotePlayer
                         // T14 iSync* vars still written: weapon/stance/fire/bleed.
                         // Removed 2026-04-25 (T124 host-diag):
                         //   iSyncGravity, iSyncSwimState, FacingBackward/Boost*/
-                        //   IsTurning/FullBodyTurn, TurnDeltaSmoothed — all confirmed
+                        //   IsTurning/FullBodyTurn, TurnDeltaSmoothed - all confirmed
                         //   NOT BOUND on player graph (getter returned false for the
                         //   entire session). Writes to unbound names are silent no-ops
                         //   on the clone graph too. Removing saves cycles + noise.
@@ -3130,14 +3130,14 @@ namespace Pulsar::RemotePlayer
                         ForceSetGraphIntDirect(graph.get(), setIntFn, "iSyncGunActions", 0);
                         ForceSetGraphIntDirect(graph.get(), setIntFn, "iSyncGunDown", 0);
                         // while the remote player is downed, hold the clone IN
-                        // bleedout — the hard 0 aborted the pose one tick after
+                        // bleedout - the hard 0 aborted the pose one tick after
                         // ActionBleedoutStart played.
                         ForceSetGraphIntDirect(graph.get(), setIntFn, "iSyncBleedout",
                             s_cloneBleedoutPose.load(std::memory_order_relaxed) ? 1 : 0);
                         ForceSetGraphIntDirect(graph.get(), setIntFn, "iSyncPartialBody", 0);
 
-                        // iSyncTurnState — confirmed flipping 0/1/2 on host via T124.
-                        // iSyncStrafeState — host reads 0 always (not bound on player),
+                        // iSyncTurnState - confirmed flipping 0/1/2 on host via T124.
+                        // iSyncStrafeState - host reads 0 always (not bound on player),
                         // but harmless; leave for NPC-graph forward-compat.
                         ForceSetGraphIntDirect(graph.get(), setIntFn,
                             "iSyncStrafeState",  v.iSyncStrafeState);
@@ -3163,7 +3163,7 @@ namespace Pulsar::RemotePlayer
                             //
                             // 2026-04-19: reduced LOOK_DIST from 500 to 100. Head-tracking
                             // only cares about the DIRECTION from clone to marker, not the
-                            // distance — a 100-unit marker gives the same angle as 500.
+                            // distance - a 100-unit marker gives the same angle as 500.
                             // Staying close keeps the marker guaranteed inside the clone's
                             // own proc-cell chunk (Starfield proc cells are ~4096 units;
                             // at 500 units a marker could land in a neighbor chunk that's
@@ -3183,7 +3183,7 @@ namespace Pulsar::RemotePlayer
                             // Force DirectAtTarget ExtraData to our marker (1000hz)
                             int datResult = SafeSetDirectAtTarget(m_remoteActor, m_lookMarker);
 
-                            // DirectAt interpolation — max speed for shooter responsiveness
+                            // DirectAt interpolation - max speed for shooter responsiveness
                             static RE::BSFixedString sGain("LookAtOnGain");
                             static RE::BSFixedString sLeadIn("LookAtOnLeadIn");
                             static RE::BSFixedString sPitchSpd("fPitchSpeed");

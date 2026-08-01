@@ -16,7 +16,7 @@ namespace Pulsar.Companion.Voice;
 // 0x06 XBUTTON2 "Mouse 5").
 //
 // Caveat: if the mouse's own driver remaps a side button to something else, the
-// OS never sees XBUTTON1/2 and no method can detect it — that's a mouse-config
+// OS never sees XBUTTON1/2 and no method can detect it - that's a mouse-config
 // issue, not ours.
 public sealed class PttHook : IDisposable
 {

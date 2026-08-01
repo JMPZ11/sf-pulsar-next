@@ -24,10 +24,10 @@ namespace Pulsar::Forms
 {
     namespace {
         // Vtable IDs (verified runtime probe + Ghidra cross-check, 1.16.236):
-        //   450162 = BGSSaveFormBuffer (abstract base) — marker only
+        //   450162 = BGSSaveFormBuffer (abstract base) - marker only
         //   450091 = BGSSaveLoadUtilities::BGSSaveFormBufferIgnoreIDs (concrete)
         //   398652 = BGSLoadFormBuffer
-        //   450193 = SaveBufferStorageWrapper — DIFFERENT class, also abstract,
+        //   450193 = SaveBufferStorageWrapper - DIFFERENT class, also abstract,
         //            DO NOT use as a BGSSaveFormBuffer impl
         static REL::Relocation<std::uintptr_t> g_saveVtableAbstract{ REL::ID(450162) };
         static REL::Relocation<std::uintptr_t> g_saveVtableConcrete{ REL::ID(450091) };  // IgnoreIDs
@@ -38,19 +38,19 @@ namespace Pulsar::Forms
         // global at +0x4A0 holding the engine's "current changeFlags" state.
         static REL::Relocation<std::uintptr_t> g_saveCfgGlobal{ REL::Offset{ 0x5E6D6E0 } };
 
-        // FUN_14186B2D0 — engine's BGSSaveFormBuffer::Grow(buf, newCapacity).
+        // FUN_14186B2D0 - engine's BGSSaveFormBuffer::Grow(buf, newCapacity).
         using GrowFn = void(__fastcall*)(void*, std::uint32_t);
         static REL::Relocation<GrowFn> g_grow{ REL::Offset{ 0x1868B30 } };
 
-        // FUN_1418349D0 — Bethesda's pre-save context-setup. Called BEFORE
+        // FUN_1418349D0 - Bethesda's pre-save context-setup. Called BEFORE
         // FUN_141835740 in FUN_14181D690 line 619. Fills a 16-byte stack ctx
         // (worldspace ptr + cell ptr + flag byte) used later by header writer
         // + post-save bookkeeping. Without this, FUN_141835740 has no context.
-        // RE'd: takes (ctx[16]*, form*) — see save_chain_step2.txt.
+        // RE'd: takes (ctx[16]*, form*) - see save_chain_step2.txt.
         using PreSetupFn = void(__fastcall*)(void* /*ctx16*/, RE::TESForm*);
         static REL::Relocation<PreSetupFn> g_preSetup{ REL::Offset{ 0x1832260 } };
 
-        // FUN_141835740 — Bethesda's record-header writer. Called between
+        // FUN_141835740 - Bethesda's record-header writer. Called between
         // pre-setup and vt[0x1A]. Takes (buffer, form, flags, ctx16, scratch).
         // Internally dispatches to switch(saveMode) where saveMode comes from
         // FUN_141835670(formID, formType). Each case writes formID + type +
@@ -60,22 +60,22 @@ namespace Pulsar::Forms
             void* /*ctx16*/, std::uint8_t* /*scratch*/);
         static REL::Relocation<SaveHeaderFn> g_saveHeader{ REL::Offset{ 0x1832FD0 } };
 
-        // FUN_1402BA6E0 — engine memory free, paired with FUN_14186B2D0's
+        // FUN_1402BA6E0 - engine memory free, paired with FUN_14186B2D0's
         // grow allocator. Signature: (ptr, sizeBytes). Used in FUN_14185FE30
         // cleanup to free pluginArray + formIDArray data.
         using EngineFreeFn = void(__fastcall*)(void*, std::size_t);
         static REL::Relocation<EngineFreeFn> g_engineFree{ REL::Offset{ 0x2BA340 } };
 
-        // vt[0x1B] LoadGame — receiver-side deserialize entry point.
+        // vt[0x1B] LoadGame - receiver-side deserialize entry point.
         // BGSLoadFormBuffer is a different struct (0xF0 bytes, REL::ID 398652).
         // Built when we receive a PKT_FORM_BLOB.
 
         // 16-byte ctx struct that FUN_1418349D0 fills + FUN_141835740 reads.
         // Layout from FUN_14181D690 stack: first 8 bytes raw + longlong + char.
         struct alignas(8) PreSaveCtx {
-            std::uint8_t b8[8];   // +0x00 — partially-init scratch
-            std::int64_t b0;      // +0x08 — worldspace/cell ptr (used post-save)
-            char         a8;      // +0x10 — flag byte (read post-save)
+            std::uint8_t b8[8];   // +0x00 - partially-init scratch
+            std::int64_t b0;      // +0x08 - worldspace/cell ptr (used post-save)
+            char         a8;      // +0x10 - flag byte (read post-save)
             std::uint8_t pad[7];  // → 24 bytes total
         };
         static_assert(sizeof(PreSaveCtx) == 24, "PreSaveCtx must be 24 bytes");
@@ -124,7 +124,7 @@ namespace Pulsar::Forms
             "[PULSAR] FormsProbe: vtables abstract=0x{:X} concrete(IgnoreIDs)=0x{:X} load=0x{:X}"sv,
             vtAbstractAddr, vtConcreteAddr, vtLoadAddr);
 
-        // Verify struct field layout — write a stack instance and check offsets
+        // Verify struct field layout - write a stack instance and check offsets
         // match the Ghidra-derived layout. Phase 2 corrected: dataCapacity@+0x10,
         // dataSize@+0x14, flags@+0x58 (was wrong as +0x54 in iter1).
         SaveFormBufferRaw sb{};
@@ -189,7 +189,7 @@ namespace Pulsar::Forms
             }
         }
 
-        // vt[0x17] AddChange — marks the form as having pending changes for
+        // vt[0x17] AddChange - marks the form as having pending changes for
         // the given flag bits. SaveGame writes only fields whose change-bits
         // are set on BOTH the form (engine-tracked) and the buffer. At game
         // start everything is 0, so we have to mark ourselves before save.
@@ -204,7 +204,7 @@ namespace Pulsar::Forms
             }
         }
 
-        // vt[0x18] RemoveChange — undo AddChange so we don't pollute the
+        // vt[0x18] RemoveChange - undo AddChange so we don't pollute the
         // engine's actual save with our forced flags.
         static void SafeRemoveChange(RE::TESForm* form, std::uint32_t flags) noexcept
         {
@@ -216,7 +216,7 @@ namespace Pulsar::Forms
             }
         }
 
-        // vt[0x19] CheckSaveGame — engine asks "do I have anything worth
+        // vt[0x19] CheckSaveGame - engine asks "do I have anything worth
         // saving into this buffer?". Diagnostic only.
         static int SafeCheckSaveGame(RE::TESForm* form, void* buf) noexcept
         {
@@ -250,7 +250,7 @@ namespace Pulsar::Forms
             }
         }
 
-        // Manual cleanup — vt[0] dtor throws because abstract-base dtor expects
+        // Manual cleanup - vt[0] dtor throws because abstract-base dtor expects
         // formID/plugin arrays to be proper engine vector instances with refcounts;
         // we only have raw zero-init'd pointers from save-helper outputs. Just
         // free what we know about: dataBuffer + formID/plugin array data.
@@ -294,7 +294,7 @@ namespace Pulsar::Forms
         // Stack-init buffer per FUN_14185FE30 canonical pattern.
         SaveFormBufferRaw buf{};
         std::memset(&buf, 0, sizeof(buf));
-        // Use ABSTRACT vtable — that's what FUN_140B2EF30 / FUN_14181D690
+        // Use ABSTRACT vtable - that's what FUN_140B2EF30 / FUN_14181D690
         // (Bethesda's two save callsites) use. The concrete IgnoreIDs vtable
         // path goes through a different helper (FUN_14185FB50) that needs
         // more state; abstract+FUN_140B2F760 is the simpler entry point.
@@ -318,7 +318,7 @@ namespace Pulsar::Forms
         // (naked player, empty inventory, frozen). Engine treats RemoveChange
         // as "no pending state to save" and discards runtime data on next
         // auto-save. Bethesda's own save (FUN_14181D690) does NOT call
-        // AddChange — it relies on whatever changeFlags the engine has
+        // AddChange - it relies on whatever changeFlags the engine has
         // tracked from gameplay. For a live player REFR mid-game, those bits
         // are already populated by movement / inventory / etc. events.
 
@@ -326,10 +326,10 @@ namespace Pulsar::Forms
         const int checkResult = SafeCheckSaveGame(form, &buf);
 
         // Bethesda save sequence per FUN_14181D690 RE pass:
-        //   1. PreSetup(ctx16, form)            — fills 16-byte stack ctx
-        //   2. SaveHeader(buf, form, flags, ctx16, &scratch) — writes
+        //   1. PreSetup(ctx16, form)            - fills 16-byte stack ctx
+        //   2. SaveHeader(buf, form, flags, ctx16, &scratch) - writes
         //      formID + type + size header into buf.dataBuffer
-        //   3. form->vt[0x1A] SaveGame(buf)    — writes form body
+        //   3. form->vt[0x1A] SaveGame(buf)    - writes form body
         PreSaveCtx ctx{};
         std::memset(&ctx, 0, sizeof(ctx));
         const bool preOk = SafeCallPreSetup(&ctx, form);
@@ -363,7 +363,7 @@ namespace Pulsar::Forms
             }
         }
 
-        // Cleanup — manual free of dataBuffer + formID/plugin arrays via
+        // Cleanup - manual free of dataBuffer + formID/plugin arrays via
         // engine's matching free (FUN_1402BA6E0). vt[0] dtor crashed in iter6
         // because abstract-base dtor expects refcount-tracked vectors that
         // we don't have.
@@ -382,7 +382,7 @@ namespace Pulsar::Forms
     //   +0x08 dataBuffer (we point at our blob)
     //   +0x10 dataSize / position state (engine reads sequentially)
     //   +0x14 changeFlags  (mirrors save side)
-    //   +0x18..0xEF — sub-buffers + form-table refs (0-init for our use)
+    //   +0x18..0xEF - sub-buffers + form-table refs (0-init for our use)
     //
     // Engine's vt[0x1B] LoadGame on target reads bytes from buffer.dataBuffer
     // and applies them to the form. Same vtable invariants as save: needs
@@ -390,7 +390,7 @@ namespace Pulsar::Forms
 
     namespace {
         struct alignas(8) LoadFormBufferRaw {
-            void**        vftable;       // +0x00 — REL::ID 398652
+            void**        vftable;       // +0x00 - REL::ID 398652
             void*         dataBuffer;    // +0x08
             std::uint32_t dataSize;      // +0x10
             std::uint32_t changeFlags;   // +0x14
@@ -437,11 +437,11 @@ namespace Pulsar::Forms
         return ok;
     }
 
-    // Phase 2 probe — serialize the player REFR (Actor, formType=kACHR='K').
+    // Phase 2 probe - serialize the player REFR (Actor, formType=kACHR='K').
     // Pivot from iter1-5 TESNPC target: TESNPC base is identical on both
     // host+client (vanilla form 0x7), so serializing it can't carry per-player
     // appearance. The Actor REFR is the actual save-unit Bethesda uses for
-    // player state — RE'd chain (FUN_14181D690 → preSetup → header → vt[0x1A])
+    // player state - RE'd chain (FUN_14181D690 → preSetup → header → vt[0x1A])
     // is built around formType=='K' specifically.
     static void RunSerializeProbe()
     {
@@ -451,7 +451,7 @@ namespace Pulsar::Forms
             return;
         }
 
-        // Player REFR cast to TESForm — Actor inherits TESObjectREFR inherits
+        // Player REFR cast to TESForm - Actor inherits TESObjectREFR inherits
         // TESForm, so the cast is valid. formType will be 'K' (kACHR=0x4B).
         auto* form = static_cast<RE::TESForm*>(player);
         const std::uint32_t formID = form->formID;
@@ -491,7 +491,7 @@ namespace Pulsar::Forms
         // the receiver is presumed to have moved on (next cell-transition
         // will produce a fresher blob anyway).
         static constexpr std::int64_t kBlobMaxAgeMs = 5000;
-        // Cooldown between successive applies on the same target — gives the
+        // Cooldown between successive applies on the same target - gives the
         // engine time to settle after each LoadGame call.
         static constexpr std::int64_t kApplyCooldownMs = 2000;
         static std::int64_t s_lastApplyTickMs = 0;
@@ -561,7 +561,7 @@ namespace Pulsar::Forms
                       data + 1 + sizeof(hdr) + hdr.blobSize);
 
         std::lock_guard g(s_pendingMu);
-        // Drop any older blob from the same source — newer wins.
+        // Drop any older blob from the same source - newer wins.
         s_pending.erase(
             std::remove_if(s_pending.begin(), s_pending.end(),
                 [&](const PendingBlob& q) {
@@ -608,7 +608,7 @@ namespace Pulsar::Forms
             target = static_cast<RE::TESForm*>(mgr.GetRemoteActor());
         }
 
-        // Stable-state gate — only apply if target is in a usable state. If
+        // Stable-state gate - only apply if target is in a usable state. If
         // not, requeue (still bounded by kBlobMaxAgeMs). Avoids hammering the
         // engine during clone respawn cycles.
         bool stable = false;
@@ -621,7 +621,7 @@ namespace Pulsar::Forms
         }
 
         if (!target || !stable) {
-            // Requeue — preserve enqueue tick so age-out still works.
+            // Requeue - preserve enqueue tick so age-out still works.
             std::lock_guard g(s_pendingMu);
             s_pending.push_back(std::move(p));
             return;
@@ -631,11 +631,11 @@ namespace Pulsar::Forms
         DeserializeForm(target, p.blob.data(), p.blob.size(), p.sourceFormID);
     }
 
-    // Public entry — chained from Init.
+    // Public entry - chained from Init.
     void Init()
     {
         RunProbe();
-        // RunSerializeProbe is deferred to TickProbe — at plugin-init the
+        // RunSerializeProbe is deferred to TickProbe - at plugin-init the
         // player singleton is still null (game hasn't loaded any save yet).
     }
 
@@ -644,7 +644,7 @@ namespace Pulsar::Forms
         static std::atomic<bool> s_fired{ false };
         if (s_fired.load(std::memory_order_acquire)) return;
 
-        // Gate 0: host-only. Client doesn't serialize forms — it deserializes.
+        // Gate 0: host-only. Client doesn't serialize forms - it deserializes.
         if (!isHost) return;
 
         // Gate 1: host actually in-game with player loaded into a cell.
@@ -652,11 +652,11 @@ namespace Pulsar::Forms
         if (!player || !player->parentCell) return;
 
         // Gate 2: client connected. The probe AddChange's flags + may touch
-        // save-mgr-adjacent state — must NOT fire while the connect-time
+        // save-mgr-adjacent state - must NOT fire while the connect-time
         // save+transfer pipeline is mid-flight.
         if (!Pulsar::Network::GetSingleton().IsConnected()) return;
 
-        // Gate 3: settle-delay after connect — give the engine ~10s to
+        // Gate 3: settle-delay after connect - give the engine ~10s to
         // finish the connect-time save sync before we mutate change flags.
         // Captures monotonic "first time we saw a connection" so the actual
         // probe runs ≥10s later.

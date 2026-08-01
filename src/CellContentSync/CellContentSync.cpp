@@ -29,7 +29,7 @@ namespace Pulsar::CellContentSync {
 namespace {
 
     // -----------------------------------------------------------------------
-    // K.6 V0 — TESObjectCELL.references is at cell+0x80 in Starfield 1.16.236.
+    // K.6 V0 - TESObjectCELL.references is at cell+0x80 in Starfield 1.16.236.
     //
     // Verified empirically (autodetect probe results from 23:38 test):
     //   POI exterior (FF01BD38): probe +0x80 → size=931 cap=1024 data=ok ✓
@@ -37,10 +37,10 @@ namespace {
     //   POI interior (FF01989C): probe +0x80 → size=5216 cap=8960 data=ok ✓
     //                            probe +0x88 → size=4019838400 cap=527 data=NULL ✗
     //
-    // CommonLibSF's TESObjectCELL claims references at +0x80 — comment matches
+    // CommonLibSF's TESObjectCELL claims references at +0x80 - comment matches
     // reality. But the compiled CLibSF::ForEachReference wrapper read at
     // cell+0x88 because TESHandleForm is declared sizeof=0x38 in CLibSF, while
-    // in the real engine it's 0x30 — shifting all subsequent fields. Our
+    // in the real engine it's 0x30 - shifting all subsequent fields. Our
     // bypass ignores the wrapper and reads directly at +0x80.
     //
     // Layout within BSTArray<NiPointer<TESObjectREFR>>:
@@ -50,7 +50,7 @@ namespace {
     // -----------------------------------------------------------------------
     constexpr std::ptrdiff_t kCellRefsOffset = 0x80;
 
-    // Settle delay — proc-cell construction continues after loadMenu CLOSED.
+    // Settle delay - proc-cell construction continues after loadMenu CLOSED.
     // From the crash log: ENUM fired immediately on TransitSync SEND (same
     // millisecond as loadMenu CLOSED) and crashed reading mid-construct
     // BSTArray. 1500ms gives the engine time to finish the worker thread
@@ -71,7 +71,7 @@ namespace {
     //   POI exterior cells:   ~900-1700 refs
     //   Standard POI interior: ~5000-6000 refs
     //   Heavy POI interior:    24868 refs (cap 39936) observed 2026-04-29
-    // Cap at 65536 — anything beyond is corruption / mid-resize.
+    // Cap at 65536 - anything beyond is corruption / mid-resize.
     // Increasing capacity costs nothing in V0/V1 (we cap descriptor batch
     // separately at MAX_CELL_CONTENT_REFS_PER_BATCH=512), this is just the
     // ceiling we trust the BSTArray header to.
@@ -86,13 +86,13 @@ namespace {
     static std::atomic<std::uint64_t> g_pendingDueTick{ 0 };
 
     // -----------------------------------------------------------------------
-    // V2-Probe (client-side) — incoming batches queue + pending probe trigger.
+    // V2-Probe (client-side) - incoming batches queue + pending probe trigger.
     //
     // Goal: when client transits to a proc cell that matches a recent host
     // batch, scan the client's own cell.references and check for each
     // received descriptor whether a matching local REFR already exists
     // (resolved-base + position-radius). Output is a count of matched vs.
-    // missing — the data tells us if proc-gen is deterministic enough that
+    // missing - the data tells us if proc-gen is deterministic enough that
     // V2 spawn-pipeline isn't needed (matched=N, missing=0) or how many
     // refs would have to be spawned (missing>0).
     // -----------------------------------------------------------------------
@@ -111,7 +111,7 @@ namespace {
     static std::mutex                g_batchMutex;
     static std::vector<PendingBatch> g_pendingBatches;
 
-    // Pending client probe — set when client's own cell changes, drained by Tick().
+    // Pending client probe - set when client's own cell changes, drained by Tick().
     static std::atomic<std::uint32_t> g_pendingProbeNewCell{ 0 };
     static std::atomic<std::uint64_t> g_pendingProbeDueTick{ 0 };
 
@@ -237,7 +237,7 @@ namespace {
 
         const std::uint32_t cellFormID = cell->formID;
         if (cellFormID != newCellFormID) {
-            PLOG_WARN("[PULSAR] CellContentSync: parentCell drift (queued=0x{:08X} now=0x{:08X}) — using actual"sv,
+            PLOG_WARN("[PULSAR] CellContentSync: parentCell drift (queued=0x{:08X} now=0x{:08X}) - using actual"sv,
                       newCellFormID, cellFormID);
         }
 
@@ -262,12 +262,12 @@ namespace {
             size, capacity, data ? "ok" : "NULL");
 
         if (!data || size == 0) {
-            PLOG_INFO("[PULSAR] CellContentSync: cell empty (data={} size={}) — skip"sv,
+            PLOG_INFO("[PULSAR] CellContentSync: cell empty (data={} size={}) - skip"sv,
                       data ? "ok" : "NULL", size);
             return;
         }
         if (size > kMaxSaneRefCount) {
-            PLOG_WARN("[PULSAR] CellContentSync: insane size={} (cap={}) — skip"sv,
+            PLOG_WARN("[PULSAR] CellContentSync: insane size={} (cap={}) - skip"sv,
                       size, capacity);
             return;
         }
@@ -301,7 +301,7 @@ namespace {
             }
             // 2026-04-29: reject obvious-invalid pointer values.
             // Crash dump Starfield_04-28-22-41.dmp showed a slot containing
-            // 0xFFFFFFFFFFFFFFFF (-1, kernel address space) — likely a freed
+            // 0xFFFFFFFFFFFFFFFF (-1, kernel address space) - likely a freed
             // BSTArray slot in a transient state. The `if (!ref)` check only
             // catches NULL, not sentinels. Reading *(-1+0x28) raised an
             // AV in kernel-space that SEH didn't catch (paged code path).
@@ -400,7 +400,7 @@ namespace {
             return;
         }
         if (batchTruncated > 0) {
-            PLOG_WARN("[PULSAR] CellContentSync: batch TRUNCATED — {} refs dropped (cap={})"sv,
+            PLOG_WARN("[PULSAR] CellContentSync: batch TRUNCATED - {} refs dropped (cap={})"sv,
                       batchTruncated,
                       static_cast<unsigned>(Pulsar::Network::MAX_CELL_CONTENT_REFS_PER_BATCH));
         }
@@ -430,7 +430,7 @@ namespace {
     }
 
     // -----------------------------------------------------------------------
-    // V2-Probe (client-side) — Find a local REFR matching (resolvedBase,
+    // V2-Probe (client-side) - Find a local REFR matching (resolvedBase,
     // position) in the client's parentCell.references. Pure C function +
     // SEH so it stays C2712-safe (no C++ unwind through __try). Reuses the
     // same raw +0x80/+0x88 offsets verified in the host enum.
@@ -504,7 +504,7 @@ namespace {
                     }),
                 g_pendingBatches.end());
             snapshot = g_pendingBatches;
-            g_pendingBatches.clear();  // consume — one-shot probe per batch
+            g_pendingBatches.clear();  // consume - one-shot probe per batch
         }
 
         if (snapshot.empty()) {
@@ -513,13 +513,13 @@ namespace {
             return;
         }
 
-        // Run probe on each batch (typically just 1 — most-recent transit).
+        // Run probe on each batch (typically just 1 - most-recent transit).
         NASLOG("CCS-Probe iterating %zu batches", snapshot.size());
         size_t batchIdx = 0;
         for (const auto& pb : snapshot) {
             NASLOG("CCS-Probe batch[%zu] hostCell=0x%08X descriptors=%zu",
                    batchIdx, pb.hostCellFormID, pb.descriptors.size());
-            // L.7 V14.3 — defensive: only probe if host's cell matches
+            // L.7 V14.3 - defensive: only probe if host's cell matches
             // client's. Otherwise the descriptors reference cell content
             // we don't have, and SafeFindMatchingRefInCell may walk into
             // half-loaded refs from a different worldspace.
@@ -574,7 +574,7 @@ namespace {
             NASLOG("CellContentSync PROBE host-cell=0x%08X client-cell=0x%08X matched=%zu missing=%zu",
                    pb.hostCellFormID, clientCellFormID, matched, missing);
 
-            // Per-FormType breakdown — only show types that had refs.
+            // Per-FormType breakdown - only show types that had refs.
             for (int ft = 0; ft < 256; ++ft) {
                 const std::uint32_t m = matchedByType[ft];
                 const std::uint32_t mi = missingByType[ft];
@@ -635,7 +635,7 @@ void OnHostCellChanged(std::uint32_t prevCellFormID,
     g_lastEnumCell.store(newCellFormID, std::memory_order_release);
     g_lastEnumTick.store(now, std::memory_order_release);
 
-    // Defer enumeration — let proc-cell finish constructing.
+    // Defer enumeration - let proc-cell finish constructing.
     g_pendingPrevCell.store(prevCellFormID, std::memory_order_release);
     g_pendingNewCell.store(newCellFormID, std::memory_order_release);
     g_pendingDueTick.store(now + kEnumSettleDelayMs, std::memory_order_release);
@@ -701,7 +701,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
     {
         std::lock_guard<std::mutex> lock(g_batchMutex);
         g_pendingBatches.push_back(std::move(pb));
-        // Cap queue size — drop oldest if too many.
+        // Cap queue size - drop oldest if too many.
         while (g_pendingBatches.size() > 8) {
             g_pendingBatches.erase(g_pendingBatches.begin());
         }

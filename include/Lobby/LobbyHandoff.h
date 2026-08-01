@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-// Teil 2C — DLL glue between the PULSAR companion (Teil 2B) and the game.
+// Teil 2C - DLL glue between the PULSAR companion (Teil 2B) and the game.
 // The companion writes %LOCALAPPDATA%\PULSAR\pulsar_handoff.json (role + host
 // address) and pulsar_profile_in.json (the Teil-1 profile blob to apply), then
 // launches Starfield. The DLL reads them at load to drive host/client + connect
@@ -44,17 +44,17 @@ namespace Pulsar::Lobby
     // Auto-save: RequestAutoSave() is thread-safe (sets a flag); TickAutoSave()
     // does the actual capture on the game thread (safe-point gated + debounced).
     // NOTE (A unification): TickAutoSave is gated on
-    // !DirectRestore::HasBridgedThisSession() — a disconnect after a co-op
+    // !DirectRestore::HasBridgedThisSession() - a disconnect after a co-op
     // session leaves the player in the host-merged world, so capturing there
     // would re-poison the DB (Bug A). The clean profile is maintained by
     // TickCleanProfileCapture below instead.
     void RequestAutoSave();
     void TickAutoSave();
 
-    // A unification Phase 3 — clean DB-profile auto-capture. Game-thread tick.
+    // A unification Phase 3 - clean DB-profile auto-capture. Game-thread tick.
     // Captures the live player profile to pulsar_profile_out.json (which the
     // companion uploads to the DB) ONLY while no host bridge has occurred this
-    // launch (DirectRestore::HasBridgedThisSession() == false) — i.e. from the
+    // launch (DirectRestore::HasBridgedThisSession() == false) - i.e. from the
     // client's OWN loaded save, which is host-free. Fires on the player-ready
     // false→true transition (a fresh save-load) and at a slow steady-state
     // cadence so solo progression travels to the next session. This replaces

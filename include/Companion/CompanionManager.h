@@ -52,7 +52,7 @@ namespace Pulsar::Companion
         CompanionPositionData m_currentPosData{};
         CompanionPositionData m_lastAppliedPos{};
 
-        // SetPosition hook — blocks engine from moving remote companion
+        // SetPosition hook - blocks engine from moving remote companion
         static inline bool s_allowSetPosition = false;
         static inline void* s_originalSetPosition = nullptr;
         static void __fastcall HookedSetPosition(RE::Actor* a_this, const RE::NiPoint3& a_pos, bool a_updateCharController);

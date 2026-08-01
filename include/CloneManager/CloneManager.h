@@ -16,7 +16,7 @@ namespace Pulsar::CloneManager {
     // Spawn a clone of the local player via the engine's inner placement function
     // (FUN_14179a510 / REL::ID 97230). This is the same function Papyrus PlaceAtMe
     // calls internally, so the clone gets a full animation graph, AI process, and
-    // proper cell attachment — it will animate like a real NPC.
+    // proper cell attachment - it will animate like a real NPC.
     //
     // Returns nullptr on failure (invalid player, missing REL::Relocations, or
     // engine-level rejection). On success, returns the spawned Actor and tracks

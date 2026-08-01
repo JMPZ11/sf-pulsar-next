@@ -7,7 +7,7 @@ Scriptname PulsarFurnSync extends ScriptObject Hidden
 ; driven by host's pose from C++ side.
 
 ; Spawns akBase at akClone's position, moves to (x,y,z,angleZ), then activates
-; the new FURN with akClone as action-ref — engine-native sit sequence plays
+; the new FURN with akClone as action-ref - engine-native sit sequence plays
 ; and the clone gets anchored to the FURN's sit marker.
 ; Returns the spawned ObjectReference (or None on failure) via GLOB.
 ObjectReference Function SpawnAndSitForClone(Form akBase, Float afX, Float afY, Float afZ, Float afAngleZ, Actor akClone) Global
@@ -35,7 +35,7 @@ EndFunction
 
 ; Flips a reference's Havok body motion type. For Moon Jumper sync:
 ; Keyframed (4) = physics-inactive, teleportable via SetPosition.
-; Dynamic   (1) = physics-active (default for vehicles — Havok drives it).
+; Dynamic   (1) = physics-active (default for vehicles - Havok drives it).
 Function DoSetMotionType(ObjectReference akRef, int aiMotionType) Global
     if akRef
         akRef.SetMotionType(aiMotionType, false)
@@ -54,11 +54,11 @@ Function DoMoveRefresh(ObjectReference akRef, ObjectReference akTarget) Global
     endif
 EndFunction
 
-; K.2 V5 — Auto-Follow through doors. Called from C++ when peer transitioned
+; K.2 V5 - Auto-Follow through doors. Called from C++ when peer transitioned
 ; through a static (plugin-FormID) door. The destination ref is the door on
 ; the OTHER side of the threshold (extracted from source door's ExtraTeleport
 ; on receiver side). MoveTo here lets the engine handle the cell-load +
-; teleport — same pipeline the engine uses when activating a door normally,
+; teleport - same pipeline the engine uses when activating a door normally,
 ; but bypasses the "player must be near door" cross-cell precondition that
 ; blocks our direct C++ Activate call.
 ;
@@ -70,7 +70,7 @@ Function DoPlayerFollowMoveTo(ObjectReference akDestinationRef) Global
     endif
 EndFunction
 
-; K.2 V6 — Auto-Follow generic ref. Caller passes a known-loaded ref
+; K.2 V6 - Auto-Follow generic ref. Caller passes a known-loaded ref
 ; that's near peer's position (typically peer's clone). MoveTo it to
 ; let engine handle cell-load + teleport.
 Function DoFollowToRef(ObjectReference akTargetRef) Global

@@ -27,7 +27,7 @@ using namespace std::string_view_literals;
 namespace Pulsar::SpawnSync {
 namespace {
 
-    // ENABLE worker — REL::ID(63386) (RVA 0xB4A9C0 on 244). The function the
+    // ENABLE worker - REL::ID(63386) (RVA 0xB4A9C0 on 244). The function the
     // engine's own EnableFunctor calls: void Enable(TESObjectREFR*, bool fadeIn).
     // Idempotent (no-op if the kDisabled formFlag bit 0x800 is already clear) and
     // SAFE off the Papyrus VM on the game thread (no VM-stack arg). RE deliverable:
@@ -102,7 +102,7 @@ namespace {
             p.x = loc[0]; p.y = loc[1]; p.z = loc[2];
             // OBJ_REFR data @ REFR+0x80: angle @ data+0x00 (x/y/z = +0x80/84/88),
             // location @ data+0x0C (+0x8C/90/94), objectReference @ +0x98,
-            // BGSInventoryList @ +0xA0. angle.z is +0x88 — NOT +0xA0 (that is the
+            // BGSInventoryList @ +0xA0. angle.z is +0x88 - NOT +0xA0 (that is the
             // inventory-list pointer; writing it corrupts the actor -> crash).
             p.rz = *reinterpret_cast<const float*>(
                 static_cast<const std::uint8_t*>(refr) + 0x88);   // data.angle.z
@@ -118,7 +118,7 @@ namespace {
                 static_cast<std::uint8_t*>(refr) + 0x8C);
             loc[0] = x; loc[1] = y; loc[2] = z;
             // angle.z @ +0x88 (see SafeReadPosRot). The old +0xA0 was the
-            // BGSInventoryList pointer — writing it crashed the engine in the
+            // BGSInventoryList pointer - writing it crashed the engine in the
             // inventory iterator (REFR+0xA0 guarded list, mov [rbx+0x28]).
             *reinterpret_cast<float*>(
                 static_cast<std::uint8_t*>(refr) + 0x88) = rz;
@@ -214,7 +214,7 @@ namespace {
             // ENTER only (no old cell -> a new cell).
             if (cellAID != 0 || cellBID == 0 || actorFID == 0)
                 return RE::BSEventNotifyControl::kContinue;
-            // Persistent ref only — FF-dynamic refs can't be resolved cross-machine.
+            // Persistent ref only - FF-dynamic refs can't be resolved cross-machine.
             if ((actorFID & 0xFF000000u) == 0xFF000000u)
                 return RE::BSEventNotifyControl::kContinue;
             if (actorFID == 0x14u) return RE::BSEventNotifyControl::kContinue;  // player
@@ -318,7 +318,7 @@ void DrainPending()
         const bool disabled = SafeIsDisabled(refr, flagsOk);
         if (flagsOk && !disabled) {
             // Already enabled locally (client spawned it itself, e.g. the
-            // deterministic crowd) — mark + skip so we never re-touch it.
+            // deterministic crowd) - mark + skip so we never re-touch it.
             std::lock_guard g(s_enabledRefsMutex);
             s_enabledRefs.insert(s.refFormID);
             continue;

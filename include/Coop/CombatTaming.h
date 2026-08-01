@@ -11,7 +11,7 @@
 //
 // Mechanism: zero a focused set of combat GMSTs (the circle/dodge/avoid/
 // adjust-range/flank CHANCE settings) while co-op is connected, restore the
-// originals on disconnect. Pure runtime GameSettingCollection writes — no ESP,
+// originals on disconnect. Pure runtime GameSettingCollection writes - no ESP,
 // no per-NPC RE. Global (affects host + client + all NPCs) but only while in a
 // co-op session. Gated by Config::coopTameCombatAI.
 namespace Pulsar::Coop::CombatTaming

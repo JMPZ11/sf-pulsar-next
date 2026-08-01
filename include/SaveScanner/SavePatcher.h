@@ -1,6 +1,6 @@
 #pragma once
 
-// L.7 Path B — Save-format patcher.
+// L.7 Path B - Save-format patcher.
 //
 // Goal: strip the host's "I am piloting ship X" state from a .sfs save
 // buffer before the host transmits it to the client via the L.7 save-
@@ -67,11 +67,11 @@ namespace Pulsar::SaveScanner
     // recompress, and compare with the original file byte-by-byte.
     // Logs the result. Returns true if recompressed buffer loads back
     // (i.e., DecompressBcpsBuffer succeeds on it and yields the same
-    // decompressed payload). Byte-identical match is NOT required —
+    // decompressed payload). Byte-identical match is NOT required -
     // zlib output is non-deterministic across versions.
     bool RoundTripTest(const std::string& a_path);
 
-    // ─── Path B Phase 3 — Patch pilot state ──────────────────────────
+    // ─── Path B Phase 3 - Patch pilot state ──────────────────────────
     // (To be filled in after Phase 2 diff identifies the exact fields.
     //  Stub returns false = "no patch applied" so caller falls back to
     //  unpatched bytes.)
@@ -80,7 +80,7 @@ namespace Pulsar::SaveScanner
     // any pilot-state bytes were modified.
     bool PatchPilotState(std::vector<std::uint8_t>& a_decompressed);
 
-    // ─── Path B Phase 2 — Byte diff between two saves ────────────────
+    // ─── Path B Phase 2 - Byte diff between two saves ────────────────
     // Decompresses both .sfs files, computes byte-by-byte diff over the
     // inner SFS_SAVEGAME data. Writes a human-readable summary to
     // a_outDiffFile (overwritten if exists).

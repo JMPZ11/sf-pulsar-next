@@ -4,7 +4,7 @@
 
 // Ghidra-verified FormID ↔ plugin-name lookup for Starfield 1.16.236.
 // All offsets come from T34 (`tools/RE_proc_cell/T34_findings.md`), NOT
-// CommonLibSF — that lib's TESDataHandler/TESFile layout is stale for 1.16.236.
+// CommonLibSF - that lib's TESDataHandler/TESFile layout is stale for 1.16.236.
 //
 // TESDataHandler singleton is at RVA 0x5FD9B28 (absolute 0x145FD9B28).
 // Loaded-mod linked-list starts at TESDataHandler+0x1570 (nodes {TESFile*, next*}).
@@ -19,14 +19,14 @@ namespace Pulsar::NPCSync::PluginLookup
     // Host-side: given a fully-qualified FormID, copy the owning plugin's
     // filename into `outBuf` (null-terminated, bounded by `outSize`).
     // Returns true iff a plugin was found AND the copy succeeded. The copy
-    // itself is SEH-guarded — if TESFile+0x38's char* is garbage (half-
+    // itself is SEH-guarded - if TESFile+0x38's char* is garbage (half-
     // initialized TESFile during save-load, unmapped memory past a string's
     // end), we fail cleanly instead of taking down the process. On false,
     // outBuf[0] is set to '\0'.
     bool FormIDToPluginName(uint32_t formID, char* outBuf, size_t outSize) noexcept;
 
     // Flag-aware local-ID extract. For regular ESM the low 24 bits, for
-    // medium the low 16, for light the low 12. Needs the file-flags word —
+    // medium the low 16, for light the low 12. Needs the file-flags word -
     // pass 0 to let this function re-walk the mod list to determine the
     // plugin from the FormID itself.
     uint32_t FormIDToLocalID(uint32_t formID) noexcept;

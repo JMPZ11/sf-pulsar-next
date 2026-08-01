@@ -26,12 +26,12 @@ namespace Pulsar::NPCSync {
     void OnCivilianSnapshotReceived(const uint8_t* a_data, std::size_t a_length);
 
     // Host-side: client forwarded combat damage for a host-matched NPC.
-    // Called on the ENet thread — only queues; the actual SetActorValue
+    // Called on the ENet thread - only queues; the actual SetActorValue
     // happens in OnGameThreadTick (engine calls must be on the game thread).
     void OnDamageReceived(const uint8_t* a_data, std::size_t a_length);
 
     // Corpse-loot sync (2026-06-11): host → client authoritative corpse
-    // inventory (PKT_CORPSE_LOOT). ENet thread — resolves cross-plugin and
+    // inventory (PKT_CORPSE_LOOT). ENet thread - resolves cross-plugin and
     // queues; applied on the game thread once the matched corpse is dead.
     void OnCorpseLootReceived(const uint8_t* a_data, std::size_t a_length);
 
@@ -86,7 +86,7 @@ namespace Pulsar::NPCSync {
     // (returned unchanged). Dynamic (0xFF) clones are looked up through the
     // host→local combat-sync remap (reverse) so the returned key is the host's
     // FormID. Returns 0 when a dynamic victim has no remap entry (i.e. it is a
-    // purely-local, un-synced NPC) — the caller then skips sharing. Thread-safe.
+    // purely-local, un-synced NPC) - the caller then skips sharing. Thread-safe.
     uint32_t LocalRefToHostRef(uint32_t localFormID);
 
     // Returns snapshot of every TESObjectCELL the engine has loaded, as

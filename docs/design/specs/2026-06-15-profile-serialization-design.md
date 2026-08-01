@@ -1,4 +1,4 @@
-# Profil-Serialisierung — Design (Teil 1)
+# Profil-Serialisierung - Design (Teil 1)
 
 > **Status:** Design / Spec. Nächster Schritt = Implementierungsplan (writing-plans).
 > **Datum:** 2026-06-15
@@ -6,7 +6,7 @@
 
 ## Ziel
 
-Ein **storage-agnostisches** Modul, das den kompletten Spieler-Charakter in ein **opakes, versioniertes Blob** serialisiert und ein Blob wieder anwendet — **cross-machine-stabil** (überlebt unterschiedliche Plugin-Ladereihenfolgen zwischen Host und Client). Der Storage selbst (lokale Datei jetzt, STDB später via Companion) bleibt außerhalb dieses Moduls; das Blob ist der Vertrag.
+Ein **storage-agnostisches** Modul, das den kompletten Spieler-Charakter in ein **opakes, versioniertes Blob** serialisiert und ein Blob wieder anwendet - **cross-machine-stabil** (überlebt unterschiedliche Plugin-Ladereihenfolgen zwischen Host und Client). Der Storage selbst (lokale Datei jetzt, STDB später via Companion) bleibt außerhalb dieses Moduls; das Blob ist der Vertrag.
 
 ## Scope (v1, User-bestätigt 2026-06-15)
 
@@ -91,17 +91,17 @@ namespace Pulsar::Profile {
 ## Apply-Flow (`ApplyProfileData`)
 
 1. **T34-decode** jedes `EncodedFormID` → live FormID über `PluginLookup` (löst Plugin+localID gegen die aktuelle Ladereihenfolge dieser Maschine auf). Nicht-auflösbare Forms werden geloggt + übersprungen (defense in depth).
-2. **Inventar** über `DirectRestore`-Diff-Converge angleichen (add/remove gegen Ist-Zustand) — wiederverwendet die gehärtete Logik, die den Engine-Bridge umgeht.
+2. **Inventar** über `DirectRestore`-Diff-Converge angleichen (add/remove gegen Ist-Zustand) - wiederverwendet die gehärtete Logik, die den Engine-Bridge umgeht.
 3. Pro Item mit Mods: `SafeRestoreModArrayOnInventoryItem`.
 4. Items mit `equipped == true` re-equippen.
 5. **Credits** per Diff setzen, **O2-AV** setzen.
 
-**Vorbehalt (dokumentiert):** Mod-Restore klemmt aktuell auf `commonSlots = min(local, cached)` (Crash-Schutz). Hat ein Epic mehr Mods als lokal allokiert, geht Legendary verloren (grau). Vollständiger Epic-Erhalt setzt den Array-Realloc-Fix aus voraus — bis dahin gilt der Clamp als bekannte Grenze.
+**Vorbehalt (dokumentiert):** Mod-Restore klemmt aktuell auf `commonSlots = min(local, cached)` (Crash-Schutz). Hat ein Epic mehr Mods als lokal allokiert, geht Legendary verloren (grau). Vollständiger Epic-Erhalt setzt den Array-Realloc-Fix aus voraus - bis dahin gilt der Clamp als bekannte Grenze.
 
 ## Modul-Grenzen & Abhängigkeiten
 
 - Lebt in `Pulsar::Profile`. Ruft `PluginLookup`, die LootSync-Mod-Primitives und `DirectRestore` auf.
-- **Kein Storage im Modul.** Es liefert/konsumiert nur Blobs. Datei-Persistenz bleibt in `Save`/`Load`; die STDB-Anbindung macht ausschließlich der Companion (Teil 2, Ansatz A) — die DLL schreibt/liest nur Blob-Dateien.
+- **Kein Storage im Modul.** Es liefert/konsumiert nur Blobs. Datei-Persistenz bleibt in `Save`/`Load`; die STDB-Anbindung macht ausschließlich der Companion (Teil 2, Ansatz A) - die DLL schreibt/liest nur Blob-Dateien.
 - Falls `ReadItemMods`/`ApplyItemMods` sauberer geteilt werden sollen, in der Plan-Phase in einen gemeinsamen Header extrahieren (statt aus LootSync zu ziehen).
 
 ## Fehlerbehandlung
@@ -124,5 +124,5 @@ namespace Pulsar::Profile {
 
 - Exakte Credits-MiscObject-FormID und Oxygen-AV-Index (RE bestätigen).
 - Ob `ReadItemMods`/`ApplyItemMods` aus LootSync in einen gemeinsamen Header extrahiert werden.
-- Migration des bestehenden connect-send-Pfads (Main.cpp `ClientProfileHeader`) auf das v2-Blob — oder vorerst koexistieren lassen, bis Teil 2 die Lobby-Übergabe liefert.
+- Migration des bestehenden connect-send-Pfads (Main.cpp `ClientProfileHeader`) auf das v2-Blob - oder vorerst koexistieren lassen, bis Teil 2 die Lobby-Übergabe liefert.
 - Verhalten bei v1-Profilen auf Disk (alte JSON ohne Mods/Credits/O2): version-Feld → tolerantes Laden mit Defaults.

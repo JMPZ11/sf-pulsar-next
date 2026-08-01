@@ -13,7 +13,7 @@ namespace Pulsar::WorldSync::Lock {
     // standalone.
     void Init();
 
-    // Sender entry — called from LootSync's HookedActivate after the
+    // Sender entry - called from LootSync's HookedActivate after the
     // engine's original Activate has returned, when the activation was a
     // player-pressed E on a TESObjectCONT or TESObjectDOOR REFR. We
     // probe REFR_LOCK->flags and broadcast PKT_LOCK_STATE if the flag
@@ -33,7 +33,7 @@ namespace Pulsar::WorldSync::Lock {
                               std::uint32_t refID, std::uint32_t baseID,
                               float px, float py, float pz, bool result);
 
-    // Receiver entry — called from NetworkHost::OnReceive when a
+    // Receiver entry - called from NetworkHost::OnReceive when a
     // PKT_LOCK_STATE arrives. Resolves the cross-plugin base FormID and
     // queues a PendingLock for the next game-thread tick.
     void OnPacketReceived(const std::uint8_t* data, std::size_t length);
@@ -42,7 +42,7 @@ namespace Pulsar::WorldSync::Lock {
     // queues a PendingContainerOpen instead.
     void OnContainerOpenReceived(const std::uint8_t* data, std::size_t length);
 
-    // Drain — must run on the game thread. Walks pending locks AND
+    // Drain - must run on the game thread. Walks pending locks AND
     // pending container opens; for locks writes REFR_LOCK->flags directly,
     // for opens calls Papyrus SetOpen(true) on the matched local REFR.
     void DrainPending();

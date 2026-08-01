@@ -1,17 +1,17 @@
-# SpacetimeDB VPS-Backend + Companion-App — Design (Teil 2)
+# SpacetimeDB VPS-Backend + Companion-App - Design (Teil 2)
 
 > **Status:** Design / Spec. Nächster Schritt = Implementierungsplan (writing-plans). Implementierung erst nach Stabilisierung der laufenden Co-op-Arbeit ().
 > **Datum:** 2026-06-15
 
 ## Ziel
 
-Ein selbst-gehostetes SpacetimeDB-Backend, das **Spieler-Accounts (stabile Identität)**, **persistente Charakter-Profile** und **Lobby-/Server-Browser-Vermittlung** liefert — ohne den Echtzeit-Game-Sync anzufassen. Der Game-Traffic bleibt zu 100 % ENet-P2P host↔client. SpacetimeDB ist nur Orchestrierung + Storage.
+Ein selbst-gehostetes SpacetimeDB-Backend, das **Spieler-Accounts (stabile Identität)**, **persistente Charakter-Profile** und **Lobby-/Server-Browser-Vermittlung** liefert - ohne den Echtzeit-Game-Sync anzufassen. Der Game-Traffic bleibt zu 100 % ENet-P2P host↔client. SpacetimeDB ist nur Orchestrierung + Storage.
 
 ## Nicht-Ziele (bewusst ausgeschlossen)
 
 - **Echtzeit-Game-Sync über STDB.** Positionen/Anims/Combat/Loot bleiben ENet-P2P. STDB-Latenz (WebSocket über VPS) + fehlendes standalone-C++-SDK machen das untauglich.
-- **In-Game-Lobby-UX** (ImGui-Server-Browser, auto-save-load-Flow im Spiel) — das ist **Teil 3**, separate Spec.
-- **Profil-Serialisierung** (Inv/Equip/Credits/O2 → Blob) — das ist **Teil 1**, separate Spec. Diese Spec setzt sie als definierte Schnittstelle voraus (siehe „Schnittstelle zu Teil 1").
+- **In-Game-Lobby-UX** (ImGui-Server-Browser, auto-save-load-Flow im Spiel) - das ist **Teil 3**, separate Spec.
+- **Profil-Serialisierung** (Inv/Equip/Credits/O2 → Blob) - das ist **Teil 1**, separate Spec. Diese Spec setzt sie als definierte Schnittstelle voraus (siehe „Schnittstelle zu Teil 1").
 - **NAT-Traversal / Relay.** v1 setzt Port-Forward bzw. direkte erreichbare Host-IP voraus. NAT-Punch/Relay = später (Teil 3).
 - **Echte Accounts mit Login (OIDC).** v1 nutzt anonyme stabile Identity. OIDC ist der dokumentierte Upgrade-Pfad.
 
@@ -23,11 +23,11 @@ Ein selbst-gehostetes SpacetimeDB-Backend, das **Spieler-Accounts (stabile Ident
 | Companion-Sprache | C# / .NET | Reifstes STDB-Client-SDK (Unity-erprobt), einfache Windows-GUI, schnelle Iteration. |
 | Deployment | Self-host VPS (Docker) | Voller Kontrolle, deckt VPS-Plan, kein Energy-Pricing. |
 | Identität | Anonyme stabile Identity | Einfachster Start für Co-op-Mod; Profil hängt an der STDB-Identity. |
-| DLL ↔ Companion-Kopplung | **Ansatz A — Launcher-zentriert, Datei-Handoff** | Kleinster DLL-Eingriff, saubere Prozessgrenze, kein IPC-Protokoll. Forward-kompatibel zu Live-Bridge (Teil 3). |
+| DLL ↔ Companion-Kopplung | **Ansatz A - Launcher-zentriert, Datei-Handoff** | Kleinster DLL-Eingriff, saubere Prozessgrenze, kein IPC-Protokoll. Forward-kompatibel zu Live-Bridge (Teil 3). |
 
 ### Warum Ansatz A (Launcher-Handoff) statt Live-Socket-Bridge
 
-Der Companion ist ein **Vor-Spiel-Launcher**, kein mitlaufender IPC-Partner. Begründung: (1) kleinster Eingriff in die DLL — nur Datei lesen/schreiben, kein Protokoll; (2) saubere Prozessgrenze — Spiel und Launcher haben unabhängige Lifecycles; (3) deckt sich exakt mit der bestehenden Lobby-Planung („Launcher macht save-load + connect; V3-Connect-Gate ist forward-compatible"). Die Live-Socket-Variante (Ansatz B) ist Teil-3-Material und bleibt durch das Datei-Format vorwärtskompatibel erreichbar. Ein nativer C++-STDB-Client (Ansatz C) wurde verworfen: kein standalone-C++-SDK → BSATN-Protokoll selbst bauen und pflegen, hoher Aufwand/Risiko.
+Der Companion ist ein **Vor-Spiel-Launcher**, kein mitlaufender IPC-Partner. Begründung: (1) kleinster Eingriff in die DLL - nur Datei lesen/schreiben, kein Protokoll; (2) saubere Prozessgrenze - Spiel und Launcher haben unabhängige Lifecycles; (3) deckt sich exakt mit der bestehenden Lobby-Planung („Launcher macht save-load + connect; V3-Connect-Gate ist forward-compatible"). Die Live-Socket-Variante (Ansatz B) ist Teil-3-Material und bleibt durch das Datei-Format vorwärtskompatibel erreichbar. Ein nativer C++-STDB-Client (Ansatz C) wurde verworfen: kein standalone-C++-SDK → BSATN-Protokoll selbst bauen und pflegen, hoher Aufwand/Risiko.
 
 ## Architektur-Überblick
 
@@ -48,7 +48,7 @@ Launcher (C#/.NET, STDB-Client)              STDB-Modul (VPS / Docker)
 
 ## Komponenten
 
-### Komponente 1 — STDB-Modul (Server-Logik auf VPS)
+### Komponente 1 - STDB-Modul (Server-Logik auf VPS)
 
 Sprache: Rust **oder** C# (im Implementierungsplan zu fixieren; Rust ist der STDB-Default, C# erlaubt Code-Teilung mit dem Companion). Läuft als WASM in der self-hosted STDB-Instanz (`spacetime start` / Docker).
 
@@ -74,9 +74,9 @@ Sprache: Rust **oder** C# (im Implementierungsplan zu fixieren; Rust ist der STD
 
 **Lifecycle-Hooks:** STDB liefert `client_connected` / `client_disconnected`. Bei `client_disconnected` werden alle Lobbys mit `host_identity == getrennte Identity` auf `closed` gesetzt und ihre `lobby_member` entfernt → **keine Stale-Lobbys, kein Scheduler nötig**.
 
-**Storage-Agnostik:** Das `blob` ist für STDB nur Bytes + `version`. Dadurch bleibt der Storage swappbar — Phase-1 (lokale Host-Datei) und Phase-2 (STDB) unterscheiden sich nur darin, *wo* das Blob landet, nicht in seinem Format.
+**Storage-Agnostik:** Das `blob` ist für STDB nur Bytes + `version`. Dadurch bleibt der Storage swappbar - Phase-1 (lokale Host-Datei) und Phase-2 (STDB) unterscheiden sich nur darin, *wo* das Blob landet, nicht in seinem Format.
 
-### Komponente 2 — Companion-App (C# / .NET, Windows)
+### Komponente 2 - Companion-App (C# / .NET, Windows)
 
 Eine Anwendung mit zwei Rollen:
 
@@ -86,7 +86,7 @@ Eine Anwendung mit zwei Rollen:
 
 GUI-Framework (Avalonia vs. WinUI vs. WPF) wird im Implementierungsplan entschieden. STDB-Identity-Token persistiert das C#-SDK lokal.
 
-### Komponente 3 — DLL-Glue (C++, neu in PULSAR: `LobbyHandoff.{h,cpp}`)
+### Komponente 3 - DLL-Glue (C++, neu in PULSAR: `LobbyHandoff.{h,cpp}`)
 
 Minimaler Eingriff, nutzt bestehende Pfade:
 
@@ -139,20 +139,20 @@ Mods werden über die M.2-Primitives (`ReadInventoryItemMods` / `SafeRestoreModA
 
 ## Sicherheit / Autorisierung
 
-Anonyme stabile Identity: die STDB-`Identity` ist die Credential (Token vom SDK lokal gespeichert). Alle Reducer autorisieren über `ctx.sender` — ein Client kann nur sein **eigenes** Profil schreiben und nur seine **eigene** Lobby ändern. Bewusstes v1-Limit: Token-Verlust = Profil-Verlust (kein Recovery); OIDC ist der dokumentierte Upgrade.
+Anonyme stabile Identity: die STDB-`Identity` ist die Credential (Token vom SDK lokal gespeichert). Alle Reducer autorisieren über `ctx.sender` - ein Client kann nur sein **eigenes** Profil schreiben und nur seine **eigene** Lobby ändern. Bewusstes v1-Limit: Token-Verlust = Profil-Verlust (kein Recovery); OIDC ist der dokumentierte Upgrade.
 
 ## Teststrategie
 
 - **STDB-Modul:** Reducer gegen lokale `spacetime start`-Instanz; Tabellen-State nach jedem Reducer-Call asserten (register → Account existiert; upsert mit kleinerer version → abgelehnt; create/join → korrekte Member-Zeilen; disconnect-Hook → Lobby closed).
-- **Companion:** Integrationstests gegen lokale Instanz — Roundtrips register/upsert/create/join; `FileSystemWatcher`-Upload-Pfad.
+- **Companion:** Integrationstests gegen lokale Instanz - Roundtrips register/upsert/create/join; `FileSystemWatcher`-Upload-Pfad.
 - **DLL-Glue:** Handoff-Read/Write-Roundtrip; Fallback wenn Datei fehlt/korrupt.
 - **End-to-End (manuell):** Host öffnet Lobby → Client browst + joint → Profil im Spiel angewandt → Save → Re-Login zeigt persistiertes Profil; STDB-offline → Fallback auf Direct-IP.
 
 ## Abhängigkeiten & Reihenfolge
 
-1. **Teil 1 (Profil-Serialisierung)** muss zuerst existieren — liefert `SerializePlayerProfile` / `ApplyPlayerProfile`. Phase-1-Storage kann eine lokale Host-Datei sein; diese Spec (Teil 2) tauscht den Storage gegen STDB.
+1. **Teil 1 (Profil-Serialisierung)** muss zuerst existieren - liefert `SerializePlayerProfile` / `ApplyPlayerProfile`. Phase-1-Storage kann eine lokale Host-Datei sein; diese Spec (Teil 2) tauscht den Storage gegen STDB.
 2. **Teil 2 (diese Spec)** baut STDB-Modul + Companion + DLL-Glue.
-3. **Teil 3 (In-Game-Lobby-UX, optional)** kann später den Datei-Handoff durch eine Live-Socket-Bridge ersetzen — durch das Handoff-Format vorwärtskompatibel.
+3. **Teil 3 (In-Game-Lobby-UX, optional)** kann später den Datei-Handoff durch eine Live-Socket-Bridge ersetzen - durch das Handoff-Format vorwärtskompatibel.
 
 ## Offene Punkte für den Implementierungsplan
 

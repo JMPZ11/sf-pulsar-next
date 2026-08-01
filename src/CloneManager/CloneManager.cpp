@@ -17,14 +17,14 @@ using namespace std::string_view_literals;
 namespace Pulsar::CloneManager {
 
     // =====================================================================
-    // REL::IDs — ALL verified via read_versionlib.py + Ghidra decompile.
+    // REL::IDs - ALL verified via read_versionlib.py + Ghidra decompile.
     // Do not replace with CommonLibSF placeholders. See:
     //   D:\PlusarCellsync\PULSAR_ANIMATED_SPAWN_RE.md
     //   D:\PlusarCellsync\PULSAR_SPAWN_RE.md
     //   D:\PlusarCellsync\PULSAR_PROCEDURAL_RE.md
     // =====================================================================
 
-    // FUN_14179a510 — Inner Placement Engine. Same function Papyrus PlaceAtMe
+    // FUN_14179a510 - Inner Placement Engine. Same function Papyrus PlaceAtMe
     // calls. Spawns a fully-initialized, animatable actor.
     //   Signature (from Ghidra decompile of FUN_14207d830 caller):
     //     longlong FUN_14179a510(
@@ -46,7 +46,7 @@ namespace Pulsar::CloneManager {
         bool startDead,
         int unknown);
 
-    // FUN_140401660 — NiTransform builder.
+    // FUN_140401660 - NiTransform builder.
     //   outTransform[0..11]  = position copied from pos[0..11]
     //   outTransform[0x0C]   = cell bin index (0xffffffff if cell==null fallback)
     //   outTransform[0x10]   = cell pointer (filled by engine from world/current)
@@ -55,11 +55,11 @@ namespace Pulsar::CloneManager {
         const void* niPoint3Pos,  // 3 floats
         void* explicitCell);      // TESObjectCELL* or null
 
-    // FUN_140b3fd60 — SetPersistent with full persistence registration (NOT just
+    // FUN_140b3fd60 - SetPersistent with full persistence registration (NOT just
     // the formFlags bit). Registers the actor in engine's persistent-refs table.
     using SetPersistent_t = void (*)(void* ref, bool persist);
 
-    // FUN_140b4f260 — GetParentWorldSpace(ObjectRef*) — returns TESWorldSpace*.
+    // FUN_140b4f260 - GetParentWorldSpace(ObjectRef*) - returns TESWorldSpace*.
     using GetWorldSpace_t = void* (*)(void* ref);
 
     static REL::Relocation<InnerPlacement_t>   g_innerPlace{ REL::ID(97230) };
@@ -74,7 +74,7 @@ namespace Pulsar::CloneManager {
 
     void Init()
     {
-        // Log resolved addresses once — lets us verify the REL::IDs mapped to
+        // Log resolved addresses once - lets us verify the REL::IDs mapped to
         // the expected offsets at runtime (catches any versionlib drift).
         if (g_initLogged.exchange(true)) return;
         PLOG_INFO("[PULSAR] CloneManager: REL addresses: "
@@ -89,11 +89,11 @@ namespace Pulsar::CloneManager {
     {
         auto* player = RE::PlayerCharacter::GetSingleton();
         if (!player) {
-            PLOG_WARN("[PULSAR] CloneManager::SpawnClone — player is null"sv);
+            PLOG_WARN("[PULSAR] CloneManager::SpawnClone - player is null"sv);
             return nullptr;
         }
         if (!player->parentCell) {
-            PLOG_WARN("[PULSAR] CloneManager::SpawnClone — player has no parentCell"sv);
+            PLOG_WARN("[PULSAR] CloneManager::SpawnClone - player has no parentCell"sv);
             return nullptr;
         }
 
@@ -112,18 +112,18 @@ namespace Pulsar::CloneManager {
         // PlaceDuplicateActorAtMe caller only passes 2 args to FUN_140401660
         // (RCX=out, RDX=pos). param_3 (R8) was uninitialized garbage. Ghidra
         // inferred the param from usage. Real behavior: nullptr → fallback path.
-        PLOG_INFO("[PULSAR] CloneManager: step 1 — BuildTx (null cell)"sv);
+        PLOG_INFO("[PULSAR] CloneManager: step 1 - BuildTx (null cell)"sv);
         g_buildTx(niTransform, &pos, nullptr);
         PLOG_INFO("[PULSAR] CloneManager: step 1 OK"sv);
 
-        PLOG_INFO("[PULSAR] CloneManager: step 2 — GetWorldSpace"sv);
+        PLOG_INFO("[PULSAR] CloneManager: step 2 - GetWorldSpace"sv);
         void* worldSpace = g_getWorld(player);
         PLOG_INFO("[PULSAR] CloneManager: step 2 OK (ws={})"sv, worldSpace);
 
         // Hypothesis from decompile: FUN_14179a510 reads source+0xC8 which on Actor
         // is loadedData (valid pointer), but on TESNPC is something else → crash.
         // PlaceDuplicateActorAtMe (118396) passes Actor*, not TESNPC*. Try that first.
-        PLOG_INFO("[PULSAR] CloneManager: step 3 — InnerPlace (Actor* source = player)"sv);
+        PLOG_INFO("[PULSAR] CloneManager: step 3 - InnerPlace (Actor* source = player)"sv);
         void* spawned = g_innerPlace(
             player,            // duplicate the player Actor (like PlaceDuplicateActorAtMe does)
             niTransform,       // 0x18-byte transform struct
@@ -136,7 +136,7 @@ namespace Pulsar::CloneManager {
         PLOG_INFO("[PULSAR] CloneManager: step 3 returned {}"sv, spawned);
 
         if (!spawned) {
-            PLOG_WARN("[PULSAR] CloneManager::SpawnClone — inner placement returned null"sv);
+            PLOG_WARN("[PULSAR] CloneManager::SpawnClone - inner placement returned null"sv);
             return nullptr;
         }
 
@@ -196,9 +196,9 @@ namespace Pulsar::CloneManager {
         // Mark for delete via TESForm::SetDelete vtable slot (0x33 per prior research).
         // Safer to use Disable + MarkForDelete via the engine's normal pattern. For
         // now, simplest approach: set kDisabled flag. Full cleanup comes in a
-        // follow-up — the actor will be GC'd when its cell unloads.
+        // follow-up - the actor will be GC'd when its cell unloads.
         // TODO: proper delete via vtable[0x33] once confirmed in-game.
-        PLOG_INFO("[PULSAR] CloneManager::DespawnClone — FormID=0x{:08X} (reset tracking only)"sv,
+        PLOG_INFO("[PULSAR] CloneManager::DespawnClone - FormID=0x{:08X} (reset tracking only)"sv,
                   clone->formID);
 
         g_cloneFormID.store(0, std::memory_order_release);

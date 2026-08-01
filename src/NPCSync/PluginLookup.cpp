@@ -13,7 +13,7 @@ namespace Pulsar::NPCSync::PluginLookup
     using namespace std::string_view_literals;
 
     // Starfield.exe base, via the same mechanism REL::ID and REL::Offset use
-    // under the hood — REX::FModule::GetExecutingModule(). Using
+    // under the hood - REX::FModule::GetExecutingModule(). Using
     // GetModuleHandleW(L"Starfield.exe") is unreliable under some
     // SFSE loader configurations; REL::Offset.address() is the canonical way.
     static uintptr_t DataHandlerSlotAddress()
@@ -42,7 +42,7 @@ namespace Pulsar::NPCSync::PluginLookup
     static constexpr uint32_t  kFlag_Overlay  = 1u << 9;
     static constexpr uint32_t  kFlag_Medium   = 1u << 10;
 
-    // Match NPCStateData.sourcePlugin size — avoids a chicken-and-egg include.
+    // Match NPCStateData.sourcePlugin size - avoids a chicken-and-egg include.
     static constexpr size_t NPC_SOURCE_PLUGIN_MAX_LOCAL = 64;
 
     // Everything that dereferences engine memory runs in plain-C __try wrappers
@@ -79,7 +79,7 @@ namespace Pulsar::NPCSync::PluginLookup
     }
 
     // NOTE: TESFile+0x38 is an INLINE `char[]`, not a `char*`. The Ghidra
-    // reference code does `_stricmp(name, (char *)(file + 0x38))` — a cast,
+    // reference code does `_stricmp(name, (char *)(file + 0x38))` - a cast,
     // not a deref. Previously we dereferenced once, which interpreted the
     // first 8 bytes of the filename ("Starfie" etc.) as a pointer and
     // faulted on that "address"; our SEH swallowed the fault and gave us an
@@ -174,7 +174,7 @@ namespace Pulsar::NPCSync::PluginLookup
         uintptr_t slot = DataHandlerSlotAddress();
         uint8_t*  dh   = SafeGetDataHandler(slot);
 
-        // One-shot diagnostic on first call — confirms our slot address is
+        // One-shot diagnostic on first call - confirms our slot address is
         // sensible and the DataHandler isn't null. Without this, a silent
         // "lookup returned nothing" is indistinguishable from a crash.
         static std::atomic<bool> s_logged{ false };
@@ -186,11 +186,11 @@ namespace Pulsar::NPCSync::PluginLookup
 
         uint8_t** node = SafeGetListHead(dh);
 
-        // Per-walk diagnostic — log the first few nodes' file pointers + compile-idx
+        // Per-walk diagnostic - log the first few nodes' file pointers + compile-idx
         // on the first matching-formID lookup, to confirm offsets are right.
         static std::atomic<int> s_diagCount{ 0 };
         const bool diag = s_diagCount.fetch_add(1) < 3;
-        // Hard iteration cap — engine's mod list can't exceed ~255 entries.
+        // Hard iteration cap - engine's mod list can't exceed ~255 entries.
         // Prevents runaway walks if the list tail gets corrupted mid-load.
         for (int guard = 0; node && guard < 512; ++guard) {
             uint8_t* file = SafeReadNodeFile(node);
@@ -263,7 +263,7 @@ namespace Pulsar::NPCSync::PluginLookup
             uint8_t* file = SafeReadNodeFile(node);
             if (!file) break;
 
-            // SEH-copy the filename into a local buffer before stricmp —
+            // SEH-copy the filename into a local buffer before stricmp -
             // _stricmp walks until it finds a null byte and would fault on
             // an invalid engine-side char*.
             char nameBuf[NPC_SOURCE_PLUGIN_MAX_LOCAL];

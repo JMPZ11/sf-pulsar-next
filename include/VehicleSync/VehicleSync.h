@@ -12,7 +12,7 @@ namespace Pulsar::VehicleSync
     // Wire up once at plugin load.
     bool Init();
 
-    // L.7 V13g — clear all cached clone/FURN pointers. Called by
+    // L.7 V13g - clear all cached clone/FURN pointers. Called by
     // WorldSync::OnSaveReceived alongside NPCSync::Reset() so the post-
     // save-load tick doesn't dereference dangling FURN pointers from the
     // pre-save session.

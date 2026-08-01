@@ -48,7 +48,7 @@
 
 using namespace std::string_view_literals;
 
-// Defined in Main.cpp — camera pitch from engine thread hook
+// Defined in Main.cpp - camera pitch from engine thread hook
 extern std::atomic<float> g_playerPitch;
 
 namespace Pulsar::Network
@@ -66,14 +66,14 @@ namespace Pulsar::Network
     // sees a torn ip/port pair.
     static std::atomic<bool>     g_rzPeerKnown{ false };
     static std::atomic<uint64_t> g_rzPeer{ 0 };       // (ipNetOrder << 16) | portHostOrder
-    // Expected relay identity, set in SetRelay — used to AUTHENTICATE incoming PEER.
+    // Expected relay identity, set in SetRelay - used to AUTHENTICATE incoming PEER.
     static std::atomic<uint32_t> g_expectRelayHost{ 0 };
     static std::atomic<uint16_t> g_expectRelayPort{ 0 };
     static uint8_t               g_expectSession[Relay::kSessionBytes] = {};
 
     // ENet calls this for every raw datagram BEFORE protocol processing. We only
     // honor a PEER that (a) actually came FROM the relay endpoint and (b) carries
-    // OUR session — otherwise an attacker could forge a PEER to point us at any IP
+    // OUR session - otherwise an attacker could forge a PEER to point us at any IP
     // (connection hijack / DDoS reflection). Consume our control magic (return 1);
     // pass everything else to ENet (return 0). Runs on the ENet service thread.
     static int ENET_CALLBACK RelayIntercept(ENetHost* a_host, ENetEvent* /*a_event*/)
@@ -84,7 +84,7 @@ namespace Pulsar::Network
         // (a) source must be the relay (only the relay legitimately sends PEER).
         if (a_host->receivedAddress.host != g_expectRelayHost.load(std::memory_order_relaxed) ||
             a_host->receivedAddress.port != g_expectRelayPort.load(std::memory_order_relaxed))
-            return 1;                                   // spoofed/foreign — drop, don't trust
+            return 1;                                   // spoofed/foreign - drop, don't trust
         uint32_t ip; uint16_t port;
         if (Relay::ParsePeer(d, n, ip, port)) {
             // (b) session must match ours (PEER carries the 16-byte session at d[9..24]).
@@ -214,7 +214,7 @@ namespace Pulsar::Network
                 isSneaking, localSeated, lookAtPitch);
         }
 
-        // Seated flag — non-zero occupiedFurniture handle means player is
+        // Seated flag - non-zero occupiedFurniture handle means player is
         // sitting in a FURN. Bit 10 of animFlags.
         bool seatedFlag = (SafeReadPlayerFurnHandle(a_actor) != 0);
 
@@ -226,7 +226,7 @@ namespace Pulsar::Network
             (static_cast<uint16_t>(moveStart ? 1 : 0) << 8) |
             (static_cast<uint16_t>(s_weaponDrawnSticky ? 1 : 0) << 9) |
             (static_cast<uint16_t>(seatedFlag ? 1 : 0) << 10) |
-            // bit 12 — helmet flashlight on (player+0xEB0 != null)
+            // bit 12 - helmet flashlight on (player+0xEB0 != null)
             (static_cast<uint16_t>(Pulsar::FlashlightSync::IsLocalOn() ? 1 : 0) << 12);
 
         // Fill AnimVarSnapshot with all graph variables
@@ -268,12 +268,12 @@ namespace Pulsar::Network
         m_relayMode = false;
         if (a_relayAddr.empty() || a_sessionHex.empty()) return;
         if (!Relay::DecodeSession(a_sessionHex, m_relaySession)) {
-            PLOG_DIAG("[PULSAR] [Relay] bad session hex — falling back to direct"sv);
+            PLOG_DIAG("[PULSAR] [Relay] bad session hex - falling back to direct"sv);
             return;
         }
         auto colon = a_relayAddr.rfind(':');
         if (colon == std::string::npos) {
-            PLOG_DIAG("[PULSAR] [Relay] relay addr needs host:port — direct fallback"sv);
+            PLOG_DIAG("[PULSAR] [Relay] relay addr needs host:port - direct fallback"sv);
             return;
         }
         std::string host = a_relayAddr.substr(0, colon);
@@ -309,7 +309,7 @@ namespace Pulsar::Network
     void NetworkHost::PunchTo(const ENetAddress& a_ep, int a_count)
     {
         if (!m_host) return;
-        uint8_t one = 0x50;  // 'P' — content irrelevant; the act of sending opens our mapping
+        uint8_t one = 0x50;  // 'P' - content irrelevant; the act of sending opens our mapping
         ENetBuffer eb{};
         eb.data = &one; eb.dataLength = 1;
         for (int i = 0; i < a_count; ++i) enet_socket_send(m_host->socket, &a_ep, &eb, 1);
@@ -354,7 +354,7 @@ namespace Pulsar::Network
 
     bool NetworkHost::Connect(const char* a_address, uint16_t a_port)
     {
-        // L.7 V3.1 — if the player isn't fully spawned yet (main menu,
+        // L.7 V3.1 - if the player isn't fully spawned yet (main menu,
         // no save loaded → null inventoryList) we DEFER the connect instead
         // of refusing. Update() drains m_pendingConnectActive on the first
         // tick where IsPlayerReadyForConnect() is true. This lets:
@@ -372,7 +372,7 @@ namespace Pulsar::Network
             m_pendingConnectActive.store(true, std::memory_order_release);
             m_isHost = false;
             PLOG_INFO(
-                "[PULSAR] Connect queued (waiting for save load — "
+                "[PULSAR] Connect queued (waiting for save load - "
                 "will auto-connect when player is in-game)"sv);
             // Return true so callers start their loops (g_running etc.).
             return true;
@@ -409,10 +409,10 @@ namespace Pulsar::Network
             m_rzDeadline = GetTickCount64() + 2000;   // kPeerWaitMs
             m_isHost = false;
             m_lastAddress = a_address; m_lastPort = a_port;
-            PLOG_DIAG("[PULSAR] [Relay] client: rendezvous — awaiting peer endpoint"sv);
+            PLOG_DIAG("[PULSAR] [Relay] client: rendezvous - awaiting peer endpoint"sv);
             return true;
         } else if (m_relayMode) {
-            // FORCE_RELAY — today's verified path verbatim.
+            // FORCE_RELAY - today's verified path verbatim.
             address = m_relayAddress;
             for (int i = 0; i < 3; ++i) SendRelayControl(Relay::kTypeJoin);  // beat reordering
             PLOG_DIAG("[PULSAR] [Relay] client joined session, connecting via relay (forced)"sv);
@@ -489,7 +489,7 @@ namespace Pulsar::Network
                 } else if (now >= m_rzDeadline) {
                     m_peer = enet_host_connect(m_host, &m_relayAddress, NUM_CHANNELS, 0);
                     m_rz = Rz::kDoneRelay;
-                    PLOG_DIAG("[PULSAR] [Relay] no peer endpoint — relay fallback"sv);
+                    PLOG_DIAG("[PULSAR] [Relay] no peer endpoint - relay fallback"sv);
                 }
             } else { // kDirectConnecting
                 if (m_connectionEstablished.load(std::memory_order_acquire)) {
@@ -499,12 +499,12 @@ namespace Pulsar::Network
                     if (m_peer) { enet_peer_reset(m_peer); m_peer = nullptr; }
                     m_peer = enet_host_connect(m_host, &m_relayAddress, NUM_CHANNELS, 0);
                     m_rz = Rz::kDoneRelay;
-                    PLOG_DIAG("[PULSAR] [Relay] direct timed out — relay fallback"sv);
+                    PLOG_DIAG("[PULSAR] [Relay] direct timed out - relay fallback"sv);
                 }
             }
         }
 
-        // L.7 V3.1 — drain queued connect once the player is in-game.
+        // L.7 V3.1 - drain queued connect once the player is in-game.
         // Runs BEFORE the m_host null-check because the whole point is that
         // the connect was deferred (m_host still null). IsPlayerReadyForConnect
         // is SEH-wrapped so reading player pointers off the net thread is safe.
@@ -520,7 +520,7 @@ namespace Pulsar::Network
             }
             m_pendingConnectActive.store(false, std::memory_order_release);
             PLOG_INFO(
-                "[PULSAR] Save loaded — dequeuing pending Connect to {}:{}"sv,
+                "[PULSAR] Save loaded - dequeuing pending Connect to {}:{}"sv,
                 addr, port);
             DoConnectInternal(addr.c_str(), port);
         }
@@ -536,8 +536,8 @@ namespace Pulsar::Network
         // triggers physics-settle callbacks which are also game-thread-only.
         // See RemotePlayerHostTick() / ClientTeleportTick() in Main.cpp.
 
-        // L.7 V9.3 — drain deferred reconnect on game thread. Don't call
-        // Disconnect() directly — that destroys ENet host/peer synchronously
+        // L.7 V9.3 - drain deferred reconnect on game thread. Don't call
+        // Disconnect() directly - that destroys ENet host/peer synchronously
         // and races the network thread which is still using them. Instead
         // initiate a graceful peer-disconnect; ENet's event loop dispatches
         // OnDisconnect naturally, which runs the full cleanup (NPCSync
@@ -545,7 +545,7 @@ namespace Pulsar::Network
         // thread without races.
         if (m_pendingReconnect.exchange(false, std::memory_order_acq_rel)) {
             PLOG_INFO(
-                "[PULSAR] [L.7 V9.3] game-thread draining pending reconnect — "
+                "[PULSAR] [L.7 V9.3] game-thread draining pending reconnect - "
                 "calling enet_peer_disconnect (OnDisconnect cleanup will "
                 "fire async)"sv);
             NASLOG("L.7 V9.3 graceful disconnect requested");
@@ -555,7 +555,7 @@ namespace Pulsar::Network
             }
         }
 
-        // Periodic packet stats logging (safe from any thread — just atomics)
+        // Periodic packet stats logging (safe from any thread - just atomics)
         uint64_t now = GetTickCount64();
         if (now - s_lastPktLog > 5000) {
             s_lastPktLog = now;
@@ -568,22 +568,22 @@ namespace Pulsar::Network
             uint64_t now = GetTickCount64();
             uint64_t elapsed = now - m_quicksaveStartTick;
 
-            // (2026-06-23) — ABORT (do NOT send a stale save) after 30s without
+            // (2026-06-23) - ABORT (do NOT send a stale save) after 30s without
             // a fresh quicksave. The host being IN COMBAT blocks the engine quicksave
             // (the trigger is consumed but no file is written), so the fresh save never
             // materialises. The old fallback here sent SendSaveToClient() = the newest
-            // file ON DISK with no freshness check — which is an OLD save (observed
+            // file ON DISK with no freshness check - which is an OLD save (observed
             // 2026-06-23: an in-space save from earlier testing) → the client loaded it
             // and ended up in space instead of at the host ("client ist nie beim host
             // gelandet"). Mislocating the client is worse than not bridging, so we abort
             // cleanly. The host re-bridges (auto-follow / F8) once it is OUT of combat.
             if (elapsed > 30000) {
                 PLOG_WARN(
-                    "[PULSAR] Quicksave timeout (30s) — no FRESH save (host likely in "
+                    "[PULSAR] Quicksave timeout (30s) - no FRESH save (host likely in "
                     "combat; engine blocks quicksave). ABORTING bridge instead of "
                     "sending a stale save (would mislocate the client). Retry once out "
                     "of combat."sv);
-                NASLOG("Quicksave timeout — bridge aborted (no fresh save, host in combat?)");
+                NASLOG("Quicksave timeout - bridge aborted (no fresh save, host in combat?)");
                 m_quicksavePending = false;
             } else if (now - m_quicksaveLastPoll >= 300) {
                 m_quicksaveLastPoll = now;
@@ -614,7 +614,7 @@ namespace Pulsar::Network
                                 m_quicksavePending = false;
                                 SendSaveToClient(newest);
                             } else {
-                                // Not fully written yet — keep polling until the 30s timeout.
+                                // Not fully written yet - keep polling until the 30s timeout.
                                 m_quicksaveSizeStableSince = now;   // re-arm stability window
                             }
                         }
@@ -652,7 +652,7 @@ namespace Pulsar::Network
         }
 
         // Drain ENet events under lock. OnReceive dispatches to handlers which may
-        // run quickly enough to hold the lock — that's fine. Critical: never call
+        // run quickly enough to hold the lock - that's fine. Critical: never call
         // any ENet API from another thread without this lock.
         {
             std::lock_guard lock(m_enetMutex);
@@ -797,7 +797,7 @@ namespace Pulsar::Network
         size_t fileSize = static_cast<size_t>(file.tellg());
         file.seekg(0, std::ios::beg);
 
-        // L.7 Path B Phase 3 — patch out the host's pilot binding
+        // L.7 Path B Phase 3 - patch out the host's pilot binding
         // before transmission so the engine never restores it on the
         // client side. Failure is non-fatal: fall back to unpatched
         // bytes if any step fails.
@@ -813,19 +813,19 @@ namespace Pulsar::Network
             SaveScanner::BcpsMeta meta{};
             if (!SaveScanner::DecompressBcpsBuffer(rawBytes, decomp, meta)) {
                 PLOG_WARN(
-                    "[PULSAR] [L.7 PathB] decompress failed — sending unpatched"sv);
+                    "[PULSAR] [L.7 PathB] decompress failed - sending unpatched"sv);
                 break;
             }
             const bool didPatch = SaveScanner::PatchPilotState(decomp);
             if (!didPatch) {
                 PLOG_INFO(
-                    "[PULSAR] [L.7 PathB] no pilot marker — sending unpatched"sv);
+                    "[PULSAR] [L.7 PathB] no pilot marker - sending unpatched"sv);
                 break;
             }
             std::vector<uint8_t> patched;
             if (!SaveScanner::RecompressToBcps(decomp, meta, patched)) {
                 PLOG_WARN(
-                    "[PULSAR] [L.7 PathB] recompress failed — sending unpatched"sv);
+                    "[PULSAR] [L.7 PathB] recompress failed - sending unpatched"sv);
                 break;
             }
             sendBytes = std::move(patched);
@@ -847,7 +847,7 @@ namespace Pulsar::Network
         std::memcpy(&buf[1], &totalSize, 4);
         std::memcpy(&buf[5], sendBytes.data(), outFileSize);
 
-        // Send as one big reliable packet — ENet fragments automatically. Encrypted :
+        // Send as one big reliable packet - ENet fragments automatically. Encrypted :
         // the save (= character data) is the most sensitive payload, so it goes through
         // the same E2E path; the relay only ever forwards ciphertext fragments.
         EncSend(1, buf.data(), buf.size(), true);  // channel 1 for large data
@@ -888,9 +888,9 @@ namespace Pulsar::Network
         if (!WorldSync::TriggerHostQuicksave()) {
             // do NOT fall back to the stale newest save (mislocates the client,
             // see the poll-timeout note above). Abort; the client re-requests / F8.
-            PLOG_WARN("[PULSAR] BeginHostQuicksaveTransfer: quicksave trigger failed — "
+            PLOG_WARN("[PULSAR] BeginHostQuicksaveTransfer: quicksave trigger failed - "
                       "aborting bridge (no stale-save fallback, would mislocate client)"sv);
-            NASLOG("BeginHostQuicksaveTransfer: trigger failed — bridge aborted");
+            NASLOG("BeginHostQuicksaveTransfer: trigger failed - bridge aborted");
             return;
         }
 
@@ -910,7 +910,7 @@ namespace Pulsar::Network
     {
         if (!m_peer || !m_isHost) return;
 
-        // L.7 V8c — DO NOT trigger our own save. The engine auto-quicksaves
+        // L.7 V8c - DO NOT trigger our own save. The engine auto-quicksaves
         // after every Star Map jump, and triggering a second save while the
         // engine's SaveLoadManager is still mid-flight crashes the host.
         // Instead, just poll for the newest file (= engine's post-jump
@@ -936,7 +936,7 @@ namespace Pulsar::Network
         m_quicksaveSizeStableSince = 0;
 
         PLOG_INFO(
-            "[PULSAR] [L.7 V8c] Bridge-save transfer: NO trigger — using "
+            "[PULSAR] [L.7 V8c] Bridge-save transfer: NO trigger - using "
             "engine's post-jump auto-save (newest .sfs in saves dir)"sv);
         NASLOG("L.7 V8c Bridge-save transfer (engine auto-save)");
     }
@@ -962,7 +962,7 @@ namespace Pulsar::Network
         m_clientTeleported = false;
         m_hasPendingTeleport = false;
         PLOG_INFO(
-            "[PULSAR] [TELE-DIAG] ResetTeleport applied — m_clientTeleported {} → false "
+            "[PULSAR] [TELE-DIAG] ResetTeleport applied - m_clientTeleported {} → false "
             "(next PKT_POSITION will trigger 'Will teleport player to host area')"sv,
             wasTeleported);
         NASLOG("TELE-DIAG ResetTeleport applied (wasTeleported=%d)",
@@ -973,7 +973,7 @@ namespace Pulsar::Network
     {
         m_suppressNextResetTeleport.store(true);
         PLOG_INFO(
-            "[PULSAR] [TELE-DIAG] SuppressNextResetTeleport armed — next "
+            "[PULSAR] [TELE-DIAG] SuppressNextResetTeleport armed - next "
             "ResetTeleport call will be skipped"sv);
         NASLOG("TELE-DIAG SuppressNextResetTeleport armed");
     }
@@ -1012,7 +1012,7 @@ namespace Pulsar::Network
 
         // Configure peer timeout: detect dead connections.
         // params: limit, min_timeout_ms, max_timeout_ms
-        // 2026-06-11: RELAXED from (5, 2000, 5000) — that dropped the peer
+        // 2026-06-11: RELAXED from (5, 2000, 5000) - that dropped the peer
         // after a 2-5s hiccup (WLAN burst loss / big reliable transfer), and
         // every spurious drop despawned the clone + 3s auto-reconnect +
         // respawn = the reported "clone disappears and reappears" flicker.
@@ -1023,7 +1023,7 @@ namespace Pulsar::Network
         // Ping interval for keepalive (default 500ms, reduce for faster detection)
         enet_peer_ping_interval(a_peer, 500);
 
-        // L.7 V9.4 — peer is now ENET_PEER_STATE_CONNECTED; safe for sends.
+        // L.7 V9.4 - peer is now ENET_PEER_STATE_CONNECTED; safe for sends.
         m_connectionEstablished.store(true, std::memory_order_release);
 
         // tell the Companion a voice session is up (start capture).
@@ -1072,7 +1072,7 @@ namespace Pulsar::Network
                                    a_peer->address.port == m_relayAddress.port);
             if (!viaRelay) {
                 m_relayKeepaliveAt = UINT64_MAX;
-                PLOG_DIAG("[PULSAR] [Relay] host: DIRECT peer — keepalive stopped"sv);
+                PLOG_DIAG("[PULSAR] [Relay] host: DIRECT peer - keepalive stopped"sv);
             } else {
                 PLOG_DIAG("[PULSAR] [Relay] host: peer via relay (fallback)"sv);
             }
@@ -1107,7 +1107,7 @@ namespace Pulsar::Network
             a_packet = &localPkt;
         }
 
-        // PKT_VOICE — proximity voice frame (own framing, unreliable ch2). High
+        // PKT_VOICE - proximity voice frame (own framing, unreliable ch2). High
         // frequency; handled + returned before the diagnostic logging and the
         // save-load barrier so it never floods logs or gets barrier-dropped.
         if (a_packet && a_packet->dataLength >= 1 + sizeof(VoiceFrameHeader)
@@ -1116,7 +1116,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // V14.3 — log every received pkt type for hatch-crash diagnosis.
+        // V14.3 - log every received pkt type for hatch-crash diagnosis.
         // NASLOG flushes immediately so we still see the last pkt before
         // a freeze. Throttled to once per type per ~500ms to avoid flood.
         if (a_packet && a_packet->dataLength >= 1) {
@@ -1142,11 +1142,11 @@ namespace Pulsar::Network
             return;
         }
 
-        // L.7 V13g / V15.1 — save-load barrier. Drop most packets while:
+        // L.7 V13g / V15.1 - save-load barrier. Drop most packets while:
         //   (a) WorldSync is in SAVE_RECEIVED/PENDING_TRIGGER/LOADING
         //       (client is loading host-bridge save), OR
         //   (b) loadMenu is open OR was just observed open (client did
-        //       its OWN fast-travel/POI/door-load — V13g didn't catch
+        //       its OWN fast-travel/POI/door-load - V13g didn't catch
         //       this because WorldSync stays LOADED for client-initiated
         //       loads). Verified 2026-05-04: client crashed after own
         //       fast-travel because 279 buffered NPC packets all fired
@@ -1160,7 +1160,7 @@ namespace Pulsar::Network
                  wss == WorldSync::State::PENDING_TRIGGER ||
                  wss == WorldSync::State::PENDING_QUIT_FADE ||
                  wss == WorldSync::State::LOADING);
-            // Cell3DAttach::IsQuiet() naming is inverted — returns TRUE when
+            // Cell3DAttach::IsQuiet() naming is inverted - returns TRUE when
             // engine is in chaos (loadMenu open OR within settle window after
             // close). That's exactly when we want to barrier. V15.1 bug: I
             // had `!IsQuiet()` which blocked all NORMAL play traffic and
@@ -1189,7 +1189,7 @@ namespace Pulsar::Network
             }
         }
 
-        // PKT_NPC_STATE — batch of NPC positions/health/dead-state (host → client).
+        // PKT_NPC_STATE - batch of NPC positions/health/dead-state (host → client).
         // Also uses own framing (not PacketHeader). Only clients receive.
         if (!m_isHost && a_packet->dataLength >= 1 + sizeof(NPCStateBatchHeader)
             && a_packet->data[0] == PKT_NPC_STATE) {
@@ -1197,7 +1197,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_NPC_DAMAGE — client forwarded combat damage for a host-matched
+        // PKT_NPC_DAMAGE - client forwarded combat damage for a host-matched
         // NPC (own framing, like PKT_NPC_STATE). Host-only: only the host owns
         // the authoritative enemy. Queues; applied on the game thread.
         if (m_isHost && a_packet->dataLength >= 1 + sizeof(NpcDamageData)
@@ -1206,7 +1206,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_PLAYER_DOWNED — peer's player entered/left the downed state.
+        // PKT_PLAYER_DOWNED - peer's player entered/left the downed state.
         // Bidirectional (each player owns its own mortality), so NOT host-gated.
         if (a_packet->dataLength >= 1 + sizeof(PlayerDownedData)
             && a_packet->data[0] == PKT_PLAYER_DOWNED) {
@@ -1214,7 +1214,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_PLAYER_REVIVE — partner asks the downed player (us) to get up
+        // PKT_PLAYER_REVIVE - partner asks the downed player (us) to get up
         // (medpack revive). Bidirectional, NOT host-gated. OnReviveReceived
         // queues only; the revive runs on the game thread.
         if (a_packet->dataLength >= 1 + sizeof(PlayerReviveData)
@@ -1223,7 +1223,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_PLAYER_COMBAT — peer's player combat state changed. A downed partner
+        // PKT_PLAYER_COMBAT - peer's player combat state changed. A downed partner
         // gates its combat-end auto-revive on this (its own enemies disengage the
         // instant it goes down). Bidirectional, NOT host-gated.
         if (a_packet->dataLength >= 1 + sizeof(PlayerCombatData)
@@ -1232,7 +1232,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_KILL_XP — peer earned kill-XP; mirror it onto our own player so
+        // PKT_KILL_XP - peer earned kill-XP; mirror it onto our own player so
         // both players gain XP for a shared-area kill. Bidirectional (each side
         // owns its own kills), NOT host-gated. Queues; awarded on game thread.
         if (a_packet->dataLength >= 1 + sizeof(KillXpData)
@@ -1241,30 +1241,30 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_EQUIP_V2 — peer's worn equipment. re-enabled 2026-06-19 for
+        // PKT_EQUIP_V2 - peer's worn equipment. re-enabled 2026-06-19 for
         // ARMOR only (weapon equip-apply stays gated off in RemotePlayerManager via
-        // EquipSync::kSyncWeapons — it's what destabilised the clone anim graph).
+        // EquipSync::kSyncWeapons - it's what destabilised the clone anim graph).
         if (a_packet->dataLength >= 1 + sizeof(EquipV2Header)
             && a_packet->data[0] == PKT_EQUIP_V2) {
             Pulsar::RemotePlayer::EquipSync::OnEquipV2Received(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_CIVILIAN_SNAPSHOT — slim periodic civilian position resync (host → client).
+        // PKT_CIVILIAN_SNAPSHOT - slim periodic civilian position resync (host → client).
         if (!m_isHost && a_packet->dataLength >= 1 + sizeof(CivilianSnapshotHeader)
             && a_packet->data[0] == PKT_CIVILIAN_SNAPSHOT) {
             Pulsar::NPCSync::OnCivilianSnapshotReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_CORPSE_LOOT — host-authoritative corpse inventory (host → client).
+        // PKT_CORPSE_LOOT - host-authoritative corpse inventory (host → client).
         if (!m_isHost && a_packet->dataLength >= 1 + sizeof(CorpseLootHeader)
             && a_packet->data[0] == PKT_CORPSE_LOOT) {
             Pulsar::NPCSync::OnCorpseLootReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_QUEST_STAGE — peer's TESQuest just advanced a stage; mirror it
+        // PKT_QUEST_STAGE - peer's TESQuest just advanced a stage; mirror it
         // by calling native worker FUN_140D0E1F0 with echo-suppression flag.
         // Bidirectional: either side can be the originator. L.8 Phase 1.
         if (a_packet->dataLength >= 1 + sizeof(QuestStageData)
@@ -1273,7 +1273,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_QUEST_START / PKT_QUEST_STOP — Phase 2 placeholders, dispatched
+        // PKT_QUEST_START / PKT_QUEST_STOP - Phase 2 placeholders, dispatched
         // so the dedicated handler can drain them with a "not yet handled"
         // log and we don't dump them on the default-case fallback.
         if (a_packet->dataLength >= 1 + sizeof(QuestStartStopData)
@@ -1283,26 +1283,26 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_DIALOG_START — peer entered dialogue with NPC. L.8 Phase 3 V1.
+        // PKT_DIALOG_START - peer entered dialogue with NPC. L.8 Phase 3 V1.
         if (a_packet->dataLength >= 1 + sizeof(DialogStartData)
             && a_packet->data[0] == PKT_DIALOG_START) {
             Pulsar::DialogSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
-        // PKT_DIALOG_END — peer dismissed dialogue.
+        // PKT_DIALOG_END - peer dismissed dialogue.
         if (a_packet->dataLength >= 1 + sizeof(DialogEndData)
             && a_packet->data[0] == PKT_DIALOG_END) {
             Pulsar::DialogSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
-        // PKT_DIALOG_VOTE — peer picked a TopicInfo. L.8 Phase 3 V4.
+        // PKT_DIALOG_VOTE - peer picked a TopicInfo. L.8 Phase 3 V4.
         if (a_packet->dataLength >= 1 + sizeof(DialogVoteData)
             && a_packet->data[0] == PKT_DIALOG_VOTE) {
             Pulsar::DialogSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_VEHICLE_POS — single FURN-REFR position from host (Moon Jumper etc.).
+        // PKT_VEHICLE_POS - single FURN-REFR position from host (Moon Jumper etc.).
         // Own framing like PKT_NPC_STATE. Client-only.
         if (!m_isHost && a_packet->dataLength >= 1 + sizeof(VehiclePosData)
             && a_packet->data[0] == PKT_VEHICLE_POS) {
@@ -1310,9 +1310,9 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_LOOT_PICKUP — a pickup happened on the other side; replay
+        // PKT_LOOT_PICKUP - a pickup happened on the other side; replay
         // locally so the REFR despawns here too. Bidirectional (either side
-        // can be the sender) — the hook's replay-guard prevents a rebroadcast
+        // can be the sender) - the hook's replay-guard prevents a rebroadcast
         // loop.
         if (a_packet->dataLength >= 1 + sizeof(LootPickupData)
             && a_packet->data[0] == PKT_LOOT_PICKUP) {
@@ -1320,7 +1320,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_CONTAINER_TAKE — the peer just took an item from a container;
+        // PKT_CONTAINER_TAKE - the peer just took an item from a container;
         // apply the same delta to our mirror container so both sides stay
         // converged. Bidirectional.
         if (a_packet->dataLength >= 1 + sizeof(ContainerTakeData)
@@ -1329,7 +1329,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_LOOT_DROP — the peer dropped an item from inventory; spawn a
+        // PKT_LOOT_DROP - the peer dropped an item from inventory; spawn a
         // matching REFR at our clone's position via drop-core replay.
         // Bidirectional.
         if (a_packet->dataLength >= 1 + sizeof(LootDropData)
@@ -1338,7 +1338,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_KEY_MIRROR — the peer looted a key/keycard; add it to our player
+        // PKT_KEY_MIRROR - the peer looted a key/keycard; add it to our player
         // too so neither gets stuck at a loading-screen door. Bidirectional.
         if (a_packet->dataLength >= 1 + sizeof(KeyMirrorData)
             && a_packet->data[0] == PKT_KEY_MIRROR) {
@@ -1346,7 +1346,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_DOOR_STATE — the peer activated a door; replay Activate
+        // PKT_DOOR_STATE - the peer activated a door; replay Activate
         // locally so the door animates open/closed in sync. Bidirectional.
         if (a_packet->dataLength >= 1 + sizeof(DoorStateData)
             && a_packet->data[0] == PKT_DOOR_STATE) {
@@ -1354,7 +1354,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_NPC_SPAWN — host says a persistent quest NPC became active in the
+        // PKT_NPC_SPAWN - host says a persistent quest NPC became active in the
         // shared cell; enable + place the same ref locally .
         if (a_packet->dataLength >= 1 + sizeof(NpcSpawnData)
             && a_packet->data[0] == PKT_NPC_SPAWN) {
@@ -1362,7 +1362,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_LOCK_STATE — the peer's REFR_LOCK->flags transitioned (typ.
+        // PKT_LOCK_STATE - the peer's REFR_LOCK->flags transitioned (typ.
         // lockpick success); mirror the flag on our local REFR.
         // Bidirectional.
         if (a_packet->dataLength >= 1 + sizeof(LockStateData)
@@ -1371,7 +1371,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_CONTAINER_OPEN — the peer activated an unlocked kCONT;
+        // PKT_CONTAINER_OPEN - the peer activated an unlocked kCONT;
         // mirror the open-state via SetOpen on our local REFR. Bidirectional.
         if (a_packet->dataLength >= 1 + sizeof(ContainerOpenData)
             && a_packet->data[0] == PKT_CONTAINER_OPEN) {
@@ -1379,7 +1379,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_GRAB_STATE — the peer is E-Hold-grabbing a REFR; mirror its
+        // PKT_GRAB_STATE - the peer is E-Hold-grabbing a REFR; mirror its
         // position via SetPosition vt[0x89] until release. Bidirectional.
         if (a_packet->dataLength >= 1 + sizeof(GrabStateData)
             && a_packet->data[0] == PKT_GRAB_STATE) {
@@ -1387,7 +1387,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_ACTI_STATE — the peer activated a kACTI REFR (switch, button,
+        // PKT_ACTI_STATE - the peer activated a kACTI REFR (switch, button,
         // power-conduit); replay Activate locally so the engine triggers
         // the activator's script + animation. Bidirectional.
         if (a_packet->dataLength >= 1 + sizeof(ActiStateData)
@@ -1396,7 +1396,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_FORM_BLOB — host streamed a serialized form (typically the
+        // PKT_FORM_BLOB - host streamed a serialized form (typically the
         // player REFR after cell-transition). Client deserializes onto the
         // matching local target (clone) so the engine treats it like a
         // save-loaded actor (re-attaches biped, applies extra-data, etc.).
@@ -1406,14 +1406,14 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_TRANSIT — Phase K.1. Peer transitioned cells. K.1 logs only.
+        // PKT_TRANSIT - Phase K.1. Peer transitioned cells. K.1 logs only.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(TransitData)
             && a_packet->data[0] == PKT_TRANSIT) {
             Pulsar::TransitSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_SPACE_TRANSITION — Phase K.7. Peer ship lifecycle event.
+        // PKT_SPACE_TRANSITION - Phase K.7. Peer ship lifecycle event.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(SpaceTransitionData)
             && a_packet->data[0] == PKT_SPACE_TRANSITION) {
             Pulsar::SpaceSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
@@ -1421,121 +1421,121 @@ namespace Pulsar::Network
         }
 
         // L.6 V1 (PKT_DOCK_STATE 0x88) + V2 (PKT_HATCH_TRANSIT 0x89) removed
-        // 2026-05-02 — both were MoveTo-shortcut approaches. V3 plan in
+        // 2026-05-02 - both were MoveTo-shortcut approaches. V3 plan in
         // memory/project_l6_dock_sync.md (engine-state memory-diff).
 
-        // PKT_SHIP_POS — Phase L.3 V1. Pilot's ship pos/rot update.
+        // PKT_SHIP_POS - Phase L.3 V1. Pilot's ship pos/rot update.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(ShipPosData)
             && a_packet->data[0] == PKT_SHIP_POS) {
             Pulsar::SpaceSync::OnShipPosReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_FLIGHT_STATE — Phase L.3 V2 V1. Pilot StickDataProvider state.
+        // PKT_FLIGHT_STATE - Phase L.3 V2 V1. Pilot StickDataProvider state.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(FlightStateData)
             && a_packet->data[0] == PKT_FLIGHT_STATE) {
             Pulsar::FlightSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_FLIGHT_INPUT — Phase L.3 V2 V2. Pilot raw input axes.
+        // PKT_FLIGHT_INPUT - Phase L.3 V2 V2. Pilot raw input axes.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(FlightInputData)
             && a_packet->data[0] == PKT_FLIGHT_INPUT) {
             Pulsar::FlightSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_PMO_PAYLOAD — Phase L.3 V2.2. Full PMO event payload bytes.
+        // PKT_PMO_PAYLOAD - Phase L.3 V2.2. Full PMO event payload bytes.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(PMOPayloadData)
             && a_packet->data[0] == PKT_PMO_PAYLOAD) {
             Pulsar::FlightSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_SHIP_TRANSFORM — Phase L.3 V3. NiNode world transform.
+        // PKT_SHIP_TRANSFORM - Phase L.3 V3. NiNode world transform.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(ShipTransformData)
             && a_packet->data[0] == PKT_SHIP_TRANSFORM) {
             Pulsar::FlightSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_SHIP_FIRE — Phase L.4 V1. Ship weapon fire event.
+        // PKT_SHIP_FIRE - Phase L.4 V1. Ship weapon fire event.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(ShipFireData)
             && a_packet->data[0] == PKT_SHIP_FIRE) {
             Pulsar::FlightSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_NPC_SHIP_BATCH — Phase M.1 V2 iter2. NPC ship transforms.
+        // PKT_NPC_SHIP_BATCH - Phase M.1 V2 iter2. NPC ship transforms.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(NPCShipBatch)
             && a_packet->data[0] == PKT_NPC_SHIP_BATCH) {
             Pulsar::FlightSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_SHIP_AV — ship-combat sync. Shared-ship hull (slice 2).
+        // PKT_SHIP_AV - ship-combat sync. Shared-ship hull (slice 2).
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(ShipAvData)
             && a_packet->data[0] == PKT_SHIP_AV) {
             Pulsar::ShipCombatSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_TIME_WEATHER_REQ — client asks host for time+weather (header-only).
+        // PKT_TIME_WEATHER_REQ - client asks host for time+weather (header-only).
         if (a_packet->dataLength >= 1 && a_packet->data[0] == PKT_TIME_WEATHER_REQ) {
             Pulsar::TimeWeatherSync::OnRequestReceived();
             return;
         }
 
-        // PKT_TIME_WEATHER — host's one-shot time+weather snapshot (client applies).
+        // PKT_TIME_WEATHER - host's one-shot time+weather snapshot (client applies).
         if (a_packet->dataLength >= 1 + sizeof(TimeWeatherData)
             && a_packet->data[0] == PKT_TIME_WEATHER) {
             Pulsar::TimeWeatherSync::OnSnapshotReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_CRUISE_STATE — Phase L.5. Cruise mode toggle.
+        // PKT_CRUISE_STATE - Phase L.5. Cruise mode toggle.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(CruiseStateData)
             && a_packet->data[0] == PKT_CRUISE_STATE) {
             Pulsar::FlightSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_CRUISE_ORIENT — Phase L.5 Phase 4 Step 11. Continuous orient sync.
+        // PKT_CRUISE_ORIENT - Phase L.5 Phase 4 Step 11. Continuous orient sync.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(CruiseOrientData)
             && a_packet->data[0] == PKT_CRUISE_ORIENT) {
             Pulsar::FlightSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_DOCK_FINISHED — Phase L.6 V3 Phase 2. Host → client dock-state.
+        // PKT_DOCK_FINISHED - Phase L.6 V3 Phase 2. Host → client dock-state.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(DockFinishedData)
             && a_packet->data[0] == PKT_DOCK_FINISHED) {
             Pulsar::DockSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_DOCK_EXTRATELEPORT — Phase L.6 V3 Phase 3b. ExtraTeleport bytes.
+        // PKT_DOCK_EXTRATELEPORT - Phase L.6 V3 Phase 3b. ExtraTeleport bytes.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(DockExtraTeleportData)
             && a_packet->data[0] == PKT_DOCK_EXTRATELEPORT) {
             Pulsar::DockSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_DOCK_UNDOCKED — Phase L.6 V3 Phase 3e. Symmetric undock cleanup.
+        // PKT_DOCK_UNDOCKED - Phase L.6 V3 Phase 3e. Symmetric undock cleanup.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(DockUndockedData)
             && a_packet->data[0] == PKT_DOCK_UNDOCKED) {
             Pulsar::DockSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_DOCK_STATION_XT — Phase L.6 V3 Phase 3i. Pilot's station-XT bytes.
+        // PKT_DOCK_STATION_XT - Phase L.6 V3 Phase 3i. Pilot's station-XT bytes.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(DockStationXTData)
             && a_packet->data[0] == PKT_DOCK_STATION_XT) {
             Pulsar::DockSync::OnPacketReceived(a_packet->data, a_packet->dataLength);
             return;
         }
 
-        // PKT_DOCK_FORWARD_BRIDGE_EXPECTED — Phase L.6 V3 Phase 3i v17.
+        // PKT_DOCK_FORWARD_BRIDGE_EXPECTED - Phase L.6 V3 Phase 3i v17.
         // Host signals "save-bridge incoming, suppress your cockpit-hatch
         // activate". Payload: just a uint64 timestamp (8 bytes after header).
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(uint64_t)
@@ -1544,7 +1544,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_FAST_TRAVEL_SYNC — Phase L.7 V7. Host tells client which
+        // PKT_FAST_TRAVEL_SYNC - Phase L.7 V7. Host tells client which
         // cell+pos+WS its ship arrived in after a Star Map fast-travel.
         if (a_packet->dataLength >= HEADER_SIZE + sizeof(FastTravelSyncData)
             && a_packet->data[0] == PKT_FAST_TRAVEL_SYNC) {
@@ -1553,7 +1553,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_CLIENT_LOAD_COMPLETE — Phase L.7 V8. Client → host: a save
+        // PKT_CLIENT_LOAD_COMPLETE - Phase L.7 V8. Client → host: a save
         // load just finished, host can fire the next save-bridge safely.
         if (a_packet->dataLength >= 1 && a_packet->data[0] == PKT_CLIENT_LOAD_COMPLETE) {
             Pulsar::SpaceSync::FastTravel::OnClientLoadCompletePacket(
@@ -1574,7 +1574,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_BRIDGE_REQUEST — L.7. Client → host: the client's AutoFollow
+        // PKT_BRIDGE_REQUEST - L.7. Client → host: the client's AutoFollow
         // had to skip across a proc / cross-worldspace boundary and asks the
         // host to bridge it (auto co-location). Queues for the game thread.
         if (a_packet->dataLength >= 1 && a_packet->data[0] == PKT_BRIDGE_REQUEST) {
@@ -1583,7 +1583,7 @@ namespace Pulsar::Network
             return;
         }
 
-        // PKT_HOST_REQUEST_RECONNECT — L.7 V9. Host says "drop and rejoin"
+        // PKT_HOST_REQUEST_RECONNECT - L.7 V9. Host says "drop and rejoin"
         // so the connect-time save flow (full engine reset) re-syncs the
         // client. Used after the engine's 2nd-mid-game-load limit kicks in.
         // CALLED ON NETWORK-RECEIVE THREAD: must NOT call Disconnect() here
@@ -1592,14 +1592,14 @@ namespace Pulsar::Network
         // a safe context.
         if (a_packet->dataLength >= 1 && a_packet->data[0] == PKT_HOST_REQUEST_RECONNECT && !m_isHost) {
             PLOG_INFO(
-                "[PULSAR] [L.7 V9] client RECV RECONNECT request — "
+                "[PULSAR] [L.7 V9] client RECV RECONNECT request - "
                 "scheduling disconnect on game thread"sv);
             NASLOG("L.7 V9 client RECV reconnect request (deferred)");
             m_pendingReconnect.store(true, std::memory_order_release);
             return;
         }
 
-        // PKT_CELL_CONTENT_BATCH — Phase K.6 V1. Custom framing
+        // PKT_CELL_CONTENT_BATCH - Phase K.6 V1. Custom framing
         // ([type][hdr][descriptors]), NOT PacketHeader-based.
         if (a_packet->dataLength >= 1 + sizeof(CellContentBatchHeader)
             && a_packet->data[0] == PKT_CELL_CONTENT_BATCH) {
@@ -1626,14 +1626,14 @@ namespace Pulsar::Network
                 // so the client co-locates with where the host actually is (not a stale
                 // on-disk save). RE 2026-06-23: a quicksave's decompressed inner save is
                 // byte-format-IDENTICAL to a full save (SFS_SAVEGAME, same fields), so the
-                // old "triggered quicksave is rejected" was NOT a format problem — it was
+                // old "triggered quicksave is rejected" was NOT a format problem - it was
                 // an incomplete file sent mid-write (or the abandoned saveType=2 mutation
                 // corrupting it). The quicksave-poll now gates the send on the file fully
                 // decompressing, so only a COMPLETE save goes out. If no fresh save appears
                 // (host in combat → engine blocks saving, or mid-flight), the poll's 30s
                 // timeout falls back to the newest on-disk save.
                 //
-                // L.7 D1 — debounce: a lossy link re-handshakes after an ENet
+                // L.7 D1 - debounce: a lossy link re-handshakes after an ENet
                 // timeout hiccup. Re-sending the bridge save to a client that is
                 // already in-world forces a destructive save-reload mid-session
                 // (clone freed mid-load → CTD). Only auto-bridge if we haven't
@@ -1644,7 +1644,7 @@ namespace Pulsar::Network
                         nowMs - m_lastAutoBridgeMs < 90000) {
                         PLOG_INFO(
                             "[PULSAR] [L.7 D1] handshake re-bridge SKIPPED "
-                            "({}ms since last auto-bridge < 90s) — client likely "
+                            "({}ms since last auto-bridge < 90s) - client likely "
                             "reconnected mid-session; press F8 to force"sv,
                             nowMs - m_lastAutoBridgeMs);
                         NASLOG("D1 re-bridge skipped (reconnect debounce)");
@@ -1670,7 +1670,7 @@ namespace Pulsar::Network
                     m_clientTeleported = true;
                     PLOG_INFO(
                         "[PULSAR] [TELE-DIAG] Will teleport player to host area "
-                        "(target pos=({:.1f},{:.1f},{:.1f}) cell=0x{:08X}) — "
+                        "(target pos=({:.1f},{:.1f},{:.1f}) cell=0x{:08X}) - "
                         "triggered by PKT_POSITION RECV after m_clientTeleported was false"sv,
                         pos.x, pos.y, pos.z, pos.cellFormID);
                     NASLOG("TELE-DIAG Will teleport pos=(%.1f,%.1f,%.1f) cell=0x%08X",
@@ -1679,7 +1679,7 @@ namespace Pulsar::Network
 
                 // First position packet: request spawn of remote player avatar
                 // Guard: only spawn when PULSAR.esp is loaded (globs available).
-                // During WorldSync (save loading), the client is at the main menu — globs aren't
+                // During WorldSync (save loading), the client is at the main menu - globs aren't
                 // available yet, DoDespawn/DoSpawn are no-ops, causing an infinite storm.
                 // WorldSync::ProcessPending triggers ForceRespawn itself at LOADED state.
                 if (!remoteMgr.IsSpawnPending() && remoteMgr.IsGlobsResolved()) {
@@ -1688,7 +1688,7 @@ namespace Pulsar::Network
 
                 // Send position to remote player manager (writes to GLOBs → Papyrus TranslateTo)
                 s_pktRecvPos++;
-                // Phase I — propagate sender's parentCell so DoSetPosition can
+                // Phase I - propagate sender's parentCell so DoSetPosition can
                 // suppress cross-cell applies (proc-cell mismatch after rein).
                 remoteMgr.SetRemoteCellID(pos.cellFormID);
                 remoteMgr.RequestSetPosition(pos.x, pos.y, pos.z, pos.rotX, pos.rotY, pos.rotZ,
@@ -1703,7 +1703,7 @@ namespace Pulsar::Network
             break;
         }
         case PKT_EQUIPMENT: {
-            // Disabled 2026-04-25 — outdated equipment-sync path, rebuilt in
+            // Disabled 2026-04-25 - outdated equipment-sync path, rebuilt in
             // Phase F.2. Receiver is a no-op; packet still drained so the
             // reader advances. Sender also disabled in Main.cpp.
             EquipmentData equip{};
@@ -1773,7 +1773,7 @@ namespace Pulsar::Network
             case 1: reasonStr = "timeout"; break;
             case 2: reasonStr = "reset"; break;
         }
-        PLOG_INFO("[PULSAR] Peer disconnected — reason={} ({}) rtt={}ms loss={:.1f}%"sv,
+        PLOG_INFO("[PULSAR] Peer disconnected - reason={} ({}) rtt={}ms loss={:.1f}%"sv,
                   a_reason, reasonStr,
                   a_peer ? a_peer->roundTripTime : 0,
                   a_peer ? (a_peer->packetLoss / 65536.0f * 100.0f) : 0.0f);
@@ -1782,7 +1782,7 @@ namespace Pulsar::Network
             m_peer = nullptr;
             Pulsar::Voice::VoiceBridge::OnPeerDown();  // stop voice capture
         }
-        // L.7 V9.4 — reset established flag so handshake-on-reconnect waits
+        // L.7 V9.4 - reset established flag so handshake-on-reconnect waits
         // for the new OnConnect callback rather than firing while CONNECTING.
         m_connectionEstablished.store(false, std::memory_order_release);
 
@@ -1803,14 +1803,14 @@ namespace Pulsar::Network
         Pulsar::QuestSync::Reset();
         Pulsar::DialogSync::Reset();
 
-        // M.3 Player Inventory Separation — capture client's current state
+        // M.3 Player Inventory Separation - capture client's current state
         // to PULSAR_Profiles/client_state.psprof so the next MP session
         // starts from this state instead of host's loaded inventory. Host
         // is no-op (their save is canonical). Queues onto game thread.
         Pulsar::InventorySync::OnNetworkDisconnect();
 
         // Lobby auto-save: back up the player's character (loot/credits gained this
-        // session) so it travels to the next session. Flag only — the actual capture
+        // session) so it travels to the next session. Flag only - the actual capture
         // runs on the game thread (TickAutoSave), safe-point gated + debounced.
         Pulsar::Lobby::RequestAutoSave();
 
@@ -1822,7 +1822,7 @@ namespace Pulsar::Network
             Companion::GetCompanionManager().RequestEnableAI();
         }
 
-        // Host stays listening — client can reconnect without restart
+        // Host stays listening - client can reconnect without restart
         if (!m_isHost && !m_lastAddress.empty()) {
             m_reconnectAt = GetTickCount64() + 3000;  // try reconnect in 3s
             PLOG_INFO("[PULSAR] Will auto-reconnect in 3s..."sv);

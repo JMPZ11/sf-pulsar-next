@@ -34,7 +34,7 @@ namespace Pulsar::Companion
     // Companion ref ID - 0x57BE = Vasco (robot, fallback)
     static constexpr RE::TESFormID VASCO_REF_ID = 0x000057BE;
 
-    // ChangeAnimArchetype — confirmed via Ghidra RE of Starfield 1.16.236
+    // ChangeAnimArchetype - confirmed via Ghidra RE of Starfield 1.16.236
     static bool ChangeAnimArchetype(RE::Actor* actor, RE::BGSKeyword* keyword)
     {
         if (!actor || !keyword) return false;
@@ -471,7 +471,7 @@ namespace Pulsar::Companion
             using OrigFn = void(__fastcall*)(RE::Actor*, const RE::NiPoint3&, bool);
             reinterpret_cast<OrigFn>(s_originalSetPosition)(a_this, a_pos, a_updateCharController);
         }
-        // else: blocked — log periodically
+        // else: blocked - log periodically
         static int s_blockCount = 0;
         if (++s_blockCount >= 300) {
             PLOG_INFO("[PULSAR] SetPosition hook blocked {} engine calls"sv, s_blockCount);
@@ -536,7 +536,7 @@ namespace Pulsar::Companion
             return;
         }
 
-        // === Move 3D node directly — bypasses CharacterController completely ===
+        // === Move 3D node directly - bypasses CharacterController completely ===
         // SetPosition kills animation pipeline. Direct NiNode transform update doesn't.
         // Update data.location (game state) + world.translate (render position)
 
@@ -562,7 +562,7 @@ namespace Pulsar::Companion
         // Rotation toward movement direction
         m_companion->data.angle.z = m_targetPosData.rotZ;
 
-        // Animation graph variables from network data — EVERY call
+        // Animation graph variables from network data - EVERY call
         float netSpeed = m_targetPosData.speed;
         float netDirection = m_targetPosData.direction;
 

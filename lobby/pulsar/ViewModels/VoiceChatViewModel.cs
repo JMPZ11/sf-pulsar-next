@@ -161,7 +161,7 @@ public partial class VoiceChatViewModel : ViewModelBase
             Key.LeftAlt => 0xA4,
             Key.RightAlt => 0xA5,
             Key.Tab => 0x09,
-            Key.OemTilde => 0xC0,   // ` — common PTT key
+            Key.OemTilde => 0xC0,   // ` - common PTT key
             _ => 0
         };
     }

@@ -7,7 +7,7 @@
 // the clone to create/destroy a REAL BSShadowLight that follows the clone.
 //
 // Transport: 1 spare bit (bit 12) on PKT_POSITION animFlags (continuous,
-// latest-wins) — no dedicated packet.
+// latest-wins) - no dedicated packet.
 
 namespace RE { class Actor; }
 
@@ -24,7 +24,7 @@ namespace Pulsar::FlashlightSync {
 
     // Release our owned light on a clone BEFORE the clone/its 3D node is torn
     // down (call from the controlled despawn path while the clone is still
-    // valid) — prevents a dangling-ref use-after-free.
+    // valid) - prevents a dangling-ref use-after-free.
     void ReleaseForClone(RE::Actor* a_clone);
 
     // Drop ALL tracking WITHOUT releasing (save-load full reset already frees the
@@ -32,7 +32,7 @@ namespace Pulsar::FlashlightSync {
     // save-load clone-invalidation path.
     void ForgetAll();
 
-    // DIAG — dump the player's working headlamp light vs our created clone
+    // DIAG - dump the player's working headlamp light vs our created clone
     // light (both on the host) so we can diff the config that makes one visible.
     void DumpLights();
 

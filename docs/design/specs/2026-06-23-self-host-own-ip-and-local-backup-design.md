@@ -92,7 +92,7 @@ LocalStack stops hardcoding 127.0.0.1 and instead resolves the host's reachable 
 
 ---
 
-## UPDATE 2026-06-23 (after reading the handoff + companion code) — simplified to "pure direct"
+## UPDATE 2026-06-23 (after reading the handoff + companion code) - simplified to "pure direct"
 
 Code investigation changed the connection model for the better:
 

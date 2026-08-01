@@ -29,12 +29,12 @@ namespace {
     //     FUN_1405E2CF0 to build 3D, then post-attach via FUN_140B37390.
     //
     //   Slot in Actor::vftable @ 0x144CB9248 (clone's primary vtable):
-    //     CORRECTED 2026-04-29 — original RE had slot 0x95 wrong; verified
+    //     CORRECTED 2026-04-29 - original RE had slot 0x95 wrong; verified
     //     via Ghidra script RE_FindAttachBipedSlot.java (scan for ptr to
     //     FUN_140B24E60 in all Actor-derived vtables). The clone's primary
     //     vtable (0x144CB9248) has AttachBiped at slot 0x13, not 0x95.
     //     Slot 0x95 in that vtable points to FUN_141961880 (a formType-
-    //     dispatched equip/something function — calling it on a clone with
+    //     dispatched equip/something function - calling it on a clone with
     //     empty NiNode silently no-ops, which is why Phase H was inert).
     //
     //   See:
@@ -53,7 +53,7 @@ namespace {
     // short enough to feel responsive.
     constexpr std::uint64_t kFallbackDelayMs = 2000;
 
-    // Post-attach grace period — don't probe again for this long after
+    // Post-attach grace period - don't probe again for this long after
     // we've fired a manual attach (success OR failure).
     constexpr std::uint64_t kManualAttachCooldownMs = 5000;
 
@@ -64,7 +64,7 @@ namespace {
     std::atomic<std::uint32_t> g_sinkFireCount{ 0 };
     std::atomic<bool>          g_initialised{ false };
 
-    // Phase I — Position-sync quiet window state.
+    // Phase I - Position-sync quiet window state.
     std::atomic<bool>          g_inLoadMenu{ false };
     std::atomic<std::uint64_t> g_lastLoadMenuCloseTick{ 0 };
     // 2026-06-11: 1500 → 3500. The post-load anim-graph rebuild takes longer
@@ -72,7 +72,7 @@ namespace {
     // the half-built graph (both-down reload, client crash 22:43 +0x377E90).
     constexpr std::uint64_t    kQuietPostCloseMs = 3500;
 
-    // Per-cycle state — guarded by tick (single-thread).
+    // Per-cycle state - guarded by tick (single-thread).
     struct CycleState {
         std::uint64_t cellChangeTick = 0;       // when player cell changed
         std::uint64_t lastManualAttachTick = 0; // last fallback fire
@@ -148,7 +148,7 @@ namespace {
     }
 
     // ---------------------------------------------------------------------
-    // The event payload — opaque to us. From the RE pass:
+    // The event payload - opaque to us. From the RE pass:
     //   +0x00  ObjectAttachmentInstance::vftable
     //   +0x08  attachKeyA  (uint)
     //   +0x0C  attachKeyB  (uint, from DAT_146202d18)
@@ -186,7 +186,7 @@ namespace {
 
     // Sink subclass over an opaque event. Since we can't include a header
     // for TESCellReference3DAttachEvent (CommonLibSF doesn't define the
-    // struct), template the sink over our opaque type — vtable layout of
+    // struct), template the sink over our opaque type - vtable layout of
     // BSTEventSink is the same regardless of T (single virtual func +
     // dtor).
     class Ref3DAttachSink : public RE::BSTEventSink<OpaqueRef3DAttachEvent>
@@ -211,7 +211,7 @@ namespace {
                     e.ptrA, fidA, e.ptrB, fidB, e.flag);
             }
 
-            // Match against current clone — if either candidate's formID
+            // Match against current clone - if either candidate's formID
             // equals our clone, we know 3D became ready for it.
             std::uint32_t cloneRef = 0;
             auto* clone = Pulsar::RemotePlayer::GetRemotePlayerManager().GetRemoteActor();
@@ -225,7 +225,7 @@ namespace {
                 g_lastSinkRefID.store(cloneRef, std::memory_order_release);
                 PLOG_INFO(
                     "[PULSAR] Cell3DAttach: SINK matched clone refID=0x{:08X} "
-                    "(slot={}) — 3D is now READY"sv,
+                    "(slot={}) - 3D is now READY"sv,
                     cloneRef, (fidA == cloneRef) ? "A" : "B");
                 NASLOG("Cell3DAttach: sink matched clone 0x%08X", cloneRef);
             }
@@ -245,12 +245,12 @@ namespace {
 void Init()
 {
     if (g_initialised.exchange(true)) {
-        PLOG_WARN("[PULSAR] Cell3DAttach: Init called twice — ignoring"sv);
+        PLOG_WARN("[PULSAR] Cell3DAttach: Init called twice - ignoring"sv);
         return;
     }
 
     // The singleton at 0x145977A40 is lazy-initialised inside the sender
-    // (FUN_14046B770) — by the time we register a sink at kPostLoad, the
+    // (FUN_14046B770) - by the time we register a sink at kPostLoad, the
     // singleton may NOT yet have its vftable patched in. Reading from it
     // before any 3D-attach event has fired returns garbage. We treat the
     // address as a BSTEventSource regardless; RegisterSink only writes
@@ -260,7 +260,7 @@ void Init()
         REL::Offset{ kRVA_3DAttachEventSrc }.address());
 
     PLOG_INFO(
-        "[PULSAR] Cell3DAttach: Init — sink registering on EventSource @ {:p}"sv,
+        "[PULSAR] Cell3DAttach: Init - sink registering on EventSource @ {:p}"sv,
         singletonAddr);
 
     auto* src = reinterpret_cast<RE::BSTEventSource<OpaqueRef3DAttachEvent>*>(singletonAddr);
@@ -269,7 +269,7 @@ void Init()
         PLOG_INFO("[PULSAR] Cell3DAttach: sink registered"sv);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         PLOG_WARN(
-            "[PULSAR] Cell3DAttach: RegisterSink threw — singleton may not be "
+            "[PULSAR] Cell3DAttach: RegisterSink threw - singleton may not be "
             "initialised yet; will retry on first Tick"sv);
         // Mark as not-yet-registered by clearing init flag so next Tick
         // can retry. But we don't have a separate retry flag; for now
@@ -294,11 +294,11 @@ void ManualAttachBiped(RE::Actor* clone)
 {
     if (!clone) return;
 
-    // Probe the clone first — we need parentCell + loadedData non-null
+    // Probe the clone first - we need parentCell + loadedData non-null
     // for vt[0x95] to succeed (per RE preconditions).
     CloneState cs = SafeProbeClone(clone);
     if (!cs.ok || cs.refID == 0) {
-        PLOG_WARN("[PULSAR] Cell3DAttach: ManualAttach probe failed — skip"sv);
+        PLOG_WARN("[PULSAR] Cell3DAttach: ManualAttach probe failed - skip"sv);
         return;
     }
 
@@ -313,11 +313,11 @@ void ManualAttachBiped(RE::Actor* clone)
     // Compute expected absolute VA from RVA + image base.
     std::uintptr_t expected = REL::Offset{ kExpectedAttachBipedRVA }.address();
     if (fnRaw != expected) {
-        // Vtable layout drifted vs RE pass — log loud and bail. We do
+        // Vtable layout drifted vs RE pass - log loud and bail. We do
         // NOT call something other than what we verified is AttachBiped.
         PLOG_WARN(
             "[PULSAR] Cell3DAttach: ManualAttach vt[0x95]={:#x} != expected "
-            "{:#x} — layout drift, bailing"sv,
+            "{:#x} - layout drift, bailing"sv,
             fnRaw, expected);
         return;
     }
@@ -366,13 +366,13 @@ bool IsQuiet()
 
 void Tick(bool /*isHost*/)
 {
-    // Symmetric on host + client — each side has a clone representing
+    // Symmetric on host + client - each side has a clone representing
     // the other player. The fallback fires only if the sink hasn't
     // matched our clone within the settle window.
     if (!s_state.fallbackArmed) return;
 
     // Crash guard 2026-04-27: NEVER touch the clone pointer while loadMenu
-    // is open or right after — engine may be tearing down/rebuilding the
+    // is open or right after - engine may be tearing down/rebuilding the
     // actor and m_remoteActor can be a dangling pointer. Probing it then
     // crashed client during fast-travel (verified 22:59:26 log + crash).
     if (IsQuiet() || WasInLoadMenu()) return;
@@ -396,7 +396,7 @@ void Tick(bool /*isHost*/)
     if (s_state.cellChangeTick == 0) return;
     if (now - s_state.cellChangeTick < kFallbackDelayMs) return;
 
-    // Probe — only fire fallback if data3D is actually empty.
+    // Probe - only fire fallback if data3D is actually empty.
     CloneState cs = SafeProbeClone(clone);
     if (!cs.ok || cs.refID == 0) return;
     if (cs.data3D != 0 && cs.childCount > 0) {
@@ -405,7 +405,7 @@ void Tick(bool /*isHost*/)
         return;
     }
 
-    // Empty NiNode — fire the manual attach. Single shot per cycle.
+    // Empty NiNode - fire the manual attach. Single shot per cycle.
     PLOG_INFO(
         "[PULSAR] Cell3DAttach: empty-NiNode detected after {}ms (children={}); "
         "firing manual attach"sv,
@@ -413,7 +413,7 @@ void Tick(bool /*isHost*/)
 
     ManualAttachBiped(clone);
     s_state.lastManualAttachTick = now;
-    s_state.fallbackArmed = false;  // single attempt — no retry loop
+    s_state.fallbackArmed = false;  // single attempt - no retry loop
 }
 
 }  // namespace Pulsar::Cell3DAttach

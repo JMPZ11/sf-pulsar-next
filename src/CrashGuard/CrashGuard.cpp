@@ -10,7 +10,7 @@ using namespace std::string_view_literals;
 //
 // Crash pattern (T114 RE, 2026-04-23):
 //   Starfield.exe + 0x30B33F0 = FUN_1430b70f0, 1598 B, virtual dispatch
-//   (2 vtable xrefs), profiler marker "TtgetGround" — foot-IK / ground-snap
+//   (2 vtable xrefs), profiler marker "TtgetGround" - foot-IK / ground-snap
 //   / transform-accumulation loop.
 //
 //   Signature: void fn(longlong p1, longlong* p2, char* p3, longlong* p4,
@@ -23,12 +23,12 @@ using namespace std::string_view_literals;
 //   When *param_4 == 0 (bone-array base NULL) AND the index is >=4, the
 //   computed pointer lands in low-address range (0x100, 0x140, 0x180, ...)
 //   and the [0x10] access AVs. Repros on crowded POIs (12+ NPCs proc-gen,
-//   Bondar POS0POS0) — known engine race: collision / skin-mesh thread
+//   Bondar POS0POS0) - known engine race: collision / skin-mesh thread
 //   updating the array while the render-adjacent thread iterates.
 //
 // Guard strategy: MinHook the function's entry. In the wrapper, null-check
 // param_4 and *param_4 before dispatching to the original. If NULL, early-
-// return — the actor simply skips foot-IK for that frame and tries again
+// return - the actor simply skips foot-IK for that frame and tries again
 // next frame when the engine has reattached the array. No visible effect
 // because foot-IK is cosmetic adjustment on top of the skeleton.
 
@@ -42,7 +42,7 @@ namespace Pulsar::CrashGuard {
     static std::atomic<uint64_t> s_lastLogMs{0};
 
     // -------------------------------------------------------------------
-    // Guard #2 — ShipDockComponentLookup helper FAMILY (87 functions)
+    // Guard #2 - ShipDockComponentLookup helper FAMILY (87 functions)
     // -------------------------------------------------------------------
     // Crash pattern (2026-05-03 dock-coop):
     //   Crashing instruction (across the family):
@@ -66,7 +66,7 @@ namespace Pulsar::CrashGuard {
     //   with param_1 = NULL → AV.
     //
     //   Crash dumps: 7b13c9ec (RVA 0x566BF5), 4a1a98f2 (same), 5e303f1f
-    //   (RVA 0x2CE751 — different family member). All same root cause.
+    //   (RVA 0x2CE751 - different family member). All same root cause.
     //
     // Guard strategy: scan-and-hook all 87 helpers matching the pattern.
     // Each gets a NULL-check trampoline that returns 0 (matches existing
@@ -75,7 +75,7 @@ namespace Pulsar::CrashGuard {
     #include "ship_dock_hooks.inc"
 
     // -------------------------------------------------------------------
-    // Guard #3 — RVA 0xE907D0 ("DockShipIterationLoop") SEH absorber
+    // Guard #3 - RVA 0xE907D0 ("DockShipIterationLoop") SEH absorber
     // -------------------------------------------------------------------
     // Cascading crash from Guard #2 (2026-05-03):
     //   FUN_140e90e80 (0xf3c B) iterates ship-dock REFRs and inline-queries
@@ -89,7 +89,7 @@ namespace Pulsar::CrashGuard {
     //   [RCX+0x14] where RCX from [RBP-0x58] = local_d0 = NULL).
     //
     // Function is periodic (5min cadence), large (0xf3c B), and has many
-    // exit paths. Inline-patching specific instructions is brittle — pure
+    // exit paths. Inline-patching specific instructions is brittle - pure
     // SEH absorber is safest. Original function returns 1 on success exit
     // (line 561 of decomp), so on caught exception we return 1 to keep the
     // iteration's caller treating this round as benign.
@@ -119,14 +119,14 @@ namespace Pulsar::CrashGuard {
     }
 
     // -------------------------------------------------------------------
-    // Guard #4 — RVA 0xB7CF10 condition/filter evaluator (co-op vehicle-enter)
+    // Guard #4 - RVA 0xB7CF10 condition/filter evaluator (co-op vehicle-enter)
     // -------------------------------------------------------------------
     // Crash pattern (, 2026-06-21, two dumps 77a475ce + d654d645):
     //   FUN_140b7d650(obj, ctx): takes a slim-RW lock at obj+0xA8 (FUN_1422ce9b0,
     //   the known engine null-lock CTD family), reads a container pointer at
     //   obj+0xA0, then walks its elements (count@+0x28, data@+0x30, stride 0x28)
     //   running a per-element condition matcher (FUN_140b6bc80). Crashing instr
-    //   @ +0x4D: `mov eax,[container+0x28]` — `container` (= *(obj+0xA0)) is a
+    //   @ +0x4D: `mov eax,[container+0x28]` - `container` (= *(obj+0xA0)) is a
     //   DANGLING pointer to freed+unmapped memory (obj itself is valid: the lock
     //   acquire above succeeded). Triggered on ActionInteractionEnter (client
     //   entering a vehicle/furniture) in co-op; the dangling entry traces to a
@@ -147,7 +147,7 @@ namespace Pulsar::CrashGuard {
     static std::atomic<uint64_t> s_condEvalLastLogMs{0};
 
     // One-shot ROOT-CAUSE diagnostic (2026-06-27): the subject `obj` was already
-    // CONFIRMED = the vehicle FURN (formID 0xFF016497, vtblRVA 0x4B95FB8) — NOT the
+    // CONFIRMED = the vehicle FURN (formID 0xFF016497, vtblRVA 0x4B95FB8) - NOT the
     // clone. The remaining question is WHICH FORM in the FURN's +0xA0 condition
     // list is dangling: the engine matcher (0x140b6b560) reads each element's
     // form-ptr at +8 and derefs it raw after only a NULL-check, so a -1 sentinel
@@ -238,7 +238,7 @@ namespace Pulsar::CrashGuard {
     // pre-probe catches the COMMON already-dangling case WITHOUT taking the
     // engine lock (it returns before calling the original). This helper adds
     // coverage for the TOCTOU case: the condition list freed by despawn churn
-    //  AFTER the probe but DURING the original's own walk — observed dump
+    //  AFTER the probe but DURING the original's own walk - observed dump
     // 6914f5ed @ RVA 0xB7CF5D (revive in combat, list freed between the probe and
     // the count read). On a mid-eval fault we return the guard's benign value.
     // These evaluators only READ the list (read-lock on an object that is being
@@ -366,20 +366,20 @@ namespace Pulsar::CrashGuard {
     }
 
     // -------------------------------------------------------------------
-    // Guard #4b — RVA 0xB63D40 condition/filter evaluator (SIBLING of #4)
+    // Guard #4b - RVA 0xB63D40 condition/filter evaluator (SIBLING of #4)
     // -------------------------------------------------------------------
     // Crash pattern (family): FUN_140b63d40(obj, form) takes the SAME
     // slim-RW lock (0x1422cc350) at obj+0xA0+8, reads container = *(obj+0xA0),
     // then walks its elements (count@+0x28, data@+0x30, stride 0x28; per-element
     // form ptr at element+0) comparing against the input form. Crashing instr @
-    // +0x71 (RVA 0xB63DB1): `mov eax,[container+0x28]` — container is DANGLING
+    // +0x71 (RVA 0xB63DB1): `mov eax,[container+0x28]` - container is DANGLING
     // (obj valid, lock acquired). Same root cause as Guard #4, different function
     // the original shield never covered. CONFIRMED on FIRST-TIME co-op vehicle
     // entry (dumps 0b1d7827 + 118d8cdd): the first-entry tutorial fires extra
     // condition evals over the vehicle FURN's +0xA0 list while the host's clone
     // (despawn churn) leaves a dangling entry. The original "stable" build
     // never hit this because prior tests entered an already-initialized vehicle
-    // (no first-entry tutorial). Probe the container; on dangling return 0 — the
+    // (no first-entry tutorial). Probe the container; on dangling return 0 - the
     // function's own degenerate/empty result (decomp: early-out `mov eax,edi`,
     // edi=0; NOTE 0, not 1 like Guard #4). Shield fires only in the corrupted
     // state, so a healthy eval is 100% unchanged.
@@ -437,13 +437,13 @@ namespace Pulsar::CrashGuard {
         return SafeCallCondEval(s_origCondEval2, obj, form, 0);  // SEH-wrapped: also catches TOCTOU mid-eval free
     }
 
-    // Guard #5 — RVA 0x22CC350 slim-RW lock acquire (the "null-lock CTD
+    // Guard #5 - RVA 0x22CC350 slim-RW lock acquire (the "null-lock CTD
     // family") shielded AT THE LOCK ITSELF.
     // -------------------------------------------------------------------
     // Crash (, 2026-06-23, dump 61314db3): during the post-bridge save-load
     // that co-locates the client into the host's IN-SPACE position, the engine
     // notify-dispatch (FUN_1422CB8F0) evaluates a condition on a dangling clone
-    // and calls this lock acquire with a GARBAGE lock pointer — observed rcx≈0x20
+    // and calls this lock acquire with a GARBAGE lock pointer - observed rcx≈0x20
     // (= null-object + 0x20), so `lock xadd [rcx+4]` writes null+0x24 → 0xC0000005.
     // Disasm: mov rbx,rcx / lea rdi,[rcx+4] / lock xadd [rdi],1 (crash) / spin.
     //
@@ -457,7 +457,7 @@ namespace Pulsar::CrashGuard {
     // A sub-page value (< 0x10000) is a null/dangling-object deref → skip the
     // acquire (the object is gone; locking it is meaningless). A normal acquire is
     // one predicted compare away from unchanged. Genuine (high-address) freed locks
-    // are not covered here — those did not appear in the observed crash.
+    // are not covered here - those did not appear in the observed crash.
     using SlimLockFn = void(__fastcall*)(uintptr_t);
     static SlimLockFn s_origSlimLock = nullptr;
     static std::atomic<uint64_t> s_slimLockShielded{0};
@@ -485,7 +485,7 @@ namespace Pulsar::CrashGuard {
         // (observed rcx≈0x20). Avoids paying a fault + SEH dispatch each time.
         if (lock < 0x10000) {
             LogSlimLockShield();
-            return;  // dangling object — skip the lock acquire
+            return;  // dangling object - skip the lock acquire
         }
         // widen (2026-06-24): a HIGH but freed/read-only lock pointer also
         // crashes here (observed WRITE at 0x7FF61D342ACC, a read-only page, when
@@ -495,11 +495,11 @@ namespace Pulsar::CrashGuard {
         __try {
             s_origSlimLock(lock);
         } __except (EXCEPTION_EXECUTE_HANDLER) {
-            LogSlimLockShield();  // dangling/read-only lock — skip the acquire
+            LogSlimLockShield();  // dangling/read-only lock - skip the acquire
         }
     }
 
-    // Guard #6 — RVA 0x51B2B0 lock+lookup on a dangling actor (, all callers).
+    // Guard #6 - RVA 0x51B2B0 lock+lookup on a dangling actor (, all callers).
     // -------------------------------------------------------------------
     // Crash (, 2026-06-24, dump ac27ed19): the in-space bridge-load's notify-
     // dispatch (FUN_1422CB8F0) evaluates a condition on a dangling clone and calls
@@ -533,17 +533,17 @@ namespace Pulsar::CrashGuard {
     {
         if (obj < 0x10000) {
             LogLockLookupShield();
-            return 0;  // dangling/null actor — empty result
+            return 0;  // dangling/null actor - empty result
         }
         __try {
             return s_origLockLookup(obj);
         } __except (EXCEPTION_EXECUTE_HANDLER) {
             LogLockLookupShield();
-            return 0;  // dangling/read-only actor — empty result
+            return 0;  // dangling/read-only actor - empty result
         }
     }
 
-    // Guard #7 — RVA 0x22C9010 Havok rwlock-acquire + thread-local reentrancy walk.
+    // Guard #7 - RVA 0x22C9010 Havok rwlock-acquire + thread-local reentrancy walk.
     // -------------------------------------------------------------------
     // Crash (ride-together, 2026-06-26): when the CLIENT formally sits in a
     // co-op vehicle whose hknp body PULSAR froze (Stationary) + per-tick
@@ -589,7 +589,7 @@ namespace Pulsar::CrashGuard {
         }
     }
 
-    // Guard #8 — RVA 0x22C8E80 sibling of Guard #7 (same held-lock-list walk via
+    // Guard #8 - RVA 0x22C8E80 sibling of Guard #7 (same held-lock-list walk via
     // FUN_1422c9b80+0x40; crash at 0x22C8EAA). Different lock primitive (returns a
     // success bool in al). Same shield: invalid lock object -> skip; SEH-wrap rest.
     using VehLock2Fn = char(__fastcall*)(uintptr_t);
@@ -609,7 +609,7 @@ namespace Pulsar::CrashGuard {
         }
     }
 
-    // Guard #9 — RVA 0x187B5A0 dangling slim-locked-list teardown (family).
+    // Guard #9 - RVA 0x187B5A0 dangling slim-locked-list teardown (family).
     // -------------------------------------------------------------------
     // Crash (dangling-clone family, 2026-06-26, "im Kampf gegen NPCs").
     //
@@ -623,7 +623,7 @@ namespace Pulsar::CrashGuard {
     //                                ; (non-null so it passes `test rax,rax`)
     //   ...lock RELEASE happens AFTER this point...
     //
-    // PER RE-report (dump triage, NOT re-verified here — that report's REL::ID was
+    // PER RE-report (dump triage, NOT re-verified here - that report's REL::ID was
     // wrong, so treat its labels as a hypothesis): obj is the clone Actor/REFR,
     // the list is a BGSInventoryList, dispatch is the Papyrus VM, observed dangling
     // value ~0x40B2A975. Hypothesised root: clone despawn/respawn churn (/)
@@ -640,10 +640,10 @@ namespace Pulsar::CrashGuard {
     // dispatches the original 100% unchanged.
     //
     // LIMITS (inherent to probe-before-call, same as Guard #4): (1) tiny race
-    // window — the list could be freed between probe and the original's deref; the
+    // window - the list could be freed between probe and the original's deref; the
     // window is small and this fires only in an already-corrupt state. (2) catches
     // an UNMAPPED access only; if the freed page was re-allocated the probe reads
-    // garbage cleanly and the original then writes [list+8]=0 into it — but that is
+    // garbage cleanly and the original then writes [list+8]=0 into it - but that is
     // identical to the un-guarded engine behaviour, so no regression. A true fix is
     // throttling the clone churn at the source (/), not this shield.
     using InvTeardownFn = char(__fastcall*)(uintptr_t, uint8_t);
@@ -673,7 +673,7 @@ namespace Pulsar::CrashGuard {
             if (refr != 0) {
                 uintptr_t list = *reinterpret_cast<volatile uintptr_t*>(refr + 0xA0);
                 if (list != 0) {
-                    // the crashing deref: cmp [list+0x10],0 — faults if list freed
+                    // the crashing deref: cmp [list+0x10],0 - faults if list freed
                     volatile uintptr_t probe = *reinterpret_cast<volatile uintptr_t*>(list + 0x10);
                     (void)probe;
                 }
@@ -718,7 +718,7 @@ namespace Pulsar::CrashGuard {
             return;
         }
 
-        // Safe — call original.
+        // Safe - call original.
         s_origTtGetGround(p1, p2, p3, p4, p5);
     }
 
@@ -751,10 +751,10 @@ namespace Pulsar::CrashGuard {
         PLOG_INFO("[PULSAR] CrashGuard: TtgetGround hook installed at 0x{:x}"sv,
                   target);
 
-        // Guard #2 — ShipDockComponentLookup family (87 helpers en bloc)
+        // Guard #2 - ShipDockComponentLookup family (87 helpers en bloc)
         InstallShipDockFamilyHooks(reinterpret_cast<uintptr_t>(sf));
 
-        // Guard #3 — DockShipIterationLoop SEH absorber at RVA 0xE907D0
+        // Guard #3 - DockShipIterationLoop SEH absorber at RVA 0xE907D0
         uintptr_t target3 = reinterpret_cast<uintptr_t>(sf) + 0xE907D0;
         MH_STATUS st3 = MH_CreateHook(
             reinterpret_cast<LPVOID>(target3),
@@ -774,7 +774,7 @@ namespace Pulsar::CrashGuard {
             }
         }
 
-        // Guard #4 — CondEval dangling-list shield at RVA 0xB7CF10 (co-op
+        // Guard #4 - CondEval dangling-list shield at RVA 0xB7CF10 (co-op
         // vehicle/furniture-enter CTD).
         uintptr_t target4 = reinterpret_cast<uintptr_t>(sf) + 0xB7CF10;
         MH_STATUS st4 = MH_CreateHook(
@@ -795,7 +795,7 @@ namespace Pulsar::CrashGuard {
             }
         }
 
-        // Guard #4b — sibling condition evaluator at RVA 0xB63D40 (family).
+        // Guard #4b - sibling condition evaluator at RVA 0xB63D40 (family).
         // Same dangling-container crash as Guard #4, different function. CONFIRMED
         // on first-time co-op vehicle entry (dumps 0b1d7827 + 118d8cdd @ 0xB63DB1).
         uintptr_t target4b = reinterpret_cast<uintptr_t>(sf) + 0xB63D40;
@@ -817,7 +817,7 @@ namespace Pulsar::CrashGuard {
             }
         }
 
-        // Guard #5 — slim-RW lock null/dangling shield at RVA 0x22CC350 (
+        // Guard #5 - slim-RW lock null/dangling shield at RVA 0x22CC350 (
         // space-bridge co-location CTD; the null-lock family, all callers).
         uintptr_t target5 = reinterpret_cast<uintptr_t>(sf) + 0x22CC350;
         MH_STATUS st5 = MH_CreateHook(
@@ -838,7 +838,7 @@ namespace Pulsar::CrashGuard {
             }
         }
 
-        // Guard #6 — lock+lookup dangling-actor shield at RVA 0x51B2B0 (
+        // Guard #6 - lock+lookup dangling-actor shield at RVA 0x51B2B0 (
         // space-bridge co-location CTD; same notify-dispatch cascade as Guard #5).
         uintptr_t target6 = reinterpret_cast<uintptr_t>(sf) + 0x51B2B0;
         MH_STATUS st6 = MH_CreateHook(
@@ -859,7 +859,7 @@ namespace Pulsar::CrashGuard {
             }
         }
 
-        // Guard #7 — Havok rwlock-acquire shield at RVA 0x22C9010 (client
+        // Guard #7 - Havok rwlock-acquire shield at RVA 0x22C9010 (client
         // vehicle-sit CTD; invalid-bodyId sentinel + torn held-lock list).
         uintptr_t target7 = reinterpret_cast<uintptr_t>(sf) + 0x22C9010;
         MH_STATUS st7 = MH_CreateHook(
@@ -880,7 +880,7 @@ namespace Pulsar::CrashGuard {
             }
         }
 
-        // Guard #8 — sibling held-lock-list walker at RVA 0x22C8E80 (, crash 0x22C8EAA).
+        // Guard #8 - sibling held-lock-list walker at RVA 0x22C8E80 (, crash 0x22C8EAA).
         uintptr_t target8 = reinterpret_cast<uintptr_t>(sf) + 0x22C8E80;
         MH_STATUS st8 = MH_CreateHook(
             reinterpret_cast<LPVOID>(target8),
@@ -900,7 +900,7 @@ namespace Pulsar::CrashGuard {
             }
         }
 
-        // Guard #9 — REFR inventory-list teardown dangling-list shield at RVA
+        // Guard #9 - REFR inventory-list teardown dangling-list shield at RVA
         // 0x187B5A0 (clone-churn combat CTD; Papyrus-VM dispatched).
         uintptr_t target9 = reinterpret_cast<uintptr_t>(sf) + 0x187B5A0;
         MH_STATUS st9 = MH_CreateHook(

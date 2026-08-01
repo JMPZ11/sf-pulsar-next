@@ -42,7 +42,7 @@ namespace Pulsar::WorldSync::Loot {
 namespace {
 
     // ---------------------------------------------------------------------
-    // F.1.b (2026-04-24): MinHook TESObjectREFR::Activate — the core helper
+    // F.1.b (2026-04-24): MinHook TESObjectREFR::Activate - the core helper
     // that every engine activation path funnels through (Papyrus, AI
     // packages, E-key input, combat-reflex pickup). Free function, so one
     // hook catches all sources regardless of per-class vtable overrides.
@@ -50,7 +50,7 @@ namespace {
     // REL::ID 63380 @ RVA 0xB47920 verified via Ghidra RE:
     //   Papyrus "Activate"/"ObjectReference" native registration lives at
     //   FUN_1420a9330 (REL::ID 118826). Its handler FUN_14206a8c0 builds
-    //   a 32-byte arg struct and calls FUN_140b48040(self, &args) — that
+    //   a 32-byte arg struct and calls FUN_140b48040(self, &args) - that
     //   is this hook target.
     //
     // Signature: bool __fastcall(TESObjectREFR* self, ActivateArgs* args)
@@ -76,7 +76,7 @@ namespace {
     // F.1.d (2026-04-24): TESObjectREFR::DropObject core, vtable slot 0x8B
     // at REL::ID 63579 (RVA 0xB66680). Called by DropObjectFunctor (Papyrus
     // latent path) AND by direct call sites in the gameplay layer. The UI
-    // inventory-menu drop path is expected to funnel here too — this is
+    // inventory-menu drop path is expected to funnel here too - this is
     // why we hook the core rather than the Papyrus handler (latent-only).
     //
     // Args struct passed as param_3 (inferred from DropObjectFunctor::run):
@@ -91,16 +91,16 @@ namespace {
     using DropCoreFn = void (__fastcall*)(RE::TESObjectREFR*, void*, void*);
     DropCoreFn g_origDropCore = nullptr;
 
-    // Inner REFR-spawn primitive — the function drop-core eventually calls to
+    // Inner REFR-spawn primitive - the function drop-core eventually calls to
     // actually create the REFR in the cell. REL::ID 63591 @ RVA 0xB68F10
     // (FUN_140b69630). Signature refined after crash analysis (2026-04-25):
-    // the Ghidra decompile had `param_2` as `undefined4 *` — it's a pointer
+    // the Ghidra decompile had `param_2` as `undefined4 *` - it's a pointer
     // to a 32-bit TESObjectHandle, NOT a TESObjectREFR**. Previous version
     // treated it as a REFR** and crashed dereferencing the handle value as
     // a pointer.
     //
     //   void __fastcall spawn(
-    //     TESObjectREFR* self,      // owner — pos/rot source when custom=NULL
+    //     TESObjectREFR* self,      // owner - pos/rot source when custom=NULL
     //     uint32_t*      outHandle, // output: engine handle to new REFR
     //     TESForm*       item,      // base Form to spawn
     //     int            count,     // stack count
@@ -122,11 +122,11 @@ namespace {
     // F.1.e (2026-04-25): Papyrus Actor.UnequipItem native handler at
     // REL::ID(116791) @ RVA 0x1FCB310 (FUN_141fce980). Found via xref to
     // "UnequipItem" string in registration site at 0x1400C9432. Args 1+2
-    // are VM-context (only used in error paths — None-item, no-inventory,
+    // are VM-context (only used in error paths - None-item, no-inventory,
     // no-3d). For dead NPCs with valid 3D + inventory, success path runs
     // through without touching the VM. This lets us call it off-Papyrus
     // to clear the Actor's equipped-item slot before raw-removing the
-    // base entry — fixes the [Tarnung]/equipped-weapon ghost-back issue
+    // base entry - fixes the [Tarnung]/equipped-weapon ghost-back issue
     // where engine reconciliation restores the item via the equipped
     // pointer.
     using PapyrusUnequipFn = void (__fastcall*)(
@@ -140,7 +140,7 @@ namespace {
     // which loops over mods → calls FUN_140403910 per-mod). REL::ID 40716
     // @ RVA 0x403110. Signature inferred from caller args:
     //   bool (Actor*, Mod*, uint32 rank, uint8 flags)
-    // Wait — the Papyrus path is REFR-or-Inv. For REFR, param_1 is REFR*.
+    // Wait - the Papyrus path is REFR-or-Inv. For REFR, param_1 is REFR*.
     // Our use: post-spawn on receiver, the REFR is the freshly spawned
     // dropped item, and we attach each mod with rank=0, flags=1.
     using AttachModFn = bool (__fastcall*)(
@@ -149,7 +149,7 @@ namespace {
     AttachModFn g_attachMod = nullptr;
 
     // (2026-06-18): engine per-entry inventory mod-attach core.
-    // FUN_14063de80 @ RVA 0x63D270 — the bare attach reached from the Papyrus
+    // FUN_14063de80 @ RVA 0x63D270 - the bare attach reached from the Papyrus
     // AttachMod inventory branch (FUN_14206d840 → FUN_1412e1a20 → here).
     //   bool(void* ctx, void* invEntry, char* statusByte)
     // ctx is a 0x30 struct: +0x00 owner REFR*, +0x08 mod TESForm*, +0x10
@@ -159,18 +159,18 @@ namespace {
     // engine navigates to the stack's kObjectInstance, allocates it if absent,
     // grows the array (FUN_140404300), and adds the mod into its correct slot.
     // Chosen over the full FUN_1412e1a20 wrapper to avoid its critical section /
-    // BGSInventoryListEvent dispatch / async BSService command branch — minimal
+    // BGSInventoryListEvent dispatch / async BSService command branch - minimal
     // machinery for the fragile post-bridge restore window.
     using AttachModInvCoreFn = bool (__fastcall*)(
         void* ctx, void* invEntry, char* statusByte);
     AttachModInvCoreFn g_attachModInvCore = nullptr;
 
     // M.2 V3 (2026-05-08): inner AddObjectToContainer hook at RVA 0xB4CBC0.
-    // Funnel point for ALL inventory transfers — fires regardless of whether
+    // Funnel point for ALL inventory transfers - fires regardless of whether
     // the container's +0xA0 list updates (so it catches BarterMenu / ship
     // cargo paths that don't trigger BGSInventoryListEvent).
     //
-    // Signature derived from FUN_140b4f6b0 (vt[0x9A] wrapper) decompile —
+    // Signature derived from FUN_140b4f6b0 (vt[0x9A] wrapper) decompile -
     // wrapper calls inner with reordered args:
     //   inner(this, item, smartPtr, reason, count, oldContainer)
     using AddObjInnerFn = void (__fastcall*)(
@@ -182,7 +182,7 @@ namespace {
         RE::TESObjectREFR* src);
     AddObjInnerFn g_origAddObjInner = nullptr;
 
-    // M.2 V25 (2026-05-09): hook FUN_140404300 — the engine's "grow mod
+    // M.2 V25 (2026-05-09): hook FUN_140404300 - the engine's "grow mod
     // array" function. Identified via Ghidra static analysis (m2_v24_growth_re.md).
     // Single function that physically writes BGSObjectInstanceExtra +0x18
     // (modCount) and +0x20 (modArray). Reached via 8+ callers including the
@@ -222,7 +222,7 @@ namespace {
         }
     }
 
-    // True while we're replaying a pickup on the client — prevents the
+    // True while we're replaying a pickup on the client - prevents the
     // client-side hook wrapper from re-broadcasting the event back.
     thread_local bool t_replayingFromPacket = false;
 
@@ -235,8 +235,8 @@ namespace {
 
     // F.10 (2026-06-11): terminal-chained activations. When the player uses
     // a TERMINAL (kTERM), the door/turret/light it controls gets Activated by
-    // the terminal's SCRIPT — activator is the terminal REFR or None, NOT the
-    // player — so ClassifyActivation's player gate dropped it and terminal-
+    // the terminal's SCRIPT - activator is the terminal REFR or None, NOT the
+    // player - so ClassifyActivation's player gate dropped it and terminal-
     // opened doors never synced. For a short window after a local player
     // terminal use, kDOOR/kACTI activations whose activator is NOT an actor
     // (excludes NPCs walking through doors) classify as normal door/acti and
@@ -244,7 +244,7 @@ namespace {
     static std::atomic<std::uint64_t> s_lastPlayerTermUseMs{ 0 };
     static constexpr std::uint64_t   kTermChainWindowMs = 30000;  // menus stay open a while
 
-    // F.7 V2 — actual definitions live after SnapshotEntry/CollectInventory
+    // F.7 V2 - actual definitions live after SnapshotEntry/CollectInventory
     // forward declarations below. (C2065 if defined here referring to
     // SnapshotEntry which isn't yet declared.)
 
@@ -268,7 +268,7 @@ namespace {
         case RE::FormType::kFLOR:  // F.9 (2026-06-11): flora/plant HARVEST.
             // Same replay pipeline as world pickups: the client matches the
             // plant REFR by base+pos and replays Activate with the clone as
-            // activator — the engine flips the REFR into its harvested state
+            // activator - the engine flips the REFR into its harvested state
             // (visual sync) and the yielded ingredient lands in the clone's
             // inventory (invisible on this side → no dupe). Unlike item
             // pickups the REFR persists, which the matcher handles fine.
@@ -278,7 +278,7 @@ namespace {
         }
     }
 
-    // Cheap raw-offset read of TESForm::formType (offset 0x2E) — avoids a
+    // Cheap raw-offset read of TESForm::formType (offset 0x2E) - avoids a
     // NiPointer dereference when we only need the byte.
     static uint8_t RawFormType(const void* form)
     {
@@ -294,19 +294,19 @@ namespace {
             static_cast<const uint8_t*>(form) + 0x28);
     }
 
-    // Container inventory snapshot — (base_formID, totalCount) per entry.
+    // Container inventory snapshot - (base_formID, totalCount) per entry.
     // Used by the event-sink diff path to detect what the engine moved
     // when an BGSInventoryListEvent fires.
     struct ContainerSnapshot {
         std::vector<std::pair<uint32_t, int32_t>> items;
     };
 
-    // Plain-C collect helper — reads the inventoryList's entries into a
+    // Plain-C collect helper - reads the inventoryList's entries into a
     // fixed-size buffer. C2712-free because no C++ objects with destructors
     // cross the __try. Caller copies into ContainerSnapshot::items.
     static constexpr size_t kMaxSnapshotEntries = 512;
 
-    // F.2: max mods per item — verified empirically: most weapons have
+    // F.2: max mods per item - verified empirically: most weapons have
     // 12-19 mod slots. 32 is safe upper bound, packet stays <2.5KB at full.
     static constexpr size_t kMaxModsPerDrop = 32;
     struct SnapshotEntry { uint32_t base; int32_t count; };
@@ -355,7 +355,7 @@ namespace {
     thread_local SnapshotEntry t_actiPreSnap[kActiSnapMax];
     thread_local int32_t       t_actiPreSnapCount = 0;
 
-    // noexcept helper — diff player inventory post-orig vs pre-snapshot.
+    // noexcept helper - diff player inventory post-orig vs pre-snapshot.
     // Lives outside HookedActivate so the SnapshotEntry array + raw memory
     // read don't conflict with HookedActivate's existing __try blocks
     // (C2712: __try can't coexist with C++ unwinding in same function).
@@ -378,10 +378,10 @@ namespace {
             plrInv, postBuf, kActiSnapMax);
 
         // Diff: find any base whose count strictly decreased. Picks the
-        // first decrease — usually the consumed item. If activator script
+        // first decrease - usually the consumed item. If activator script
         // touches no inventory (verified for Outpost Power Conduit base
         // 0x0000EDC1, 2026-04-26: pre==post 28 items / 11476 total), we
-        // return 0 — receiver replays without ghost-add and the script
+        // return 0 - receiver replays without ghost-add and the script
         // bails identically on its end.
         for (int32_t i = 0; i < t_actiPreSnapCount; ++i) {
             int32_t postC = 0;
@@ -423,18 +423,18 @@ namespace {
     }
 
     // ---------------------------------------------------------------------
-    // BGSInventoryListEvent sink — on each event, we diff the container's
+    // BGSInventoryListEvent sink - on each event, we diff the container's
     // current inventoryList against the last snapshot and broadcast deltas.
-    // We never decode the event struct itself — it's opaque to us and the
+    // We never decode the event struct itself - it's opaque to us and the
     // snapshot-diff is authoritative.
     // ---------------------------------------------------------------------
-    // Opaque event type — we don't know the real struct layout yet. 64
+    // Opaque event type - we don't know the real struct layout yet. 64
     // bytes is more than any typical inventory event (likely <32 bytes).
     struct InvEventOpaque {
         uint8_t bytes[64];
     };
 
-    // Tracked per-source state — previous snapshot of a container's
+    // Tracked per-source state - previous snapshot of a container's
     // inventoryList, plus metadata for the peer-side matcher. BGSInventoryList
     // inherits BSTEventSource at offset 0, so the sink's source ptr IS the
     // inventoryList itself.
@@ -471,7 +471,7 @@ namespace {
     // Called from ProcessEvent to diff current inventoryList state against
     // last snapshot and broadcast any negative deltas. The inventoryList
     // pointer IS the event source (BGSInventoryList extends BSTEventSource
-    // at +0, so &list == &list->source — same addr).
+    // at +0, so &list == &list->source - same addr).
     static void DiffAndBroadcastContainer(void* srcPtr);
 
     static void SendContainerTakePacket(uint32_t containerRefID,
@@ -484,7 +484,7 @@ namespace {
                                          const std::vector<uint32_t>* mods = nullptr,
                                          uint16_t modSentinel = 0xFFFF);
 
-    // Forward decl — defined later (~line 850).
+    // Forward decl - defined later (~line 850).
     static void ReadInventoryItemMods(RE::TESObjectREFR* refr,
                                        uint32_t formID,
                                        std::vector<uint32_t>& outMods) noexcept;
@@ -497,7 +497,7 @@ namespace {
             const InvEventOpaque& /*e*/,
             RE::BSTEventSource<InvEventOpaque>* src) override
         {
-            // M.2 V13 (2026-05-08): mark dirty + debounce — DON'T broadcast
+            // M.2 V13 (2026-05-08): mark dirty + debounce - DON'T broadcast
             // immediately. BarterMenu fires intermediate take↔place shuffles
             // for the same item during one user action; broadcasting each
             // duplicates ammo and re-rolls weapons on receiver. Polling tick
@@ -592,7 +592,7 @@ namespace {
                           tc.containerRefID, id, taken);
                 if (connected) {
                     // Take direction: receiver only RawRemoves on its end
-                    // (V8) — no mods needed.
+                    // (V8) - no mods needed.
                     SendContainerTakePacket(tc.containerRefID, tc.containerBase,
                                              tc.refType,
                                              tc.px, tc.py, tc.pz, id, taken);
@@ -602,7 +602,7 @@ namespace {
                 // entry) → encode as negative count in PKT_CONTAINER_TAKE.
                 int32_t placed = after - before;
                 anyDelta = true;
-                // V10: read mods from the container's inventory entry — the
+                // V10: read mods from the container's inventory entry - the
                 // engine has already moved the modded item in (event fires
                 // post-transfer), so the entry's stack[0] ExtraDataList has
                 // the kObjectInstance with the host's mod loadout.
@@ -624,7 +624,7 @@ namespace {
                 }
             }
         }
-        // Entries that disappeared entirely — treat as "remainder taken".
+        // Entries that disappeared entirely - treat as "remainder taken".
         for (auto& [id, before] : prevMap) {
             if (before > 0) {
                 anyDelta = true;
@@ -645,11 +645,11 @@ namespace {
         }
     }
 
-    // Plain-C accessor — pulls out the four raw pointers/values we need
+    // Plain-C accessor - pulls out the four raw pointers/values we need
     // from a container REFR so the main register function can use them
     // without mixing __try with C++ objects.
     struct ContainerRawInfo {
-        void*    invListSrc;  // = *(refr + 0xA0) — IS the BSTEventSource
+        void*    invListSrc;  // = *(refr + 0xA0) - IS the BSTEventSource
         uint32_t refID;
         uint32_t baseID;
         float    px, py, pz;
@@ -674,14 +674,14 @@ namespace {
 
     // Register our sink on the container's BGSInventoryList event source so
     // we receive ProcessEvent callbacks for every item add/remove. Called
-    // from the Activate hook when a container is first activated — keyed
+    // from the Activate hook when a container is first activated - keyed
     // on source pointer so we only register once per container.
     static void RegisterSinkOnContainer(RE::TESObjectREFR* container)
     {
         ContainerRawInfo info = ReadContainerRaw(container);
         if (!info.invListSrc) {
             PLOG_INFO(
-                "[PULSAR] F.8 sink-reg: ref=0x{:08X} base=0x{:08X} SKIP — invListSrc=NULL (container has no event source — F.3.d / weapon-case style?)"sv,
+                "[PULSAR] F.8 sink-reg: ref=0x{:08X} base=0x{:08X} SKIP - invListSrc=NULL (container has no event source - F.3.d / weapon-case style?)"sv,
                 info.refID, info.baseID);
             return;
         }
@@ -701,7 +701,7 @@ namespace {
                     curEntries = it->second.last.items.size();
                 }
                 PLOG_INFO(
-                    "[PULSAR] F.8 sink-reg: ref=0x{:08X} base=0x{:08X} already-registered (src=0x{:x}) — refreshed snap entries={}"sv,
+                    "[PULSAR] F.8 sink-reg: ref=0x{:08X} base=0x{:08X} already-registered (src=0x{:x}) - refreshed snap entries={}"sv,
                     info.refID, info.baseID,
                     reinterpret_cast<uintptr_t>(src), curEntries);
                 return;
@@ -859,7 +859,7 @@ namespace {
         std::memcpy(buf + 1, &data, sizeof(data));
 
         auto& net = Pulsar::Network::GetSingleton();
-        net.Send(buf, sizeof(buf), true);  // reliable — item-state must not drop
+        net.Send(buf, sizeof(buf), true);  // reliable - item-state must not drop
 
         PLOG_INFO(
             "[PULSAR] LootSync TX: ref=0x{:08X} base=0x{:08X} type=0x{:02X} plugin='{}' @({:.0f},{:.0f},{:.0f})"sv,
@@ -868,7 +868,7 @@ namespace {
             px, py, pz);
     }
 
-    // Plain-C helper — inspects the activation and pulls out the fields we
+    // Plain-C helper - inspects the activation and pulls out the fields we
     // care about. noexcept + no C++ objects so __try is legal here.
     struct ActivationClass {
         uint32_t selfID;
@@ -890,13 +890,13 @@ namespace {
             if (!self || !args) return c;
             // F.11 (2026-06-11): script SetOpen drives big station doors through
             // the Activate core with a NULL activator (Ghidra: native handler
-            // FUN_142083d60 zeroes the ActivateArgs) — the old null-activator
+            // FUN_142083d60 zeroes the ActivateArgs) - the old null-activator
             // early-out made those doors invisible to the sync. Null activator
             // is now allowed through for kDOOR/kACTI classification below; all
             // other types still require an activator.
             const bool nullActivator = (args->activator == nullptr);
             // Self-loop guard: if this is the very REFR our replay is
-            // currently driving, skip — otherwise we'd re-broadcast and
+            // currently driving, skip - otherwise we'd re-broadcast and
             // bounce the activation back-and-forth.
             if (replaying && self == t_currentReplayingRefr) return c;
 
@@ -916,7 +916,7 @@ namespace {
 
             uint32_t activatorID = nullActivator ? 0 : RawFormID(args->activator);
             bool playerActivated = (activatorID == 0x14);
-            // F.7 V3: chained-effect propagation — when our replay's
+            // F.7 V3: chained-effect propagation - when our replay's
             // script-chain triggers an Activate on a DIFFERENT kDOOR (or
             // kACTI), allow it through despite non-player activator. This
             // is what makes "client presses switch → host's chained door
@@ -937,7 +937,7 @@ namespace {
             // chainedDoor + DoorSync. F.10/F.11 below still set chainedActi on the ORIGINAL
             // side (replaying=false), so legit script/terminal acti-chains are unaffected.
             bool chainedActi = false;
-            // F.11: script SetOpen (null activator) on doors/activators — the
+            // F.11: script SetOpen (null activator) on doors/activators - the
             // path big station doors take. Broadcast like a normal door/acti;
             // SetOpen on the receiving side is state-conditional so the replay
             // converges instead of toggling.
@@ -945,7 +945,7 @@ namespace {
                 if (isDoorType) chainedDoor = true;
                 if (isActiType) chainedActi = true;
             }
-            // F.10: terminal-chained door/acti — script-driven Activate (the
+            // F.10: terminal-chained door/acti - script-driven Activate (the
             // activator is NOT an actor; NPCs walking through doors have kACHR
             // activators and stay excluded) inside the window after a local
             // player terminal use. Note the timestamp BEFORE this check is
@@ -1053,7 +1053,7 @@ namespace {
     // FUN_140403910 (REL::ID 40716):
     //   BGSObjectInstanceExtra (size 0x30):
     //     +0x18: uint32 mod_count
-    //     +0x20: void* mod_array — array of 16-byte entries
+    //     +0x20: void* mod_array - array of 16-byte entries
     //       per entry: +0x00 TESForm* (mod), +0x08 (extra: rank? slot?)
     //     +0x28: uint16 (0xFFFF = sentinel?)
     using GetExtraByTypeFn = void* (__fastcall*)(void* extraList, uint32_t type);
@@ -1064,7 +1064,7 @@ namespace {
     // weapon/armor mods at transfer time so we can replay them on the
     // receiver. Mods on inventory items live in the per-stack ExtraDataList
     // at stack[0] +0x00 (8-byte ptr), then kObjectInstance (type 0x33) on
-    // that ExtraDataList — same structure F.2 uses for world REFRs.
+    // that ExtraDataList - same structure F.2 uses for world REFRs.
     //
     // Layout assumptions (verified empirically against F.2 + existing
     // CollectInventoryEntries):
@@ -1125,7 +1125,7 @@ namespace {
 
     // M.2 V16 (2026-05-08): read the kObjectInstance +0x28 sentinel for
     // an inventory item. F.2 docs label this as "0xFFFF when no rank,
-    // else primary slot" — engine uses it to render weapon tier (gray
+    // else primary slot" - engine uses it to render weapon tier (gray
     // vs rare/epic/legendary). Without syncing this, client's proc-gen
     // roll leaves a non-default sentinel even after our V15 modCount
     // truncation, so the weapon still renders as a higher tier.
@@ -1264,7 +1264,7 @@ namespace {
     // F.2 SafeReplaceModArrayInPlace: skip AttachMod entirely. Spawned REFR
     // has a kObjectInstance entry from engine init with receiver's default
     // mod loadout. We OVERWRITE the form pointers in-place to match the
-    // host's mod combination — no AttachMod side-effects, no UI race.
+    // host's mod combination - no AttachMod side-effects, no UI race.
     //
     // Constraints:
     // Receiver's local mod-slot count must match host's (= same base
@@ -1288,13 +1288,13 @@ namespace {
             uint32_t localCount = *reinterpret_cast<uint32_t*>(eb + 0x18);
             void* localArray = *reinterpret_cast<void**>(eb + 0x20);
             if (!localArray || localCount == 0 || localCount > 64) return;
-            // Note: localCount may differ from mods.size() — happens when
+            // Note: localCount may differ from mods.size() - happens when
             // host's weapon has legendary effects (extra mod slots from
             // proc-gen rolling). We replace common slots in-place; extras
             // (host > local) are handled by caller via AttachMod.
             if (localCount != mods.size()) {
                 PLOG_INFO(
-                    "[PULSAR] F.2 V1 in-place: slot-count differs refr=0x{:08X} local={} host={} — replacing common slots only"sv,
+                    "[PULSAR] F.2 V1 in-place: slot-count differs refr=0x{:08X} local={} host={} - replacing common slots only"sv,
                     RawFormID(refr), localCount,
                     static_cast<uint32_t>(mods.size()));
             }
@@ -1310,7 +1310,7 @@ namespace {
                     ++replaced;
                 }
             }
-            // M.2 V15 (2026-05-08): same fix as inventory variant — when
+            // M.2 V15 (2026-05-08): same fix as inventory variant - when
             // client's spawn proc-gen rolled MORE slots than host has
             // (gray-weapon drops have host=13 default mods, client spawn
             // rolled 16 with random legendaries), truncate modCount so the
@@ -1412,7 +1412,7 @@ namespace {
                 }
                 // M.2 V15 (2026-05-08): truncate modCount to host's exact
                 // count. AddObjInner with src=NULL on receiver triggers
-                // engine proc-gen rolls — client gets MORE slots than host
+                // engine proc-gen rolls - client gets MORE slots than host
                 // (e.g. local=16, host=13 → 3 random legendary effects in
                 // slots 13..15). After replacing the first 13, force the
                 // engine to only see 13 by lowering modCount. Excess slot
@@ -1438,7 +1438,7 @@ namespace {
                 return;
             }
             PLOG_INFO(
-                "[PULSAR] M.2 V7 inv-mod replace: SKIP — no entry for item=0x{:08X} on refr=0x{:08X}"sv,
+                "[PULSAR] M.2 V7 inv-mod replace: SKIP - no entry for item=0x{:08X} on refr=0x{:08X}"sv,
                 formID, RawFormID(refr));
         } __except (EXCEPTION_EXECUTE_HANDLER) {
             PLOG_WARN(
@@ -1485,7 +1485,7 @@ namespace {
         return result;
     }
 
-    // F.2 forward decls — used in HookedDropCore which is above definitions.
+    // F.2 forward decls - used in HookedDropCore which is above definitions.
     static RE::TESObjectREFR* SafeFindLootRefInCell(void* cell,
                                                      uint32_t resolvedBase,
                                                      float px, float py, float pz,
@@ -1497,7 +1497,7 @@ namespace {
         RE::TESObjectREFR* anchor, uint32_t baseID) noexcept;
 
     // F.2 deferred-read queue: HookedDropCore CANNOT touch kObjectInstance
-    // synchronously — doing so on Starfield's main thread races with the
+    // synchronously - doing so on Starfield's main thread races with the
     // Scaleform inventory UI re-render and crashes the host (verified
     // 2026-04-25). Instead we record the drop here and let
     // DrainPendingDropReads pick it up on the next game tick, after the
@@ -1518,7 +1518,7 @@ namespace {
             && !t_replayingFromPacket && o.itemBase != 0
             && o.count > 0 && IsMenuDropArgs(args);
 
-        // Queue BEFORE running orig — running orig first then doing
+        // Queue BEFORE running orig - running orig first then doing
         // anything (mutex lock, queue push) appears to race with the
         // Scaleform inventory-UI re-render and crashes the host.
         // Original F.1.d pattern (TX-before-orig) never crashed; preserve
@@ -1556,7 +1556,7 @@ namespace {
     //     doors already sync via cls.isDoor)
     // door is near the local player (bounds ambient spam to doors the
     //     co-op partner could actually be blocked by)
-    // door is NOT a load/teleport door — replaying a load-door on the
+    // door is NOT a load/teleport door - replaying a load-door on the
     //     client teleports the clone into the linked cell; regular doors just
     //     play an open animation, which is what we want mirrored
     // per-door debounced (a guide NPC re-opening / walk-through repeats
@@ -1650,9 +1650,9 @@ namespace {
             return false;
         }
 
-        // L.6 V1.2 — Dock-Probe-Window: log ANY Activate while we're
+        // L.6 V1.2 - Dock-Probe-Window: log ANY Activate while we're
         // capturing a dock sequence. The Hatch is a REFR activation, type
-        // unknown — log everything so we can identify it from logs.
+        // unknown - log everything so we can identify it from logs.
         // L.6 V2 (2026-05-02): when the activated REFR is a kFURN inside the
         // cockpit cell, treat as Hatch-Activate and arm cell-change watchdog.
         if (Pulsar::TakeoffProbe::IsDockProbeActive() && self) {
@@ -1670,7 +1670,7 @@ namespace {
                     selfID, selfFt, baseID, baseFt,
                     t_replayingFromPacket ? "YES" : "no");
 
-                // V2 hatch-detect REMOVED — see L.6 cleanup (2026-05-02).
+                // V2 hatch-detect REMOVED - see L.6 cleanup (2026-05-02).
             } __except (EXCEPTION_EXECUTE_HANDLER) {}
         }
 
@@ -1678,7 +1678,7 @@ namespace {
         // holding locals here in C++-unwinding mode).
         ActivationClass cls = ClassifyActivation(self, args, t_replayingFromPacket);
 
-        // F.10: a local player terminal use opens the chained door/acti window —
+        // F.10: a local player terminal use opens the chained door/acti window -
         // terminal scripts activate their targets (doors, turrets, lights) with
         // a non-actor activator, which ClassifyActivation otherwise drops.
         if (!t_replayingFromPacket && args && args->activator
@@ -1726,7 +1726,7 @@ namespace {
             RegisterSinkOnContainer(self);
         }
 
-        // F.3 raw door-hit probe — fires for ANY door Activate (player, NPC,
+        // F.3 raw door-hit probe - fires for ANY door Activate (player, NPC,
         // AI package, script). F.7 V3 extension: also fires for kACTI
         // (Activator) so we can trace the switch→conduit→door script chain
         // and identify which Activate calls fail the player-only filter.
@@ -1759,7 +1759,7 @@ namespace {
                     t_replayingFromPacket ? "YES" : "no");
 
                 // L.6 V3 Phase 3f probe: for kDOOR activations dump the
-                // ExtraTeleport bytes pre-orig — empirical capture of what
+                // ExtraTeleport bytes pre-orig - empirical capture of what
                 // engine sees when host activates station-side hatch (the
                 // ground-truth for our forging on client). Logs:
                 //   destDoorRef ptr+FormID, flags, destPos, destRot, destFlag.
@@ -1828,7 +1828,7 @@ namespace {
                 }
 
                 // F.8 V4 probe: when activating a display-case container
-                // (NativeTerminal:DisplayCaseScript handled — uses kLinkedRef
+                // (NativeTerminal:DisplayCaseScript handled - uses kLinkedRef
                 // chain to manage visual children), walk the case's
                 // ExtraDataList linked list and dump types + raw bytes for
                 // kLinkedRef (0x4C) and kLinkedRefChildren (0x4D) entries.
@@ -1865,7 +1865,7 @@ namespace {
                                     const char* tname2 = (type == 0x4C) ? "kLinkedRef" : "kLinkedRefChildren";
                                     PLOG_INFO("[PULSAR] case-extras: type=0x{:02X} ({}) count={} cap={}"sv,
                                               type, tname2, count, cap);
-                                    // skip raw slot dump — moved focus to STAT scan
+                                    // skip raw slot dump - moved focus to STAT scan
                                     (void)count; (void)cap;
                                 } else {
                                     PLOG_INFO("[PULSAR] case-extras: type=0x{:02X} addr=0x{:x}"sv,
@@ -1880,7 +1880,7 @@ namespace {
                         // Scan nearby kSTAT FF REFRs (script-spawned visual
                         // decorations) within tight radius of case origin.
                         // iter 7 neighbour dump found 5 such REFRs at dist
-                        // 7-9 from a display-case — these ARE the visuals
+                        // 7-9 from a display-case - these ARE the visuals
                         // we need to cull (NOT the FF refs with item base).
                         auto* selfLoc = reinterpret_cast<float*>(
                             reinterpret_cast<uint8_t*>(self) + 0x8C);
@@ -1959,7 +1959,7 @@ namespace {
             }
         }
 
-        // Phase K.2 V2 — note door activation by player so TransitSync
+        // Phase K.2 V2 - note door activation by player so TransitSync
         // can attach the source-door FormID to the next outgoing
         // PKT_TRANSIT. Receiver-side auto-follow calls
         // Player.Activate(door) → engine handles cell-load correctly
@@ -1990,7 +1990,7 @@ namespace {
         }
 
         // F.3.c: container-open broadcast for non-locked kCONT activates.
-        // Distinct from F.3.b lock-flip — covers regular E-press on
+        // Distinct from F.3.b lock-flip - covers regular E-press on
         // unlocked containers (weapon cases, normal chests, etc.). The
         // call is a no-op for locked containers (LockSync owns that path)
         // and for failed activations.
@@ -2000,7 +2000,7 @@ namespace {
         }
 
         // World-pickup broadcast. SendPickupPacket operates on captured
-        // scalar values — no deref of `self` — so it's SEH-safe without an
+        // scalar values - no deref of `self` - so it's SEH-safe without an
         // extra wrapper (PluginLookup internals are already __try-guarded).
         if (eligible && result) {
             auto& net = Pulsar::Network::GetSingleton();
@@ -2011,13 +2011,13 @@ namespace {
 
         // F.3: door-activation hand-off. The Activate hook is shared (loot
         // and doors both funnel through it), but the door-sync logic lives
-        // in its own module — DoorSync owns the packet, queue, and replay.
+        // in its own module - DoorSync owns the packet, queue, and replay.
         if (cls.isDoor || npcDoorOpen) {
             Pulsar::WorldSync::Door::OnHostActivate(
                 selfID, baseID, px, py, pz, result);
         }
 
-        // F.7: kACTI (Activator) replay-sync — switches, buttons, levers,
+        // F.7: kACTI (Activator) replay-sync - switches, buttons, levers,
         // power-conduits. Same dispatcher pattern as F.3 + per-Activate
         // inventory diff to detect what the activator script consumed
         // from the player (e.g. Power Cell for power-conduits) so the
@@ -2033,7 +2033,7 @@ namespace {
         }
 
         // Container-take broadcast is handled by ContainerInvSink at event
-        // time (see DiffAndBroadcastContainer) — the actual item transfer
+        // time (see DiffAndBroadcastContainer) - the actual item transfer
         // happens asynchronously after Activate returns, so we'd miss it
         // here. No-op in the Activate path now.
 
@@ -2041,7 +2041,7 @@ namespace {
     }
 
     // ---------------------------------------------------------------------
-    // Client-side pickup replay — deferred to game thread because Activate
+    // Client-side pickup replay - deferred to game thread because Activate
     // touches inventory / script event queue that are single-threaded.
     // ---------------------------------------------------------------------
 
@@ -2056,7 +2056,7 @@ namespace {
         uint32_t resolvedItemBase;
         float    px, py, pz;
         int32_t  count;
-        uint8_t  refType;          // kREFR or kACHR — selects matcher path
+        uint8_t  refType;          // kREFR or kACHR - selects matcher path
         uint8_t  transferReason;   // M.2 V5: forwarded ITEM_TRANSFER_REASON
         uint16_t modSentinel;      // M.2 V16: kObjectInstance +0x28 sentinel
         std::vector<uint32_t> resolvedMods;  // M.2 V7: cross-plugin-resolved
@@ -2156,7 +2156,7 @@ namespace {
                 std::move(mods), sentinel, now, now
             };
         } else {
-            // Active anchor — keep mods/sentinel, just bump activity.
+            // Active anchor - keep mods/sentinel, just bump activity.
             it->second.lastSeenMs = now;
         }
     }
@@ -2183,7 +2183,7 @@ namespace {
         return true;
     }
 
-    // SEH-wrapped read of (mods+sentinel) from inventory item entry — used
+    // SEH-wrapped read of (mods+sentinel) from inventory item entry - used
     // pre-engine-call inside HookedAddObjInner (which has C++ unwinding).
     static bool SafeReadInventoryItemModSnapshot(
         RE::TESObjectREFR* refr,
@@ -2232,7 +2232,7 @@ namespace {
         }
     }
 
-    // V26: noexcept, non-logging variant of restore — used by the polling
+    // V26: noexcept, non-logging variant of restore - used by the polling
     // tick to silently revert items that the engine grew in the background.
     // Returns true if a divergence was found and corrected (so caller can
     // log a summary instead of per-item).
@@ -2270,7 +2270,7 @@ namespace {
                 uint32_t localCount = *reinterpret_cast<uint32_t*>(eb + 0x18);
                 uint16_t localSentinel = *reinterpret_cast<uint16_t*>(eb + 0x28);
 
-                // Skip if already matches (avoid useless writes — and infinite
+                // Skip if already matches (avoid useless writes - and infinite
                 // log spam in caller).
                 if (localCount == cachedCount && localSentinel == cachedSentinel) {
                     continue;
@@ -2285,7 +2285,7 @@ namespace {
                         if (mod) *reinterpret_cast<void**>(arr + mi * 0x10) = mod;
                     }
                 }
-                // CLAMPED count write — same latent overflow as the loud
+                // CLAMPED count write - same latent overflow as the loud
                 // variant (see comment there): cached > local capacity must
                 // not grow modCount past the allocated array.
                 *reinterpret_cast<uint32_t*>(eb + 0x18) = commonSlots;
@@ -2296,7 +2296,7 @@ namespace {
         return changed;
     }
 
-    // V26: SEH-isolated formID collector — fills a stack buffer with formIDs
+    // V26: SEH-isolated formID collector - fills a stack buffer with formIDs
     // of all entries in the container's invList. Separate function (not
     // inlined) because __try cannot coexist with C++-unwinding objects in
     // the caller (C2712).
@@ -2348,7 +2348,7 @@ namespace {
     }
 
     // V24 restore: like SafeReplaceModArrayOnInventoryItem but always writes
-    // modCount (even 0) and sentinel — needed because cached state may be
+    // modCount (even 0) and sentinel - needed because cached state may be
     // empty (grey weapons with no mods) and we still need to undo any growth
     // the engine applied during the BarterMenu cycle.
     static void SafeRestoreModArrayOnInventoryItem(
@@ -2437,7 +2437,7 @@ namespace {
 
         uint32_t attached = 0;
 
-        // modfix (2026-06-19) — the freshly AddObjectToContainer'd base form
+        // modfix (2026-06-19) - the freshly AddObjectToContainer'd base form
         // arrives with its TEMPLATE DEFAULT mods already in a kObjectInstance.
         // Attaching the captured set on top yields base-defaults + captured =
         // an over-modded / duplicated weapon (the "random mods" bug; diagnostic
@@ -2496,7 +2496,7 @@ namespace {
 
                 // Build the 0x30 ctx exactly as the Papyrus inventory path does
                 // (FUN_14206d6b0): +0x00 owner, +0x08 mod, +0x18 &attachOk
-                // (success accumulator, MUST be non-null AND start at 1 — the
+                // (success accumulator, MUST be non-null AND start at 1 - the
                 // engine does `*accumulator &= addModResult`, then returns it),
                 // +0x20 flag=1, +0x21 attach-mode=1. The THIRD arg is a separate
                 // status byte the core sets 0→1; its bool return is INVERTED
@@ -2518,12 +2518,12 @@ namespace {
                 PLOG_WARN(
                     "[PULSAR] native attach SEH: owner=0x{:08X} item=0x{:08X} mod=0x{:08X}"sv,
                     RawFormID(owner), formID, mods[mi]);
-                break;  // structure likely torn — stop touching this item
+                break;  // structure likely torn - stop touching this item
             }
         }
 
         // Stamp the source sentinel (+0x28 item-tier rendering) so the restored
-        // item renders at the original tier — the engine's fresh kObjectInstance
+        // item renders at the original tier - the engine's fresh kObjectInstance
         // starts at 0xFFFF. Cosmetic; one SEH-guarded write.
         if (attached > 0 && sentinel != 0xFFFF) {
             __try {
@@ -2605,7 +2605,7 @@ namespace {
         }
     }
 
-    // Plain-C SEH wrapper — must live outside the C++-unwinding drain
+    // Plain-C SEH wrapper - must live outside the C++-unwinding drain
     // function (C2712: __try forbidden next to objects with destructors).
     static void SafeCallOrigActivate(RE::TESObjectREFR* refr,
                                       ActivateArgs* args,
@@ -2621,7 +2621,7 @@ namespace {
     }
 
     // Find a container REFR by base formID + position. Similar to the loot
-    // matcher but filters on base == resolvedContainerBase (not form-type —
+    // matcher but filters on base == resolvedContainerBase (not form-type -
     // a container's base is already a TESObjectCONT and its formID is
     // unique within a cell).
     static RE::TESObjectREFR* SafeFindContainerByBaseInCell(void* cell,
@@ -2697,7 +2697,7 @@ namespace {
         }
     }
 
-    // F.1.e: SEH-wrapped Papyrus UnequipItem call — clears the actor's
+    // F.1.e: SEH-wrapped Papyrus UnequipItem call - clears the actor's
     // equipped-slot pointer to baseFormID so that subsequent raw-remove
     // isn't undone by engine reconciliation on next inventory access.
     // Safe to call when item isn't actually equipped (handler iterates
@@ -2706,13 +2706,13 @@ namespace {
     {
         if (!g_unequipPapyrus || !actor || !item) return;
         __try {
-            // VM ctx + stack ID = 0,0 — only used in error paths
+            // VM ctx + stack ID = 0,0 - only used in error paths
             // (None-item, no-inventory, no-3d). Dead NPCs satisfy all.
             // preventEquip=false (don't block re-equip), silent=true.
             g_unequipPapyrus(nullptr, 0, actor, item, false, true);
         } __except (EXCEPTION_EXECUTE_HANDLER) {
             // SEH lands when actor was freed mid-call or VM-error path
-            // dereferenced our null context. Silent — the raw-remove
+            // dereferenced our null context. Silent - the raw-remove
             // fallback below still fires.
         }
     }
@@ -2787,7 +2787,7 @@ namespace {
                     }
                     *dataSizePtr = dataCount > 0 ? (dataCount - 1) : 0;
                     entryCount = *dataSizePtr;  // updated count after swap-remove
-                    // Don't ++i — swap-remove placed last entry at i, re-check.
+                    // Don't ++i - swap-remove placed last entry at i, re-check.
                 } else {
                     ++i;
                 }
@@ -2826,7 +2826,7 @@ namespace {
     }
 
     // M.2 V4 (2026-05-08): noexcept wrapper around the inner core
-    // FUN_140B4D2E0 — bypasses vt[0x9A] for ship-form / non-vt-overridden
+    // FUN_140B4D2E0 - bypasses vt[0x9A] for ship-form / non-vt-overridden
     // REFRs. Used by the receiver to replay AddObjInner with same shape
     // as host's hooked event. Sets t_replayingFromPacket while running so
     // our own hook doesn't broadcast back.
@@ -2877,7 +2877,7 @@ namespace {
         }
     }
 
-    // Disable + mark-for-delete on the REFR — pure despawn, no inventory.
+    // Disable + mark-for-delete on the REFR - pure despawn, no inventory.
     // kDisabled is bit 11 of formFlags @ +0x20; SetDelete is TESForm vtable
     // slot 0x33 (exposed via CommonLibSF). SEH-wrapped for belt-and-
     // suspenders; raw flag write is a single mov, the virtual call should
@@ -2922,11 +2922,11 @@ namespace {
 
     // Hide a REFR's 3D visually without waiting for cell-reload.
     // Approach: combine flag-cull with position-displacement (proven
-    // pattern from F.6 GrabSync — three transform writes that the
+    // pattern from F.6 GrabSync - three transform writes that the
     // engine respects). For display-case spawned children:
     // SetDelete alone only marks for GC, render keeps going.
     // APP_CULLED bit (NiAVObject.flags+0x118 bit 0 in NetImmerse
-    //    convention) — try multiple candidates since Starfield's enum
+    //    convention) - try multiple candidates since Starfield's enum
     //    isn't documented; defensive write of 0x1|0x4|0x10.
     // Position-displacement to z=-1e7 puts the mesh below the world
     //    so even if cull bit is wrong, mesh is off-screen.
@@ -2960,13 +2960,13 @@ namespace {
             uint64_t flagsBefore = *reinterpret_cast<uint64_t*>(data3D + 0x118);
             float worldZBefore = *reinterpret_cast<float*>(data3D + 0xB0 + 8);
 
-            // NiAVObject local/world/previousWorld translate writes —
+            // NiAVObject local/world/previousWorld translate writes -
             // F.6 GrabSync proved these stick visually for grabbables.
             std::memcpy(data3D + 0x70, kHide, sizeof(kHide));
             std::memcpy(data3D + 0xB0, kHide, sizeof(kHide));
             std::memcpy(data3D + 0xF0, kHide, sizeof(kHide));
 
-            // NiAVObject.flags @ +0x118 — multi-bit defensive cull
+            // NiAVObject.flags @ +0x118 - multi-bit defensive cull
             auto* flags = reinterpret_cast<uint64_t*>(data3D + 0x118);
             *flags |= 0x1ull | 0x4ull | 0x10ull;
             PLOG_INFO(
@@ -2992,7 +2992,7 @@ namespace {
     //                     table next to the case). User can loot it
     //                     normally. Culling this kills the table item.
     // HIGHER FormID = script-spawned tracking REFR (has data3D
-    //                     but no visible mesh — visual rendering goes
+    //                     but no visible mesh - visual rendering goes
     //                     through the case container's own NiNode
     //                     hierarchy, not this REFR's data3D).
     //
@@ -3000,12 +3000,12 @@ namespace {
     // node attached to the case container, NOT through any of the
     // matching FF REFRs we can find via cell-scan. To hide it
     // properly we'd need to trigger the case-script's OnInventoryRemove
-    // which runs Disable() on the visual — see F.7+F.8 V4 backlog
+    // which runs Disable() on the visual - see F.7+F.8 V4 backlog
     // (Papyrus DispatchStaticCall path, ~8h effort).
     //
     // Picking HIGHEST-FF here avoids killing the table item. Weapons
     // (single cand) hide correctly because their visual IS the cull
-    // target. Ammo visuals stay stuck until cell reload — known
+    // target. Ammo visuals stay stuck until cell reload - known
     // cosmetic limitation, state is correct.
     //
     // Walks player's parentCell first then NPCSync's active-cell
@@ -3109,7 +3109,7 @@ namespace {
 
     static RE::TESObjectREFR* FindLocalLootRef(const PendingPickup& p)
     {
-        // Try player's parent cell first (common case — host and client
+        // Try player's parent cell first (common case - host and client
         // share the same interior/worldspace cell).
         auto* player = RE::PlayerCharacter::GetSingleton();
         if (player && player->parentCell) {
@@ -3120,7 +3120,7 @@ namespace {
             if (hit) return hit;
         }
 
-        // Fall back to every cell NPCSync has ever tracked as active —
+        // Fall back to every cell NPCSync has ever tracked as active -
         // adjacent exterior cells during streaming etc.
         auto cells = Pulsar::NPCSync::GetActiveCellsSnapshot();
         for (auto* cell : cells) {
@@ -3136,13 +3136,13 @@ namespace {
     }
 
     // M.2 V4 (2026-05-08): inner AddObjectToContainer hook with broadcast.
-    // Catches transfers that DON'T fire BGSInventoryListEvent — most
+    // Catches transfers that DON'T fire BGSInventoryListEvent - most
     // importantly ship cargo, where data lives on the ship form
     // (e.g. 0x0003F7E8 Frontier) not on the cargo REFR.
     //
     // Filter rules:
     //   • only act when player (0x14) is involved
-    //   • suppress when the OTHER side already has a sink registered —
+    //   • suppress when the OTHER side already has a sink registered -
     //     existing BGSInventoryList diff path handles it (avoid double-
     //     broadcast for normal containers like the captain locker)
     //   • t_replayingFromPacket guard prevents the receiver-side replay
@@ -3151,11 +3151,11 @@ namespace {
     //   • we're inside an AddObjInner call originating from our sync path
     //   • the target BGSObjectInstanceExtra already has modCount > 0
     //
-    // Otherwise calls the original. SEH-wrapped read on +0x18 — defensive
+    // Otherwise calls the original. SEH-wrapped read on +0x18 - defensive
     // against bad pointers on engine-driven calls.
-    // V25.2: hook reduced to skip-only path (no per-call logging — verified
+    // V25.2: hook reduced to skip-only path (no per-call logging - verified
     // 491 calls with guard=off in V25.1, all background async). Inline guard
-    // is dead — kept for future BarterMenu-scoped detection. V26's polling
+    // is dead - kept for future BarterMenu-scoped detection. V26's polling
     // restore is what actually fights the growth.
     static uint32_t __fastcall HookedGrowMods(void* extra, void* refr, void* smartPtr)
     {
@@ -3201,7 +3201,7 @@ namespace {
             // TAKE: snapshot mods from container side. First observation per
             // formID becomes anchor; subsequent observations within TTL are
             // ignored (the engine may already have grown mods on remaining
-            // items in the container — we don't want that polluting anchor).
+            // items in the container - we don't want that polluting anchor).
             std::vector<uint32_t> preMods;
             uint16_t preSentinel = 0xFFFF;
             if (SafeReadInventoryItemModSnapshot(src, v24ItemID,
@@ -3216,7 +3216,7 @@ namespace {
 
         // V25: gate the guard for engine grow-skip. Only activate while the
         // engine call is running, and only when player is involved (covers
-        // BarterMenu / loot / vendor — anywhere mods could grow on items the
+        // BarterMenu / loot / vendor - anywhere mods could grow on items the
         // user is shuffling).
         const bool v25Guard = v24Eligible;
         if (v25Guard) t_insideShipSyncAddObj = true;
@@ -3226,7 +3226,7 @@ namespace {
         if (v25Guard) t_insideShipSyncAddObj = false;
 
         // V24.2: restore mods on PLACE direction using anchored value.
-        // Anchor persists with activity-based TTL — see V24_GetAnchor.
+        // Anchor persists with activity-based TTL - see V24_GetAnchor.
         if (v24Eligible && v24PlayerIsSrc && dest) {
             std::vector<uint32_t> anchorMods;
             uint16_t anchorSentinel = 0xFFFF;
@@ -3247,7 +3247,7 @@ namespace {
         if (!playerIsDest && !playerIsSrc) return;
         if (count == 0 || !item) return;
 
-        // Resolve the "container side" — the non-player party.
+        // Resolve the "container side" - the non-player party.
         RE::TESObjectREFR* container = playerIsDest ? src : dest;
         uint32_t containerID         = playerIsDest ? srcID : destID;
         if (!container || !containerID) return;
@@ -3265,7 +3265,7 @@ namespace {
             suppressBySink = s_registeredSources.count(info.invListSrc) > 0;
         }
 
-        // Re-entry guard — do not broadcast our own replay.
+        // Re-entry guard - do not broadcast our own replay.
         if (t_replayingFromPacket) {
             PLOG_INFO(
                 "[PULSAR] M.2 AddObjInner: REPLAY suppress dest=0x{:08X} src=0x{:08X} item=0x{:08X} count={} reason={}"sv,
@@ -3288,12 +3288,12 @@ namespace {
         //   playerIsSrc  = place into container → negative count
         int32_t signedCount = playerIsDest ? count : -count;
 
-        // Container position — use raw +0x8C if container is a real REFR,
+        // Container position - use raw +0x8C if container is a real REFR,
         // else 0/0/0 (ship-form etc. has no world pos that maps cleanly).
         float cx = 0.f, cy = 0.f, cz = 0.f;
         SafeReadRefrPos(container, cx, cy, cz);
 
-        // M.2 V7: read mods on the moveable item AFTER the engine call —
+        // M.2 V7: read mods on the moveable item AFTER the engine call -
         // dest now holds the entry with its ExtraDataList intact (mods
         // travel with the items during transfer). For TAKE: dest=player.
         // For PLACE: dest=container. Either way, dest has the item now.
@@ -3312,7 +3312,7 @@ namespace {
 
 void Init()
 {
-    // Hook the Activate core — stable REL::ID on 1.16.236.
+    // Hook the Activate core - stable REL::ID on 1.16.236.
     REL::Relocation<void*> target{ REL::ID(63380) };  // RVA 0xB47920
     void* fn = target.get();
 
@@ -3356,7 +3356,7 @@ void Init()
         }
     }
 
-    // F.1.d: resolve inner REFR-spawn primitive. No hook — we call it
+    // F.1.d: resolve inner REFR-spawn primitive. No hook - we call it
     // directly on the receiver side to spawn dropped items without going
     // through the VM-bound drop-core path. REL::ID 63591 @ RVA 0xB68F10.
     REL::Relocation<void*> spawnTarget{ REL::ID(63591) };
@@ -3366,7 +3366,7 @@ void Init()
         reinterpret_cast<uintptr_t>(g_spawnRef));
 
     // M.2 V3: hook inner AddObjectToContainer at RVA 0xB4CBC0. Resolve via
-    // raw RVA — no stable REL::ID known (CommonLibSF placeholder 85991
+    // raw RVA - no stable REL::ID known (CommonLibSF placeholder 85991
     // points to an unrelated 0xD0-byte struct copy helper; verified
     // 2026-05-08 via Ghidra Q4).
     {
@@ -3392,9 +3392,9 @@ void Init()
             }
         }
 
-        // M.2 V25: hook FUN_140404300 — engine's mod-array grow function.
+        // M.2 V25: hook FUN_140404300 - engine's mod-array grow function.
         // Identified via Ghidra (m2_v24_growth_re.md). Skip-on-existing
-        // semantics gated by t_insideShipSyncAddObj thread-local — see
+        // semantics gated by t_insideShipSyncAddObj thread-local - see
         // HookedGrowMods.
         void* growFn = reinterpret_cast<void*>(moduleBase + 0x403B00);
         MH_STATUS gmSt = MH_CreateHook(
@@ -3418,7 +3418,7 @@ void Init()
     }
 
     // F.1.e: resolve Papyrus UnequipItem native handler. Used on receiver
-    // before raw-removing items from a dead-NPC corpse — clears the
+    // before raw-removing items from a dead-NPC corpse - clears the
     // equipped-item slot so engine reconciliation doesn't restore the
     // weapon ([Tarnung] / equipped marker).
     REL::Relocation<void*> unequipTarget{ REL::ID(116791) };
@@ -3427,7 +3427,7 @@ void Init()
         "[PULSAR] F.1.e: PapyrusUnequip resolved at 0x{:x} (REL::ID 116791)"sv,
         reinterpret_cast<uintptr_t>(g_unequipPapyrus));
 
-    // F.2: ExtraDataList::GetByType — used to read kObjectInstance entry
+    // F.2: ExtraDataList::GetByType - used to read kObjectInstance entry
     // from a REFR. REL::ID 37878 @ RVA 0x347170.
     REL::Relocation<void*> getExtraTarget{ REL::ID(37878) };
     g_getExtraByType = reinterpret_cast<GetExtraByTypeFn>(getExtraTarget.get());
@@ -3443,7 +3443,7 @@ void Init()
         reinterpret_cast<uintptr_t>(g_attachMod));
 
     // engine per-entry inventory mod-attach core. RVA 0x63D270 (resolve
-    // by offset — no stable REL::ID needed for this internal helper).
+    // by offset - no stable REL::ID needed for this internal helper).
     {
         REL::Relocation<void*> invCoreTarget{ REL::Offset(0x63D270) };
         g_attachModInvCore =
@@ -3456,13 +3456,13 @@ void Init()
 
 void TickDebugContainerTrace()
 {
-    // Deprecated — ContainerInvSink fires synchronously on events; no
+    // Deprecated - ContainerInvSink fires synchronously on events; no
     // polling needed. Kept for header ABI compatibility.
 }
 
 // M.2 (2026-05-08): Periodic poll of recently-activated tracked containers.
 // Ship cargo uses BarterMenu (FUN_1415D15D0 'ShipInventoryData' ctor sets
-// every slot to BarterMenu::vftable) — its inventoryList event source at
+// every slot to BarterMenu::vftable) - its inventoryList event source at
 // +0xA0 never fires BGSInventoryListEvent on barter transfers. The diff
 // won't otherwise reach DiffAndBroadcastContainer. This tick polls the
 // snapshot every ~500ms and emits the same delta packets the event path
@@ -3483,7 +3483,7 @@ void TickContainerPolling()
 
     // M.2 V18 (2026-05-09): debounce-only. Pre-V18 OR'd `active` (60s
     // post-activate polling for ship-cargo) with `dirtyDebounced`, but
-    // `active` defeated the debounce — every 200ms tick broadcast the
+    // `active` defeated the debounce - every 200ms tick broadcast the
     // current diff during BarterMenu transactions, multiplying ammo and
     // re-spawning weapons. Ship-cargo is covered by the AddObjInner hook
     // (V3+), not polling, so the active-window path is unnecessary.
@@ -3514,7 +3514,7 @@ void TickContainerPolling()
     }
 
     // M.2 V26 (2026-05-09): continuous anchor restore. The engine grows
-    // kObjectInstance mod-arrays asynchronously in the background — outside
+    // kObjectInstance mod-arrays asynchronously in the background - outside
     // any of our hooks (verified: V25 grow-skip never fires because
     // FUN_140404300 is always called with thread-local guard=off, meaning
     // it runs on a different thread/scheduler than HookedAddObjInner).
@@ -3523,7 +3523,7 @@ void TickContainerPolling()
     // an active anchor restore the original mods/sentinel. This races the
     // engine's growth and keeps the visible/persisted state at canonical.
     //
-    // Cost: bounded — only runs on tracked containers (sink-registered),
+    // Cost: bounded - only runs on tracked containers (sink-registered),
     // skips items without anchors (silent no-op), and the silent variant
     // skips writes when state already matches.
     for (uint32_t refID : trackedRefIDs) {
@@ -3550,7 +3550,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
     using namespace Pulsar::Network;
     if (!data || length < 1) return;
 
-    // PKT_LOOT_DROP dispatch — smallest payload, check first.
+    // PKT_LOOT_DROP dispatch - smallest payload, check first.
     if (data[0] == PKT_LOOT_DROP) {
         if (length < 1 + sizeof(LootDropData)) return;
         LootDropData d{};
@@ -3678,7 +3678,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
 
     // Re-encode the host's base FormID into our load-order. Fall back to
     // the raw base when the plugin isn't in our list or ESL/ESM flag-aware
-    // mapping can't be resolved — exact FormID matches still work when the
+    // mapping can't be resolved - exact FormID matches still work when the
     // plugin happens to load at the same compile index on both machines.
     uint32_t resolved = 0;
     if (p.basePlugin[0] != '\0') {
@@ -3733,7 +3733,7 @@ void DrainPendingPickups()
     std::vector<PendingPickup> work;
     {
         std::lock_guard g(s_pendingMutex);
-        // Drain ALL queues — early-return only if NONE has work,
+        // Drain ALL queues - early-return only if NONE has work,
         // otherwise container takes get stranded when no world-pickup is
         // pending.
         if (s_pending.empty() && s_pendingContainerTakes.empty()
@@ -3743,7 +3743,7 @@ void DrainPendingPickups()
 
     auto* player = RE::PlayerCharacter::GetSingleton();
     if (!player) {
-        // Put them back — try next tick when the singleton exists.
+        // Put them back - try next tick when the singleton exists.
         std::lock_guard g(s_pendingMutex);
         s_pending.insert(s_pending.begin(), work.begin(), work.end());
         return;
@@ -3753,7 +3753,7 @@ void DrainPendingPickups()
         auto* refr = FindLocalLootRef(p);
         if (!refr) {
             PLOG_INFO(
-                "[PULSAR] LootSync: no local match for base=0x{:08X} @({:.0f},{:.0f},{:.0f}) — item may be in unloaded cell"sv,
+                "[PULSAR] LootSync: no local match for base=0x{:08X} @({:.0f},{:.0f},{:.0f}) - item may be in unloaded cell"sv,
                 p.resolvedBase, p.px, p.py, p.pz);
             continue;
         }
@@ -3762,12 +3762,12 @@ void DrainPendingPickups()
 
         // Replay Activate using the OTHER player's clone as activator. The
         // clone is a real Actor (type kACHR), so the engine runs the full
-        // pickup path and despawns the REFR — but the item lands in the
+        // pickup path and despawns the REFR - but the item lands in the
         // clone's inventory, not the local player's. The clone inventory is
         // invisible to the UI on this side, so effectively no dupe.
         //
         // Fallback: if no clone is available (not spawned yet / F.2 hasn't
-        // rebuilt equipment-sync), drop to SetDelete — visual stays but at
+        // rebuilt equipment-sync), drop to SetDelete - visual stays but at
         // least no dupe.
         auto* clone = Pulsar::RemotePlayer::GetRemotePlayerManager().GetRemoteActor();
         bool cleaned = false;
@@ -3782,7 +3782,7 @@ void DrainPendingPickups()
             t_replayingFromPacket = false;
             cleaned = true;
         } else {
-            // No clone yet — at least mark the REFR deleted so the game save
+            // No clone yet - at least mark the REFR deleted so the game save
             // doesn't preserve a ghost item.
             cleaned = SafeDisableAndDelete(refr, matchedRefID);
         }
@@ -3808,7 +3808,7 @@ void DrainPendingPickups()
         bool isActor = (t.refType == static_cast<uint8_t>(RE::FormType::kACHR));
         RE::TESObjectREFR* container = nullptr;
 
-        // M.2 V4 (2026-05-08): direct formID lookup first — handles ship-
+        // M.2 V4 (2026-05-08): direct formID lookup first - handles ship-
         // form containers (e.g. Frontier 0x0003F7E8) that aren't in any
         // active cell. Falls through to position-based cell-scan for
         // ordinary containers (also covers cross-plugin remap case).
@@ -3850,7 +3850,7 @@ void DrainPendingPickups()
             continue;
         }
 
-        // M.2 V4 — encoded count semantics:
+        // M.2 V4 - encoded count semantics:
         //   t.count > 0 : take from container (host's player gained items)
         //                 → on receiver: AddObjInner(localPlayer, item, ..., count, container)
         //                   moves items from local container to local player
@@ -3864,11 +3864,11 @@ void DrainPendingPickups()
         uint32_t cRefID = RawFormID(container);
         if (!itemForm) {
             PLOG_INFO(
-                "[PULSAR] ContainerSync: SKIP — item base=0x{:08X} not in form-table on receiver (mirror {}=0x{:08X})"sv,
+                "[PULSAR] ContainerSync: SKIP - item base=0x{:08X} not in form-table on receiver (mirror {}=0x{:08X})"sv,
                 t.resolvedItemBase, isActor ? "actor" : "container", cRefID);
             continue;
         }
-        // M.2 V5: helper for inventory-count diagnostic — counts total items
+        // M.2 V5: helper for inventory-count diagnostic - counts total items
         // of `formID` in the REFR's BGSInventoryList at +0xA0. SEH-safe.
         auto countItemInRefrInv = [](RE::TESObjectREFR* refr, uint32_t formID) -> int32_t {
             if (!refr || !formID) return -1;
@@ -3896,7 +3896,7 @@ void DrainPendingPickups()
             // M.2 V20 (2026-05-09): pre-snapshot container's full inv so
             // we can diff after AddObjInner and remove any items the
             // engine auto-spawned (NPC-loadout default ammo for placed
-            // weapons — V19's kScriptAddItem reason didn't suppress it).
+            // weapons - V19's kScriptAddItem reason didn't suppress it).
             SnapshotEntry preSnapBuf[kMaxSnapshotEntries];
             int32_t preSnapN = SafeSnapshotRefrInventory(
                 container, preSnapBuf,
@@ -3916,7 +3916,7 @@ void DrainPendingPickups()
 
                 // V26: seed anchor on receiver side using the broadcasted
                 // mods. Without this, only the sender (who took the item)
-                // has an anchor — but the engine grows on BOTH sides, and
+                // has an anchor - but the engine grows on BOTH sides, and
                 // polling-restore needs an anchor on each side to fight it.
                 std::vector<uint32_t> anchorCopy = t.resolvedMods;
                 V24_RecordTakeObservation(t.resolvedItemBase,
@@ -3945,7 +3945,7 @@ void DrainPendingPickups()
                 for (int32_t i = 0; i < postSnapN; ++i) {
                     uint32_t baseID = postSnapBuf[i].base;
                     int32_t  postC  = postSnapBuf[i].count;
-                    if (baseID == t.resolvedItemBase) continue;  // our item — skip
+                    if (baseID == t.resolvedItemBase) continue;  // our item - skip
                     int32_t preC = 0;
                     auto it = preMap.find(baseID);
                     if (it != preMap.end()) preC = it->second;
@@ -4016,7 +4016,7 @@ void DrainPendingPickups()
                 t.resolvedItemBase, t.count, removed,
                 preSrc, postSrc, t.transferReason, ok ? "ok" : "SEH");
 
-            // F.1.e/F.8 visual-child fallback — preserved from pre-V4 path.
+            // F.1.e/F.8 visual-child fallback - preserved from pre-V4 path.
             // Dead-NPC corpse: equipped weapon spawns world REFR; cull it.
             // Display-case kCONT: weapon-case script PlaceAtMe-spawns visual
             // children that aren't in the inventoryList; always cull them
@@ -4081,7 +4081,7 @@ void DrainPendingPickups()
     // remote clone actor, call g_origDropCore(clone, &out, &args). The engine
     // handles physics + cell-reference registration; REFR spawns at clone's
     // position (= peer player's position on our side). No inventory pre-add
-    // here — if the drop-core needs the item in clone's inventory, it will
+    // here - if the drop-core needs the item in clone's inventory, it will
     // no-op gracefully (observed paths are lenient about this).
     std::vector<PendingDrop> dropWork;
     {
@@ -4094,14 +4094,14 @@ void DrainPendingPickups()
         auto* clone = Pulsar::RemotePlayer::GetRemotePlayerManager().GetRemoteActor();
         if (!clone) {
             PLOG_WARN(
-                "[PULSAR] F.1.d: drop replay skipped — no remote clone for base=0x{:08X}"sv,
+                "[PULSAR] F.1.d: drop replay skipped - no remote clone for base=0x{:08X}"sv,
                 dp.resolvedBase);
             continue;
         }
         auto* item = RE::TESForm::LookupByID(dp.resolvedBase);
         if (!item) {
             PLOG_WARN(
-                "[PULSAR] F.1.d: drop replay skipped — unknown base=0x{:08X}"sv,
+                "[PULSAR] F.1.d: drop replay skipped - unknown base=0x{:08X}"sv,
                 dp.resolvedBase);
             continue;
         }
@@ -4114,7 +4114,7 @@ void DrainPendingPickups()
         // F.2-V1 in-place mod replace + extras-AttachMod for legendary
         // effects: spawn already created the REFR with a default
         // kObjectInstance entry. Overwrite common form pointers in-place
-        // (no side effects). For extra mods (host > local — legendary
+        // (no side effects). For extra mods (host > local - legendary
         // effects, epic-tier rolls), call AttachMod for those few. Few
         // calls = manageable side-effect risk.
         if (handle && !dp.resolvedMods.empty()) {
@@ -4123,7 +4123,7 @@ void DrainPendingPickups()
                 dp.resolvedBase);
             if (spawned) {
                 SafeReplaceModArrayInPlace(spawned, dp.resolvedMods, dp.modSentinel);
-                MarkRefrApplied(spawned);  // M.2 V17 — block dedup races
+                MarkRefrApplied(spawned);  // M.2 V17 - block dedup races
 
                 // Legendary-effect extras: anything beyond local slot
                 // count needs AttachMod since the in-place replace can't
@@ -4158,7 +4158,7 @@ void DrainPendingPickups()
 // Sets the t_replayingFromPacket guard so the inbound replay doesn't get
 // re-broadcast by our own hook, then dispatches via the SEH-wrapped
 // trampoline call. Defined outside the anonymous namespace so the linker
-// can resolve external callers — but inside namespace Loot so it can name
+// can resolve external callers - but inside namespace Loot so it can name
 // the anon-ns helpers without qualification.
 void CallOrigActivateAsReplay(RE::TESObjectREFR* refr, void* args)
 {
@@ -4203,7 +4203,7 @@ void ApplyItemMods(RE::TESObjectREFR* a_container, std::uint32_t a_itemFormID,
     SafeRestoreModArrayOnInventoryItem(a_container, a_itemFormID, a_mods, a_sentinel);
 }
 
-// native engine mod-attach — see header. Restore-only; correct slots,
+// native engine mod-attach - see header. Restore-only; correct slots,
 // allocates+grows. Returns mods attached.
 std::uint32_t AttachItemModsNative(RE::TESObjectREFR* a_owner,
                                    std::uint32_t a_itemFormID,
@@ -4217,8 +4217,8 @@ std::uint32_t AttachItemModsNative(RE::TESObjectREFR* a_owner,
 // ===================================================================
 // Key/keycard mirror. When ANY player loots a key (FormType kKEYM),
 // mirror it into the peer's inventory so neither gets stuck at a loading-
-// screen door that needs the key. Poll-based (catches every loot path —
-// container, world, corpse, quest-reward, script-give — without per-path
+// screen door that needs the key. Poll-based (catches every loot path -
+// container, world, corpse, quest-reward, script-give - without per-path
 // hooks). Idempotent: both sides track seen keys (s_knownKeys) so a mirrored
 // key is never echoed back. Keys are safe to duplicate (door only checks
 // "has key X"); quest turn-in items are deliberately NOT mirrored.

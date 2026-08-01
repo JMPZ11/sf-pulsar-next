@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- PULSAR — modern unified control tool (Avalonia 11 + FluentAvalonia, Fluent
+  <!-- PULSAR - modern unified control tool (Avalonia 11 + FluentAvalonia, Fluent
        DARK theme, MVVM). Replaces the WinForms companion-gui as the primary
        front-end; the WinForms build stays as a fallback. Talks to the existing
        `lobby/companion` daemon via the file-handoff contract in
        %LOCALAPPDATA%\PULSAR (pulsar_cmd.json / pulsar_ack.json /
-       pulsar_lobbies.json). No SpacetimeDB dependency here — the daemon owns the
+       pulsar_lobbies.json). No SpacetimeDB dependency here - the daemon owns the
        connection. -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>

@@ -20,7 +20,7 @@ namespace Pulsar::Profile {
         uint16_t    modSentinel = 0;        // M.2 mod sentinel
     };
 
-    // Phase C0 (2026-06-19) — a player perk/skill (the Starfield skill tree IS
+    // Phase C0 (2026-06-19) - a player perk/skill (the Starfield skill tree IS
     // perks). Captured so the DB profile holds the client's progression, not just
     // items. Raw formID + rank for now (base-game perks live in Starfield.esm →
     // stable formID; plugin/localID reserved for future cross-machine T34).
@@ -54,13 +54,13 @@ namespace Pulsar::Profile {
         float    o2Base          = 0.0f;    // Oxygen BASE (suit-excluded; mirrors DirectRestore g_savedO2Base)
 
         // --- Phase C0 additions (2026-06-19): the rest of "progress" so the DB is
-        // a COMPLETE restore source (Phase C: DB-authoritative). Additive — captured
+        // a COMPLETE restore source (Phase C: DB-authoritative). Additive - captured
         // + round-tripped now; consumed once the DB-authoritative restore flips on.
         std::vector<ProfilePerk> perks;     // skill tree + perks (rank per perk)
         uint32_t skillPoints = 0;           // unspent skill points (player + 0xF60)
 
         // --- V3 (2026-06-19): character level + XP. XP is the "Experience"
-        // ActorValue (verified via `player.modav experience` console cmd) — read
+        // ActorValue (verified via `player.modav experience` console cmd) - read
         // like O2 via GetActorValue. Captured as a co-op DELTA (live − +10s snapshot
         // cancels the host body's value). Capture-only for now (apply = option B).
         float xp = 0.0f;                    // "Experience" ActorValue
@@ -106,5 +106,5 @@ namespace Pulsar::Profile {
     bool RunSelfTest();                  // Task 2: synthetic Encode->Decode round-trip, logs PASS/FAIL
     void RunInGameRoundTripTest();       // Task 5: Capture->Encode->Decode->Apply in-game, logs diff
     void SaveProfileBlobTest();          // F10: SerializeProfile() into an in-memory snapshot blob
-    void RestoreProfileBlobTest();       // F11: ApplyProfile(snapshot) — restores the F10 loadout
+    void RestoreProfileBlobTest();       // F11: ApplyProfile(snapshot) - restores the F10 loadout
 }

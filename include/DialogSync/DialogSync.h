@@ -5,7 +5,7 @@
 
 namespace Pulsar::DialogSync {
 
-    // L.8 Phase 3 V1 — sink PlayerInDialogueChanged::Event @ RVA 0x597A298
+    // L.8 Phase 3 V1 - sink PlayerInDialogueChanged::Event @ RVA 0x597A298
     // and TESOnPCDialogueTargetEvent @ RVA 0x5978698. Both are first-class
     // BSTEventSource singletons confirmed via SFSE GameEvents.h. On state
     // transitions we broadcast PKT_DIALOG_START / PKT_DIALOG_END so both
@@ -19,7 +19,7 @@ namespace Pulsar::DialogSync {
 
     void Reset();
 
-    // V4 — drain pending PKT_DIALOG_VOTE replays. Must run on game thread
+    // V4 - drain pending PKT_DIALOG_VOTE replays. Must run on game thread
     // (TESTopicInfo::Fire touches BSTEventSource::Notify and ExtraDataList,
     // both game-thread-only). Wired in Main.cpp game-thread tick.
     void DrainPending();

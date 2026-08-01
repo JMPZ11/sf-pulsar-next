@@ -1,4 +1,4 @@
-# PULSAR Lobby Relay — Design Spec
+# PULSAR Lobby Relay - Design Spec
 
 **Datum:** 2026-06-16
 **Ziel:** NAT-freies Co-op ohne Portfreigabe. Beide Spieler verbinden sich nur
@@ -53,18 +53,18 @@ und interpretiert den Inhalt nicht.
 
 ## Komponenten
 
-### 1. Relay-Daemon — `lobby/relay/` (neues C#-Projekt, net8.0)
+### 1. Relay-Daemon - `lobby/relay/` (neues C#-Projekt, net8.0)
 - Ein `UdpClient`/Socket auf konfigurierbarem Port (Default **7777/udp**).
 - Session-Map `Guid(16B) → { IPEndPoint? host, IPEndPoint? client, lastSeen }`.
 - Empfangsschleife: Control parsen (REGISTER/JOIN) oder Daten forwarden.
 - Session-Timeout (Default 10 min ohne Traffic → entfernen). Host-Endpoint-
   Wechsel (NAT-Rebind) wird vom nächsten REGISTER aktualisiert.
 - Läuft als 3. Service im `lobby/deploy/docker-compose.yml`, UDP-Port direkt
-  veröffentlicht (kein TLS — das ist rohes Game-UDP; die Session-ID ist das
+  veröffentlicht (kein TLS - das ist rohes Game-UDP; die Session-ID ist das
   Geheimnis). Eigenes `Dockerfile` (dotnet-runtime) oder `mcr.microsoft.com/
   dotnet/runtime:8.0` + publizierte DLL.
 
-### 2. PULSAR C++ — `src/Network/NetworkHost.cpp`
+### 2. PULSAR C++ - `src/Network/NetworkHost.cpp`
 - **Relay-Modus aktiv**, wenn der Handoff eine Relay-Adresse + Session liefert
   (sonst unveränderter Direkt-Pfad → LAN bleibt wie bisher).
 - *Host* (`StartHost`): nach `enet_host_create` die Session aus dem Handoff
@@ -78,7 +78,7 @@ und interpretiert den Inhalt nicht.
 - Neue Helper: `RegisterWithRelay(session)`, `JoinRelay(session)`; Reuse von
   ENets Socket via `m_host->socket`.
 
-### 3. STDB-Modul — `lobby/server/spacetimedb/Lib.cs`
+### 3. STDB-Modul - `lobby/server/spacetimedb/Lib.cs`
 - `Lobby` bekommt Feld `RelaySession` (String, 32 Hex-Zeichen = 16 Byte).
 - `CreateLobby` nimmt `relaySession` als zusätzliches Argument (vom Companion
   generiert), validiert Länge/Hex. `HostAddr` bleibt für den Direkt/LAN-Fallback
@@ -86,7 +86,7 @@ und interpretiert den Inhalt nicht.
 - Sichtbarkeit unverändert (Lobby ist lesbar; `RelaySession` ist für Joiner
   nötig und kein Account-Secret).
 
-### 4. Companion + Handoff — `lobby/companion/Program.cs`
+### 4. Companion + Handoff - `lobby/companion/Program.cs`
 - Relay-Adresse aus `PULSAR_RELAY_ADDR` (z.B. `relay.example.com:7777`); leer →
   Direkt-Modus (heutiges Verhalten).
 - *Host* (`serve`-host-cmd): 16-Byte-Session per RNG erzeugen → an `CreateLobby`
@@ -96,7 +96,7 @@ und interpretiert den Inhalt nicht.
   `relay_addr` + `relay_session`.
 - `pulsar_lobbies.json` bekommt `relaySession` (für die GUI/den Client).
 
-### 5. GUI — `lobby/companion-gui/MainForm.cs` (klein)
+### 5. GUI - `lobby/companion-gui/MainForm.cs` (klein)
 - Optionales Feld **„Relay (Host:Port)"** (Default aus `PULSAR_RELAY_ADDR`); wird
   als Env an den gespawnten Daemon weitergegeben. Leer → Direkt-Modus.
 
@@ -140,7 +140,7 @@ und interpretiert den Inhalt nicht.
 ## Tests
 - **Relay-Unit:** zwei lokale UDP-Sockets simulieren Host/Client → REGISTER/JOIN
   → Datagramm-Roundtrip + Cross-Forwarding + Timeout.
-- **PULSAR-C++:** Smoke — Host registriert (REGISTER im Relay-Log), Client joint,
+- **PULSAR-C++:** Smoke - Host registriert (REGISTER im Relay-Log), Client joint,
   ENet-Handshake über Relay steht (`peer slot 1` / Clone wie beim LAN-Test).
 - **Integration:** 2 Spieler übers Internet, beide hinter NAT, **ohne**
   Portfreigabe → Co-op läuft.

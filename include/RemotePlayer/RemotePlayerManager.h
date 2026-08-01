@@ -12,28 +12,28 @@ namespace Pulsar::Network { struct BoneData; }
 
 namespace Pulsar::RemotePlayer
 {
-    // downed pose — perform a BGSAction (AACT FormID) on any actor via the
+    // downed pose - perform a BGSAction (AACT FormID) on any actor via the
     // engine PerformAction dispatcher (Phase-E primitive). Game thread only.
     bool PerformActionOnActor(RE::Actor* a_actor, std::uint32_t a_actionFormID);
 
-    // downed pose — while true, the clone anim sync asserts iSyncBleedout=1
+    // downed pose - while true, the clone anim sync asserts iSyncBleedout=1
     // (instead of zeroing it) so the downed partner's clone holds the pose.
     void SetCloneBleedoutPose(bool a_on);
 
-    // downed pose — set an int graph variable on any actor's active graph
+    // downed pose - set an int graph variable on any actor's active graph
     // (SEH-guarded). Used to hold iSyncBleedout on the local player.
     bool SetActorGraphInt(RE::Actor* a_actor, const char* a_name, std::int32_t a_value);
 
-    // downed — while true, the local player's combat actions (fire/attack/
+    // downed - while true, the local player's combat actions (fire/attack/
     // reload/draw/melee/throw) are swallowed in the PerformAction hook.
     void SetPlayerCombatActionsBlocked(bool a_on);
 
-    // Combat V2-1e — tick of the local player's last attack action (fire/melee/
+    // Combat V2-1e - tick of the local player's last attack action (fire/melee/
     // throw), from the PerformAction hook. 0 = never. NPCSync's damage-forward
     // gates on this for attacker attribution.
     std::uint64_t GetLastLocalPlayerAttackMs();
 
-    // F.2-v2 — one resolved worn-equipment entry (receiver-local FormIDs).
+    // F.2-v2 - one resolved worn-equipment entry (receiver-local FormIDs).
     struct EquipV2Entry
     {
         std::uint32_t formID = 0;
@@ -87,7 +87,7 @@ namespace Pulsar::RemotePlayer
         // Called from game thread (~1000x/sec)
         void ProcessPending();
 
-        // Phase I — track the remote player's parentCell so DoSetPosition
+        // Phase I - track the remote player's parentCell so DoSetPosition
         // can suppress applies that would push the clone into a different
         // cell than the local player (cross-cell clones cause engine
         // pingpong + 3D detach loops; verified 2026-04-27 logs).
@@ -95,12 +95,12 @@ namespace Pulsar::RemotePlayer
         uint32_t GetRemoteCellID() const { return m_remoteCellID.load(std::memory_order_acquire); }
 
         bool IsSpawned() const { return m_spawned; }
-        // True if spawn is already in-flight (pending, delayed, or done) — prevents re-triggering
+        // True if spawn is already in-flight (pending, delayed, or done) - prevents re-triggering
         bool IsSpawnPending() const { return m_spawned || m_delayedSpawnAt > 0 || m_pendingForceRespawn.load() || m_pendingSpawn.load(); }
         bool IsGlobsResolved() const { return m_globsResolved; }
         // Reset so that ProcessPending will re-run ResolveGlobs (e.g. after a save load).
         void ResetGlobsResolved() { m_globsResolved = false; }
-        // L.7 V13g — invalidate cached RE::Actor*/RE::TESObjectREFR* pointers
+        // L.7 V13g - invalidate cached RE::Actor*/RE::TESObjectREFR* pointers
         // immediately on save receipt. The engine destroys those objects
         // during the save-load and recreates them. Without this nuke,
         // ProcessPending / CellDiag / VehicleSync read freed memory →
@@ -111,7 +111,7 @@ namespace Pulsar::RemotePlayer
             m_lookMarker = nullptr;
             m_spawned = false;
         }
-        ///both-down crash — a LOCAL game-over reload (both players downed
+        ///both-down crash - a LOCAL game-over reload (both players downed
         // -> forced death -> save-load) destroys+recreates all actors, but unlike a
         // network save receipt nothing invalidated the clone. ProcessPending's weapon-
         // draw tick then deref'd the freed clone (dump: ProcessPending+0xceb
@@ -119,12 +119,12 @@ namespace Pulsar::RemotePlayer
         // loadMenu RISING edge: null the cached ptrs, CLEAR the spawn GLOB FormID so
         // FindSpawnedActor can't re-acquire the stale one, and re-queue the worn
         // equipment so the freshly re-spawned clone gets it back. Defined in the .cpp
-        // (touches TESGlobal — incomplete type here).
+        // (touches TESGlobal - incomplete type here).
         void InvalidateCloneOnSaveLoad();
         RE::Actor* GetRemoteActor() const { return m_remoteActor; }
         float GetNetSpeed() const { return m_targetPosData.speed; }
         uint16_t GetAnimFlags() const { return m_targetPosData.animFlags; }
-        // Proximity voice  — latest received peer position (net values),
+        // Proximity voice  - latest received peer position (net values),
         // same coordinate space as the local player's data.location.
         float GetNetX() const { return m_targetPosData.x; }
         float GetNetY() const { return m_targetPosData.y; }
@@ -165,7 +165,7 @@ namespace Pulsar::RemotePlayer
         RE::TESGlobal* m_globLookLo = nullptr;
         bool m_globsResolved = false;
 
-        // Phase I — remote player's parentCell formID (live).
+        // Phase I - remote player's parentCell formID (live).
         std::atomic<uint32_t> m_remoteCellID{ 0 };
 
         // Remote actor (found after Papyrus spawns it and writes FormID)
@@ -180,7 +180,7 @@ namespace Pulsar::RemotePlayer
         float m_lerpRotZ = 0.0f;
         bool  m_lerpInit = false;
 
-        // Last seen jump state — used to fire Havok-velocity impulse only on
+        // Last seen jump state - used to fire Havok-velocity impulse only on
         // state transitions (continuous write caused fall damage on clone).
         uint32_t m_lastJumpState = 0;
 
@@ -200,7 +200,7 @@ namespace Pulsar::RemotePlayer
         // suppressed while a redraw is pending (an early draw before the equip
         // settles gets swallowed and leaves the weapon stuck on the back). Stage 1
         // (m_pendingRedraw) forces a holster ~800ms after the swap; stage 2
-        // (m_pendingRedrawDrawAt) draws ~250ms after that — a real holster->draw
+        // (m_pendingRedrawDrawAt) draws ~250ms after that - a real holster->draw
         // transition that pulls the new weapon into the hand. actorState2 is NOT a
         // reliable draw-state indicator on a clone, so we drive this off timers/intent.
         uint64_t              m_lastDrawCall = 0;
@@ -208,7 +208,7 @@ namespace Pulsar::RemotePlayer
         uint64_t              m_pendingRedrawDrawAt = 0; // stage 2: tick to draw after holster
 
         // Graph kickstart: fire auto draw/holster cycle after spawn to trigger
-        // ActionInitializeGraphToBaseState (non-instant) on clone — without
+        // ActionInitializeGraphToBaseState (non-instant) on clone - without
         // this the first jump glitches because the graph stays in a partially
         // initialized state that only the Instant version gets.
         uint64_t              m_graphKickstartDrawAt    = 0;
@@ -219,7 +219,7 @@ namespace Pulsar::RemotePlayer
         std::atomic<bool>     m_pendingArmor{ false };
         uint32_t              m_pendingArmorIDs[16]{};
         uint8_t               m_pendingArmorCount = 0;
-        // F.2-v2: mods per pending item — index-aligned with m_pendingArmorIDs;
+        // F.2-v2: mods per pending item - index-aligned with m_pendingArmorIDs;
         // weapon mods separate. Written by RequestEquipV2 (ENet thread), read
         // by DoEquipWeapon/DoEquipArmor (game thread) under m_equipModsMutex.
         std::mutex            m_equipModsMutex;
@@ -230,7 +230,7 @@ namespace Pulsar::RemotePlayer
         uint32_t              m_currentArmorIDs[16]{};
         uint8_t               m_currentArmorCount = 0;
 
-        // Fire sync — V2-1f: ordered queue (ENet thread pushes, game thread
+        // Fire sync - V2-1f: ordered queue (ENet thread pushes, game thread
         // drains ALL per tick). The old single-slot atomics lost actions when
         // several PKT_FIRE arrived in one ENet pump (auto weapons).
         std::mutex            m_fireQueueMutex;

@@ -1,14 +1,14 @@
-# Lobby Backend Security — Tier 1 (Pre-Online Hardening) — Design
+# Lobby Backend Security - Tier 1 (Pre-Online Hardening) - Design
 
 **Datum:** 2026-06-16
 **Status:** Design (genehmigt: Tier-1 jetzt, Tier-2 in Beta)
 
 ## Ziel
 Die Lese-Exposition und Transport-Lücken schließen, **bevor** das SpacetimeDB-Backend
-online auf dem VPS gehostet wird — ohne echte User-Accounts (die kommen als Tier 2 in der Beta).
+online auf dem VPS gehostet wird - ohne echte User-Accounts (die kommen als Tier 2 in der Beta).
 
 ## Kontext (Ist-Stand, auditiert)
-`lobby/server/spacetimedb/Lib.cs` — **Write-Autorisierung ist bereits korrekt:** alle
+`lobby/server/spacetimedb/Lib.cs` - **Write-Autorisierung ist bereits korrekt:** alle
 mutierenden Reducer gaten auf `ctx.Sender`, Identity-als-Argument-Spoofing ist unmöglich.
 `UpsertProfile` schreibt nur in die eigene Row → fremde Profile sind nicht überschreibbar.
 
@@ -22,11 +22,11 @@ mutierenden Reducer gaten auf `ctx.Sender`, Identity-als-Argument-Spoofing ist u
    `HostAddr` ist client-kontrolliert.
 
 ## Scope (Tier 1)
-1. **Profil-Lese-Isolation** — `Profile` nicht mehr welt-lesbar; ein Client sieht nur die eigene Row.
-2. **LobbyMember nicht leaken** — Mitglieder-Identitäten nicht öffentlich; nur Mitglieder-*Zahl* zeigen.
-3. **Reducer-Input-Härtung** — Blob-Größe, String-Längen, `HostAddr`-Format, Status-Whitelist.
-4. **Transport** — TLS (`wss://`) für den VPS; Companion-URI konfigurierbar statt hartkodiert.
-5. **Token at rest** — `companion.token` per Windows-DPAPI verschlüsseln.
+1. **Profil-Lese-Isolation** - `Profile` nicht mehr welt-lesbar; ein Client sieht nur die eigene Row.
+2. **LobbyMember nicht leaken** - Mitglieder-Identitäten nicht öffentlich; nur Mitglieder-*Zahl* zeigen.
+3. **Reducer-Input-Härtung** - Blob-Größe, String-Längen, `HostAddr`-Format, Status-Whitelist.
+4. **Transport** - TLS (`wss://`) für den VPS; Companion-URI konfigurierbar statt hartkodiert.
+5. **Token at rest** - `companion.token` per Windows-DPAPI verschlüsseln.
 
 ## Out of Scope (Tier 2 / Beta+)
 OIDC-Accounts, Login/Recovery/Revoke, Bann-Liste, private Lobbies/Invite-Codes,
@@ -36,10 +36,10 @@ Rate-Limiting, Audit-Log.
 
 ### 1. Profil-Lese-Isolation
 Zwei Kandidaten-Mechanismen in SpacetimeDB; Entscheidung im Plan (kurzer Spike):
-- **(A) Per-user View** — `Profile` privat machen (`Public=true` entfernen) + eine
+- **(A) Per-user View** - `Profile` privat machen (`Public=true` entfernen) + eine
   `[SpacetimeDB.View(Accessor="MyProfile", Public=true)]`, die
   `ctx.Db.Profile.Identity.Find(ctx.Sender)` zurückgibt. Companion liest die View.
-- **(B) Row-Level-Security** — Tabelle abonnierbar lassen, aber Client-Visibility-Filter
+- **(B) Row-Level-Security** - Tabelle abonnierbar lassen, aber Client-Visibility-Filter
   auf `:sender` einschränken.
 
 **Entscheidungskriterium:** Kann der C#-ClientSDK 2.5 eine View abonnieren? Falls ja → (A)
@@ -81,7 +81,7 @@ trivial die einzige Row zurück.
 
 ## Tests
 - **Modul-Lese-Isolation:** als Nicht-Owner-Identity `spacetime sql <db> "SELECT * FROM profile"`
-  → liefert nur eigene/keine Rows. (Owner-SQL sieht alle — erwartet.)
+  → liefert nur eigene/keine Rows. (Owner-SQL sieht alle - erwartet.)
 - **Reducer-Caps:** `spacetime call` mit Übergröße-Blob / langem String / krummem `hostAddr`
   → Reducer wirft, keine Row entsteht.
 - **Companion-Round-Trip:** push→pull über den View/RLS-Pfad → Blob MATCH wie bisher.
@@ -95,4 +95,4 @@ trivial die einzige Row zurück.
 
 ## Reihenfolge
 Tier 1 sollte **vor** oder zeitgleich mit der In-Game-GUI landen, damit der GUI-`serve`-Daemon
-von Anfang an den sicheren Lese-Pfad (View/RLS) verwendet — kein nachträglicher Umbau.
+von Anfang an den sicheren Lese-Pfad (View/RLS) verwendet - kein nachträglicher Umbau.

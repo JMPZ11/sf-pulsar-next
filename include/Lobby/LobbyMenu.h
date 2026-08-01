@@ -7,7 +7,7 @@ namespace Pulsar::Lobby
     // instantiated, but at creation time its vtable pointers are overwritten to a
     // patched copy of the ENGINE's real IMenu vtable (CLibSF's IMenu thunks are
     // stale {0} and would crash). The C++ overrides below only make the class
-    // concrete — they are bypassed by the vtable overwrite.
+    // concrete - they are bypassed by the vtable overwrite.
     class LobbyMenu : public RE::IMenu
     {
     public:

@@ -1,6 +1,6 @@
-// Phase L.3 V2 V1 — Coop pilot flight-state sync via ShipHudDataModel.
+// Phase L.3 V2 V1 - Coop pilot flight-state sync via ShipHudDataModel.
 //
-// Architecture (from RE — see memory/reference_space_flight_architecture.md):
+// Architecture (from RE - see memory/reference_space_flight_architecture.md):
 // ShipHudDataModel is constructed once when the Spaceship HUD opens
 //     (FUN_141556a50, RVA 0x1556300). It's a multi-event-sink that aggregates
 //     ship state into a property bag exposed to the SWF UI layer.
@@ -61,10 +61,10 @@ namespace {
 
     // --- Layout constants (verified via Ghidra RE) ----------------------------
 
-    // V1 (PKT_FLIGHT_STATE) — DISABLED. The StickDataProvider direct-write
+    // V1 (PKT_FLIGHT_STATE) - DISABLED. The StickDataProvider direct-write
     // approach was a race condition: client's local engine writes the same
     // memory at 60Hz with its own input, fighting our 20Hz applies (saw
-    // throttle drift to 2.0). The fundamental fix is V2 below — sync at the
+    // throttle drift to 2.0). The fundamental fix is V2 below - sync at the
     // input layer, not the HUD-state layer.
     //
     // We keep the constructor hook + diagnostic dump for ongoing visibility
@@ -72,23 +72,23 @@ namespace {
     static constexpr bool kV1SendEnabled  = false;
     static constexpr bool kV1ApplyEnabled = false;
 
-    // ShipHudDataModel constructor — RE'd from xref to "throttle"/"shipHealth"
+    // ShipHudDataModel constructor - RE'd from xref to "throttle"/"shipHealth"
     // strings (registers all sub-providers including StickData).
     static constexpr std::uintptr_t kRVA_ShipHudDataModelCtor = 0x1556300;
 
-    // V2 hook target — MovementHandlerAgentPlayerFlightControls::vt[7]
+    // V2 hook target - MovementHandlerAgentPlayerFlightControls::vt[7]
     // (FUN_14068f440 RVA 0x68E6D0 size 157). VERIFIED 2026-04-29: this is
     // ONLY called once on flight-mode attach, NOT per-frame. Diagnostic hook
     // counted exactly 1 invocation per pilot-seat entry.
     // Kept for diagnostic; not the actual sync path.
     static constexpr std::uintptr_t kRVA_FlightInputProcess = 0x68E6D0;
 
-    // V2.1 — actual per-frame PMO fire site. From RE_PMOFire+FireFull:
+    // V2.1 - actual per-frame PMO fire site. From RE_PMOFire+FireFull:
     //   FUN_142115260 (RVA 0x2112320, size 2673)
     // Builds a ~60-byte event payload from DAT_1461ea1f0+0x20 manager
     // Calls FUN_141570520 to get PMO EventSource
     // Builds a lambda-dispatcher (LocalFunctionImpl<...>) on stack
-    // Calls FUN_1422cb8f0(eventSource, &dispatcher) — BSTEventSource::Notify
+    // Calls FUN_1422cb8f0(eventSource, &dispatcher) - BSTEventSource::Notify
     //   This is the function the engine calls every pilot-frame to fire
     //   PlayerMovementOutputEvent. Hooking it lets us:
     //     Host:   capture state from DAT_1461ea1f0 + adjacent globals → broadcast
@@ -97,7 +97,7 @@ namespace {
     //             physics) receive host's input → ship moves identically.
     static constexpr std::uintptr_t kRVA_PMOFire = 0x2112320;
 
-    // V2.2 — BSTEventSource::Notify dispatcher helper, called from many event
+    // V2.2 - BSTEventSource::Notify dispatcher helper, called from many event
     // types (filter by event source). For PMO this is the choke point that
     // delivers the per-frame event payload to all sinks. The dispatcher arg
     // is a stack-allocated lambda struct:
@@ -106,7 +106,7 @@ namespace {
     // So payload bytes = *(*(dispatcher+0x08)).
     static constexpr std::uintptr_t kRVA_NotifyDispatch = 0x22C9300;
 
-    // PMO EventSource singleton VA — DAT_1461F72D8 (RVA 0x61EF448). Set at
+    // PMO EventSource singleton VA - DAT_1461F72D8 (RVA 0x61EF448). Set at
     // first call of FUN_141570520; we resolve it lazily at first hook fire.
     static constexpr std::uintptr_t kRVA_PMOEventSource = 0x61EF448;
     static std::atomic<std::uintptr_t> g_pmoSourceVA{ 0 };
@@ -120,7 +120,7 @@ namespace {
     //   puVar3 = param_1 + 0x376;             // = +0x1BB0, the Provider object
     //   uVar19 = FUN_14156ce80(param_1 + 0x37F);  // = +0x1BF8, value-array start
     //   FUN_141544730(uVar19, param_1[0x3df]); // registers (values, provider)
-    // The TUIValue<T> array starts at +0x37F qwords = +0x1BF8 bytes — the
+    // The TUIValue<T> array starts at +0x37F qwords = +0x1BF8 bytes - the
     // values that FUN_141544730 references at +0x00, +0x20, +0x40 etc.
     static constexpr std::uintptr_t kStickDataOffset = 0x37F * 8;  // = 0x1BF8
 
@@ -136,7 +136,7 @@ namespace {
     //   bools  (TUIValue<bool>):  entries 12..16, 20, 21
     //   ints   (TUIValue<int>):   entries 13, 22 (likely)
     enum FieldIdx : int {
-        kF_Boost                = 0,   // +0x000 float — fuel meter 0..1
+        kF_Boost                = 0,   // +0x000 float - fuel meter 0..1
         kF_Throttle             = 1,   // +0x020 float
         kF_AdjustedThrottle     = 2,   // +0x040 float
         kF_Speed                = 3,   // +0x060 float
@@ -144,8 +144,8 @@ namespace {
         kF_ThrusterY            = 5,   // +0x0A0 float (lateral, mostly 0)
         kF_ReticleX             = 6,   // +0x0C0 float (mostly 0 in normal flight)
         kF_ReticleY             = 7,   // +0x0E0 float
-        kF_DirCrosshairX        = 8,   // +0x100 float — yaw output ⭐
-        kF_DirCrosshairY        = 9,   // +0x120 float — pitch output ⭐
+        kF_DirCrosshairX        = 8,   // +0x100 float - yaw output ⭐
+        kF_DirCrosshairY        = 9,   // +0x120 float - pitch output ⭐
         kF_AimAssistX           = 10,
         kF_AimAssistY           = 11,
         kF_BoostActive          = 12,  // +0x180 bool
@@ -168,7 +168,7 @@ namespace {
     }
 
     // Network rate.
-    static constexpr std::uint64_t kSendIntervalMs = 50;   // 20Hz — enough for cockpit feel.
+    static constexpr std::uint64_t kSendIntervalMs = 50;   // 20Hz - enough for cockpit feel.
 
     // --- State ----------------------------------------------------------------
 
@@ -202,7 +202,7 @@ namespace {
         if (a_self) {
             auto p = reinterpret_cast<std::uintptr_t>(a_self);
             g_modelPtr.store(p, std::memory_order_release);
-            PLOG_INFO("[PULSAR] FlightSync: ShipHudDataModel ctor — instance=0x{:X}"sv,
+            PLOG_INFO("[PULSAR] FlightSync: ShipHudDataModel ctor - instance=0x{:X}"sv,
                       p);
             NASLOG("FlightSync: ShipHudDataModel ctor instance=0x%llX",
                    (unsigned long long)p);
@@ -260,7 +260,7 @@ namespace {
     }
 
     // Read full FlightStateData snapshot from a model instance. Returns false
-    // if the model pointer is null. SEH-guarded internally — bad pointer yields
+    // if the model pointer is null. SEH-guarded internally - bad pointer yields
     // zeros, which is harmless (engine just won't see meaningful changes).
     static bool ReadSnapshot(std::uintptr_t a_model, Pulsar::Network::FlightStateData& a_out)
     {
@@ -297,7 +297,7 @@ namespace {
     }
 
     // V1.0.1 diagnostic dump: read every entry as a float and log it.
-    // Lets us identify which entries actually change during steering vs idle —
+    // Lets us identify which entries actually change during steering vs idle -
     // thruster-mode-input vs reticle-transform-input vs other.
     static void DumpAllEntries(std::uintptr_t a_model)
     {
@@ -330,7 +330,7 @@ namespace {
     }
 
     // -----------------------------------------------------------------------
-    // V2 — Flight input hook (PKT_FLIGHT_INPUT)
+    // V2 - Flight input hook (PKT_FLIGHT_INPUT)
     // -----------------------------------------------------------------------
 
     // Last host input received on client (network thread writes, hook reads).
@@ -353,13 +353,13 @@ namespace {
     using FlightInputProcessFn = void(__fastcall*)(void*, void*);
     static FlightInputProcessFn g_origFlightInputProcess = nullptr;
 
-    // V2.1 — per-frame PMO fire hook (FUN_142115260).
+    // V2.1 - per-frame PMO fire hook (FUN_142115260).
     using PMOFireFn = void(__fastcall*)(void*, void*);
     static PMOFireFn g_origPMOFire = nullptr;
     static std::atomic<std::uint64_t> g_pmoFireCount{ 0 };
     static std::atomic<std::uint64_t> g_lastPMOLogMs{ 0 };
 
-    // V2.2 — Notify-dispatch hook on FUN_1422CB8F0.
+    // V2.2 - Notify-dispatch hook on FUN_1422CB8F0.
     using NotifyDispatchFn = void(__fastcall*)(void*, void*);
     static NotifyDispatchFn g_origNotifyDispatch = nullptr;
     static std::atomic<std::uint64_t> g_notifyTotalCount{ 0 };
@@ -379,10 +379,10 @@ namespace {
     static PendingPMOPayload g_pendingPMOPayload;
 
     // ----------------------------------------------------------------------
-    // V3 — Ship NiNode world-transform sync
+    // V3 - Ship NiNode world-transform sync
     // ----------------------------------------------------------------------
     //
-    // Bypass event/input layers — sync the FINAL render-transform directly.
+    // Bypass event/input layers - sync the FINAL render-transform directly.
     // Ship NiAVObject world transform: rotate@+0x80 (3x3), translate@+0xB0
     // (vec3). Path: PlayerCharacter → GetSpaceship → REFR+0xB8 (loadedData)
     // → +0x08 (data3D) → NiAVObject. CLib LOADED_REF_DATA verified by
@@ -396,9 +396,9 @@ namespace {
     static constexpr std::uintptr_t kRefr_LoadedDataOffset = 0xB8;
     static constexpr std::uintptr_t kLoaded_Data3DOffset   = 0x08;
     // NiAVObject layout (verified CLib NiTransform.h + NiAVObject.h):
-    //   local  @ +0x40 — rotate@+0x40 (NiMatrix3, 36B), translate@+0x70 (12B)
-    //   world  @ +0x80 — rotate@+0x80 (36B),            translate@+0xB0 (12B)
-    // First V3 attempt wrote ONLY world — wire was byte-identical but client
+    //   local  @ +0x40 - rotate@+0x40 (NiMatrix3, 36B), translate@+0x70 (12B)
+    //   world  @ +0x80 - rotate@+0x80 (36B),            translate@+0xB0 (12B)
+    // First V3 attempt wrote ONLY world - wire was byte-identical but client
     // saw no visual change. Hypothesis: engine's UpdateWorldData() pass each
     // frame recomputes world = parent.world * local, overwriting our world
     // write before render. Fix: write LOCAL too so the recompute reproduces
@@ -427,7 +427,7 @@ namespace {
 
     // Resolve the ship's NiAVObject pointer (data3D) via the verified path.
     // Returns nullptr if any hop is null or fails. SEH-guarded.
-    // L.3 V5 — last shipFormID observed in an inbound PKT_SHIP_TRANSFORM. Used
+    // L.3 V5 - last shipFormID observed in an inbound PKT_SHIP_TRANSFORM. Used
     // by the apply-side fallback when our local player->GetSpaceship(true)
     // returns null. Typical post-WorldSync save load: client materializes in
     // the cockpit cell but the engine doesn't restore the spaceship link
@@ -452,7 +452,7 @@ namespace {
         }
     }
 
-    // L.3 V5 — log only the first time the fallback resolves so the live log
+    // L.3 V5 - log only the first time the fallback resolves so the live log
     // doesn't fill with one-line entries.
     static std::atomic<bool> g_loggedFallbackResolve{ false };
 
@@ -465,7 +465,7 @@ namespace {
         }
 
         // Fallback: GetSpaceship returned null. On the receiver side after a
-        // WorldSync save load this is normal — try resolving by the formID
+        // WorldSync save load this is normal - try resolving by the formID
         // the active pilot just sent us.
         const std::uint32_t fmt =
             g_lastReceivedShipFormID.load(std::memory_order_acquire);
@@ -506,12 +506,12 @@ namespace {
         if (!a_niAv) return;
         __try {
             auto* base = reinterpret_cast<std::uint8_t*>(a_niAv);
-            // Write LOCAL first — survives engine's UpdateWorldData pass.
+            // Write LOCAL first - survives engine's UpdateWorldData pass.
             std::memcpy(base + kNiAv_LocalRotateOffset,
                         a_in.rotate, sizeof(a_in.rotate));
             std::memcpy(base + kNiAv_LocalTranslateOffset,
                         a_in.translate, sizeof(a_in.translate));
-            // Write WORLD too — covers the case where renderer reads world
+            // Write WORLD too - covers the case where renderer reads world
             // before next UpdateWorldData. Idempotent if engine recomputes.
             std::memcpy(base + kNiAv_WorldRotateOffset,
                         a_in.rotate, sizeof(a_in.rotate));
@@ -533,7 +533,7 @@ namespace {
     // TickPostLoadUnseat to GetTickCount64()+30000.
     static std::atomic<std::uint64_t> g_postBridgeInputLockoutUntilMs{ 0 };
 
-    // L.4 V1.1 — visual notification attempt removed.
+    // L.4 V1.1 - visual notification attempt removed.
     //
     // Tried REL::ID(138728) "DebugNotification" (CommonLibSF Misc.h placeholder
     // with comment-noted ID). Function resolves to RVA 0x2878C50 and calls
@@ -542,19 +542,19 @@ namespace {
     // different signature.
     //
     // Visual feedback deferred to L.4 V2 (with NPCSync-Space + projectile
-    // spawn) — at that point we'll do a proper Ghidra RE pass for Bethesda's
+    // spawn) - at that point we'll do a proper Ghidra RE pass for Bethesda's
     // HUD message API or use the BGSEffectShader path.
 
-    // V3 iter10 — separate send buffer for outgoing havok state (declared
+    // V3 iter10 - separate send buffer for outgoing havok state (declared
     // here so MaybeSyncShipTransform can read it).
     static std::atomic<bool> g_outgoingHavokStateValid{ false };
     static float             g_outgoingHavokState[16]{};
     static std::mutex        g_outgoingHavokStateMutex;
 
-    // V3 iter12 — PMO fire timestamp for active-pilot detection.
-    // (Set in HookedPMOFire — defined later in this file.)
+    // V3 iter12 - PMO fire timestamp for active-pilot detection.
+    // (Set in HookedPMOFire - defined later in this file.)
     static std::atomic<std::uint64_t> g_lastPMOFireMs{ 0 };
-    // Forward decls — defined in iter8 hook section below.
+    // Forward decls - defined in iter8 hook section below.
     static void PublishOutgoingHavokState(const float a_in[16]);
     static bool ConsumeOutgoingHavokState(float a_out[16]);
 
@@ -618,7 +618,7 @@ namespace {
         } __except (EXCEPTION_EXECUTE_HANDLER) {}
     }
 
-    // V3 iter13 — Active-pilot detection via per-body translation-delta EMA.
+    // V3 iter13 - Active-pilot detection via per-body translation-delta EMA.
     //
     // Iter11 (NiNode rotation change): both sides physics-integrate → both
     // flag active → no apply → 2-3s stutter.
@@ -636,17 +636,17 @@ namespace {
     // hook (uses kHavokBodyDataPtrOffset / kHavokStateOffsetInData defined
     // further down in this anonymous namespace).
 
-    // Per-frame sync — called from the PMO branch of HookedNotifyDispatch on
+    // Per-frame sync - called from the PMO branch of HookedNotifyDispatch on
     // both host and client. Decides per-frame:
     // If WE are the active pilot (physics writing local NiNode): broadcast.
     // Else: apply latest received transform (if armed and fresh).
-    static bool IsCruiseActive();  // forward decl — defined after PendingCruise
+    static bool IsCruiseActive();  // forward decl - defined after PendingCruise
 
     static void MaybeSyncShipTransform()
     {
         auto& net = Pulsar::Network::GetSingleton();
         if (!net.IsConnected()) return;
-        // 3v7 — L.3 V3 cruise suspend REMOVED here on host side. User
+        // 3v7 - L.3 V3 cruise suspend REMOVED here on host side. User
         // confirmed cruise sync did work historically; blanket suspend
         // killed it. Magnitude clamp on receiver side filters out the
         // chaotic-state spikes (>1e7) that caused freeze 2026-05-01 14:08
@@ -665,7 +665,7 @@ namespace {
         if (!SafeReadShipTransform(niAv, live)) return;
 
         // Iter13: g_isActivePilot is now set in HookedBhkSpaceshipVt8 via
-        // Iter13DetectAndSetActive() — vt[8] runs at higher freq than PMO and
+        // Iter13DetectAndSetActive() - vt[8] runs at higher freq than PMO and
         // owns the motion-based detection. We just read the latest decision.
         const bool active = g_isActivePilot.load(std::memory_order_acquire);
 
@@ -676,7 +676,7 @@ namespace {
                 // Pack havok state from the dedicated send buffer (filled by
                 // iter8 active_read in vt[8] hook).
                 ConsumeOutgoingHavokState(live.havokState);
-                // L.3 V5 — stamp shipFormID so the receiver can resolve its
+                // L.3 V5 - stamp shipFormID so the receiver can resolve its
                 // local same-FormID ship REFR when its own GetSpaceship lookup
                 // fails (post-save-load on the passive side).
                 if (auto* localPlayer = RE::PlayerCharacter::GetSingleton()) {
@@ -705,7 +705,7 @@ namespace {
             return;
         }
 
-        // Passive — apply received if fresh.
+        // Passive - apply received if fresh.
         if (!kV3ApplyEnabled) return;
         const bool armed = g_pendingShipTransform.armed.load(std::memory_order_acquire);
         if (!armed) return;
@@ -769,7 +769,7 @@ namespace {
             v[16], v[17], v[18], v[19], v[20], v[21], v[22], v[23]);
     }
 
-    // V3 iter12 — track timestamp of latest PMO fire for active-pilot
+    // V3 iter12 - track timestamp of latest PMO fire for active-pilot
     // detection. PMO fires only on the side that's actively piloting
     // (per RE: "~1250 Hz on host pilot"). Passive side's engine doesn't
     // fire PMO. Reliable signal for "I am the pilot locally".
@@ -778,13 +778,13 @@ namespace {
     static void __fastcall HookedPMOFire(void* a_param1, void* a_param2)
     {
         g_lastPMOFireMs.store(::GetTickCount64(), std::memory_order_release);
-        // Diagnostic — log every 1s to verify per-frame timing.
+        // Diagnostic - log every 1s to verify per-frame timing.
         std::uint64_t fc = g_pmoFireCount.fetch_add(1);
         std::uint64_t now0 = ::GetTickCount64();
         std::uint64_t last0 = g_lastPMOLogMs.load(std::memory_order_acquire);
         if ((now0 - last0) >= 500) {  // 2 Hz dump
             g_lastPMOLogMs.store(now0, std::memory_order_release);
-            // V2.2 diagnostic: dump param_1's first 96 bytes as floats — we
+            // V2.2 diagnostic: dump param_1's first 96 bytes as floats - we
             // need to identify which fields hold the live flight input/state
             // so we can pick the right sync target.
             PLOG_INFO("[PULSAR] PMOFire fired: count={} param1=0x{:X}"sv,
@@ -792,14 +792,14 @@ namespace {
             DumpParamFloats("p1", a_param1);
         }
 
-        // Always run engine logic — diagnostic only at this stage.
+        // Always run engine logic - diagnostic only at this stage.
         if (g_origPMOFire) {
             g_origPMOFire(a_param1, a_param2);
         }
     }
 
     // ----------------------------------------------------------------------
-    // V2.2 — Notify-dispatch hook
+    // V2.2 - Notify-dispatch hook
     // ----------------------------------------------------------------------
     //
     // FUN_1422CB8F0 is a generic BSTEventSource::Notify dispatcher. It's
@@ -810,7 +810,7 @@ namespace {
     //   Client: if recent host payload pending, overwrite payload bytes
     //           in-place BEFORE original Notify dispatches them. All sinks
     //           (HUD, FlightController, ship physics) then process host's
-    //           exact state — both engines compute identical visuals.
+    //           exact state - both engines compute identical visuals.
 
     static std::uintptr_t ResolvePMOEventSourceVA()
     {
@@ -821,9 +821,9 @@ namespace {
         return resolved;
     }
 
-    // V4 Fire-Probe — resolve all candidate fire/projectile vtables.
+    // V4 Fire-Probe - resolve all candidate fire/projectile vtables.
     // 413845 = BSTEventSource<BGSOnPlayerFireWeaponEvent> (foot weapons mostly)
-    // 412442 = BSTEventSource<WeaponFiredEvent>           (generic — likely ship)
+    // 412442 = BSTEventSource<WeaponFiredEvent>           (generic - likely ship)
     // 454462 = BSTEventSource<ProjectileBeginUpdateEvent> (proj spawn)
     static std::atomic<std::uintptr_t> g_fireVt_OnPlayer{ 0 };
     static std::atomic<std::uintptr_t> g_fireVt_Generic { 0 };
@@ -842,7 +842,7 @@ namespace {
         return ResolveFireVt(g_fireVt_OnPlayer, 413845);
     }
 
-    // L.5 Phase 1 — cruise event vtable cache. CommonLibSF already provides
+    // L.5 Phase 1 - cruise event vtable cache. CommonLibSF already provides
     // the BSTGlobalEvent::EventSource<...> vtable IDs; we re-use the existing
     // ResolveFireVt cache helper. IDs from IDs_VTABLE.h:
     //   1036687 = BSTGlobalEvent::EventSource<Reticle::OnCruiseActivate>
@@ -855,7 +855,7 @@ namespace {
     static std::atomic<std::uintptr_t> g_cruiseVt_Arrival  { 0 };
     static std::atomic<std::uint64_t>  g_cruiseProbeHitCount{ 0 };
 
-    // L.5 Phase 2 — poll the cruise-active global byte from Tick. Two prior
+    // L.5 Phase 2 - poll the cruise-active global byte from Tick. Two prior
     // hook strategies (Papyrus EnableCruiseMode @ 0x2024C20 and AV-set
     // dispatcher @ 0xC1BD80 with edx=0x40000) didn't fire on user-keypress
     // cruise toggle. Static binary scan revealed:
@@ -868,7 +868,7 @@ namespace {
     static constexpr std::uintptr_t kRVA_CruiseActiveByte = 0x5EAA5AE;
     static std::atomic<std::uintptr_t> g_cruiseActiveBytePtr{ 0 };
     static std::atomic<std::uint8_t>   g_lastCruiseActive{ 0xFF };  // 0xFF = uninitialized
-    // Phase 4 Step 6 — "arrival initiated" byte at DAT_145EB2856. Set to 1 by
+    // Phase 4 Step 6 - "arrival initiated" byte at DAT_145EB2856. Set to 1 by
     // FUN_1413FA140 when per-tick math detects close-enough proximity to
     // current cruise destination POI. Gates dur progression in FUN_1413FEBA0
     // (read at line 0x1413ffd11 of arrival sender). Polled at same 60Hz as
@@ -876,39 +876,39 @@ namespace {
     static constexpr std::uintptr_t kRVA_CruiseArrivalByte = 0x5EAAA96;
     static std::atomic<std::uintptr_t> g_cruiseArrivalBytePtr{ 0 };
     static std::atomic<std::uint8_t>   g_lastCruiseArrival{ 0xFF };
-    // Track whether arrival init fired during current cruise session — lets us
+    // Track whether arrival init fired during current cruise session - lets us
     // distinguish auto-arrival exit (post-arrivalInit) from manual exit
     // (player pressed cruise key mid-flight). Reset on cruise byte 0->1.
     static std::atomic<bool> g_arrivalSeenThisCruise{ false };
 
-    // L.5 Phase 2 — cruise enter/exit functions. Two separate functions:
+    // L.5 Phase 2 - cruise enter/exit functions. Two separate functions:
     //
-    //   ENTER fn @ RVA 0x13FDAC0 — `void __fastcall(bool force)`
+    //   ENTER fn @ RVA 0x13FDAC0 - `void __fastcall(bool force)`
     // movzx esi, cl    ; cl = bool arg (force flag)
     // call predicate
     // if predicate || arg → mov byte [0x145EAA5AE], 1 (cruise=on)
-    // else → just return (NO byte=0 write — this is enter-only)
+    // else → just return (NO byte=0 write - this is enter-only)
     //
-    //   EXIT fn @ RVA 0x13FFD00 — `void()` (size 523)
+    //   EXIT fn @ RVA 0x13FFD00 - `void()` (size 523)
     // cleans up cruise event handles, cell-streaming counters
     // mov byte [0x145EAA5AE], 0 + 8 other cruise-state vars
     // this IS the proper exit-cleanup; the bare toggle fn doesn't exit.
     static constexpr std::uintptr_t kRVA_CruiseEnter = 0x13FDAC0;
     static constexpr std::uintptr_t kRVA_CruiseExit  = 0x13FFD00;
-    // Phase 4 Step 6 — "Cruise Mode Arrival Initiated" trigger function.
+    // Phase 4 Step 6 - "Cruise Mode Arrival Initiated" trigger function.
     // Sets the 3 gate bits (DAT_145EB2856, DAT_145EB29EE via FUN_1413F9400,
     // DAT_14590E27F) that unlock dur progression in FUN_1413FEBA0, plus
     // schedules the cell-stream task (FUN_140B6EB20) so client loads same
     // POI content as host. Called on client when host's DAT_145EB2856 0->1.
     static constexpr std::uintptr_t kRVA_CruiseArrivalInitFn = 0x13F9F70;
-    // Phase 4 deep — cell-stream task scheduler. Fires the lambda that loads
+    // Phase 4 deep - cell-stream task scheduler. Fires the lambda that loads
     // POI/planet/NPC content based on ship's current world position. Called
     // engine-natural at end of dur countdown (FUN_1413FEBA0). We call it
     // again on client AFTER our orient/state writes settled so cell-streaming
     // operates on host's full world context instead of stale client state.
     static constexpr std::uintptr_t kRVA_CellStreamTaskFn  = 0x140B6E400;
     static constexpr std::uintptr_t kRVA_PlayerWorldState  = 0x5F43230;  // DAT_145F4AFD0 singleton (ship+world manager)
-    // Phase 4 deep — LocationMarkerArrayUpdate::Event Notify wrapper.
+    // Phase 4 deep - LocationMarkerArrayUpdate::Event Notify wrapper.
     // 64-byte fn that gets BSTEventSource singleton @ 0x14597A220 and fires
     // the event with a single-byte payload. Subscribers re-query the marker
     // manager → recompute bIsCelestialParentBody (the field that drives
@@ -927,7 +927,7 @@ namespace {
     static std::atomic<std::uintptr_t> g_cellStreamTaskFn   { 0 };
     static std::atomic<std::uintptr_t> g_markerNotifyFn     { 0 };
 
-    // Pending cruise apply — staged from network thread, applied from Tick on
+    // Pending cruise apply - staged from network thread, applied from Tick on
     // game thread. armed=true means "an apply is queued"; once applied, armed
     // is cleared. Receiver-side suppression flag prevents the apply from
     // re-broadcasting (host already broadcasted, client must not echo).
@@ -935,27 +935,27 @@ namespace {
         std::atomic<bool>          armed{ false };
         std::atomic<std::uint8_t>  enable{ 0 };
         std::atomic<std::uint64_t> receivedAtMs{ 0 };
-        // Phase 3v3 — host's world-position doubles at EXIT moment. Client
+        // Phase 3v3 - host's world-position doubles at EXIT moment. Client
         // writes them to its own globals BEFORE calling FUN_1413FFED0() so
         // exit-cleanup reads host's coordinates → final ship position match.
         std::atomic<std::uint64_t> shipPosX{ 0 };  // raw bits of double (atomic-safe)
         std::atomic<std::uint64_t> shipPosY{ 0 };
         std::atomic<std::uint64_t> shipPosZ{ 0 };
-        // Phase 4 Step 4 — destination formID @ DAT_145EB8284 (low 32b). Set
+        // Phase 4 Step 4 - destination formID @ DAT_145EB8284 (low 32b). Set
         // by host's resolver at ENTER, sent here, written before client's
         // force-ENTER so per-tick arrival check has a target.
         std::atomic<std::uint32_t> destFormId{ 0 };
-        // Phase 4 Step 6 — "arrival initiated" event. Independent trigger
+        // Phase 4 Step 6 - "arrival initiated" event. Independent trigger
         // from main armed flag so ENTER and arrival-init can both be pending
         // simultaneously without overwriting each other.
         std::atomic<bool>          armedArrivalInit{ false };
-        // Phase 4 Step 7 — extra state fields synced with arrival init.
+        // Phase 4 Step 7 - extra state fields synced with arrival init.
         std::atomic<std::uint32_t> arrivalState{ 0 };  // DAT_145EB8274 value
         std::atomic<std::uint8_t>  uiSelector{ 0 };    // DAT_145EB2857 value
     };
     static PendingCruise g_pendingCruise;
 
-    // L.5 Phase 3v5 — fast helper for L.3 V3 ship-sync to detect cruise active
+    // L.5 Phase 3v5 - fast helper for L.3 V3 ship-sync to detect cruise active
     // state. Reads the same byte L.5 polls. During cruise, the engine writes
     // wildly oscillating row3 values to the ship's havok body (intermediate
     // cruise math states up to 100M+ in magnitude, see logs 2026-05-01 +
@@ -975,7 +975,7 @@ namespace {
     // toggle function, our own poll will see the byte change. We set this
     // window to suppress re-broadcasting the resulting transition.
     static std::atomic<std::uint64_t> g_cruiseApplySuppressUntilMs{ 0 };
-    // L.5 Phase 4 Step 16 — bidirectional cruise. Track which side ORIGINATED
+    // L.5 Phase 4 Step 16 - bidirectional cruise. Track which side ORIGINATED
     // the current cruise session: true when our local poll detects a 0→1
     // transition outside the suppression window (= we caused it). Drives
     // continuous orient broadcast (only the originator's local engine math
@@ -983,45 +983,45 @@ namespace {
     // force=true skipped resolver). Cleared on cruise EXIT (1→0).
     static std::atomic<bool> g_cruiseSelfInitiated{ false };
 
-    // L.5 Phase 3 — post-cruise-EXIT cell resync. When host detects 1→0
+    // L.5 Phase 3 - post-cruise-EXIT cell resync. When host detects 1→0
     // cruise transition and broadcasts it, we ALSO schedule a SaveBuffer-
     // resync after kPostCruiseResyncDelayMs so the client lands in the
     // post-cruise destination cell. The cruise EXIT cleanup function clears
     // the byte and decrements cell-streaming counters but the engine needs
     // time to fully settle into the destination cell before we snapshot.
-    // 5s is a conservative latch — empirically cruise-arrival cell streaming
+    // 5s is a conservative latch - empirically cruise-arrival cell streaming
     // completes within ~2-3s on a modest SSD.
     static constexpr std::uint64_t kPostCruiseResyncDelayMs = 5000;
     static std::atomic<std::uint64_t> g_postCruiseResyncDueMs{ 0 };
 
-    // L.5 Phase 3 v2 — gated resync. Capture host's shipCell formID at the
+    // L.5 Phase 3 v2 - gated resync. Capture host's shipCell formID at the
     // 0→1 transition (cruise start). Only fire SaveBuffer-resync at EXIT if
     // post-cruise shipCell actually differs (= cruise crossed cells, e.g.
     // cross-system far-travel). Same-cell cruise is the common case (intra-
-    // system 400ls movement) and L.3 V3 ship pos sync handles it naturally —
+    // system 400ls movement) and L.3 V3 ship pos sync handles it naturally -
     // resync is overkill there AND transfers the host's "is pilot" state
     // to client (regression observed 2026-05-01).
     static std::atomic<std::uint32_t> g_preCruiseShipCellID{ 0 };
 
-    // L.5 Phase 3 debug — cruise-state globals discovered via Ghidra RE
+    // L.5 Phase 3 debug - cruise-state globals discovered via Ghidra RE
     // (2026-05-01). Dumped to log at every cruise state transition + 1Hz
     // during cruise so we can compare host vs client state and decide if
     // 3a (SaveBuffer-resync) is sufficient or 3c (state-replay) is needed.
     static constexpr std::uintptr_t kRVA_Cruise2ndByte    = 0x5EAA4D7;  // secondary cruise flag
-    static constexpr std::uintptr_t kRVA_CruiseDistance   = 0x5EB04C4;  // int — cruise duration scaler
+    static constexpr std::uintptr_t kRVA_CruiseDistance   = 0x5EB04C4;  // int - cruise duration scaler
     static constexpr std::uintptr_t kRVA_CruiseOrient0    = 0x5F29FF0;  // qword 1/4 of orientation/cruise vec
     static constexpr std::uintptr_t kRVA_CruiseOrient1    = 0x5F29FF8;
     static constexpr std::uintptr_t kRVA_CruiseOrient2    = 0x5F2A000;
     static constexpr std::uintptr_t kRVA_CruiseOrient3    = 0x5F2A008;
-    static constexpr std::uintptr_t kRVA_CruiseContextPtr = 0x5FB4B70;  // qword — DAT_145FBC8F0 cruise sink-context smart-ptr
+    static constexpr std::uintptr_t kRVA_CruiseContextPtr = 0x5FB4B70;  // qword - DAT_145FBC8F0 cruise sink-context smart-ptr
     static constexpr std::uintptr_t kRVA_CruiseContext2   = 0x5FB4B68;  // 2nd cruise smart-ptr (alt-exit only)
-    static constexpr std::uintptr_t kRVA_CruiseExitAnimVA = 0x61DD738;  // DAT_1461E51F0+0x2D8 — exit-anim active flag
-    static constexpr std::uintptr_t kRVA_CruiseDuration2  = 0x5EB07DC;  // float — cruise duration counter (FUN_1413FEBA0)
-    static constexpr std::uintptr_t kRVA_CruiseTimeSubVal = 0x5FBF9A8;  // float — per-tick decrement
-    // Phase 4 Step 7 — additional state fields for arrival UI sync.
-    static constexpr std::uintptr_t kRVA_CruiseArrivalState = 0x5EB04B4;  // uint32 — state machine value, source of DAT_145EB84D4 at FUN_1413FA140
-    static constexpr std::uintptr_t kRVA_CruiseUiSelector   = 0x5EAAA97;  // uint8 — selects ShipHud_OnCruiseArrival vs ShipHud_OnEndCruiseMode
-    // Phase 4 diag — cruise assoc-form globals (kASTP, formType 0x8B). Set by
+    static constexpr std::uintptr_t kRVA_CruiseExitAnimVA = 0x61DD738;  // DAT_1461E51F0+0x2D8 - exit-anim active flag
+    static constexpr std::uintptr_t kRVA_CruiseDuration2  = 0x5EB07DC;  // float - cruise duration counter (FUN_1413FEBA0)
+    static constexpr std::uintptr_t kRVA_CruiseTimeSubVal = 0x5FBF9A8;  // float - per-tick decrement
+    // Phase 4 Step 7 - additional state fields for arrival UI sync.
+    static constexpr std::uintptr_t kRVA_CruiseArrivalState = 0x5EB04B4;  // uint32 - state machine value, source of DAT_145EB84D4 at FUN_1413FA140
+    static constexpr std::uintptr_t kRVA_CruiseUiSelector   = 0x5EAAA97;  // uint8 - selects ShipHud_OnCruiseArrival vs ShipHud_OnEndCruiseMode
+    // Phase 4 diag - cruise assoc-form globals (kASTP, formType 0x8B). Set by
     // host's resolver during cruise; client's force-ENTER skips the resolver
     // so these likely stay 0/stale on client. Read in FUN_1413FEBA0's arrival
     // final block + passed to FUN_141A95550 (script event fire).
@@ -1032,7 +1032,7 @@ namespace {
     // Periodic snapshot during cruise (when byte=1), 1Hz.
     static std::atomic<std::uint64_t> g_lastCruiseSnapshotMs{ 0 };
     static constexpr std::uint64_t kCruiseSnapshotIntervalMs = 1000;
-    // L.5 Phase 4 Step 11 — continuous orient broadcast. Memory-diff (Step 10)
+    // L.5 Phase 4 Step 11 - continuous orient broadcast. Memory-diff (Step 10)
     // showed DAT_145F31DA0/DA8/DB0 (3 doubles) evolve on host but stagnate on
     // client between arrivalInit/EXIT events. Likely drives planet rendering.
     // Host broadcasts current values @5Hz during active cruise; client writes
@@ -1040,7 +1040,7 @@ namespace {
     // write sticks).
     static std::atomic<std::uint64_t> g_lastCruiseOrientSendMs{ 0 };
     static constexpr std::uint64_t kCruiseOrientIntervalMs = 200;  // 5Hz
-    // L.5 Phase 4 Step 12 — client-side marker re-eval. Memory diff (Step 10)
+    // L.5 Phase 4 Step 12 - client-side marker re-eval. Memory diff (Step 10)
     // showed marker mgr's "current parent body" tracking @ 0x1461E2350-168
     // doesn't update on client during cruise (lazy-init singleton at +0x160
     // never triggered). After arrivalInit applies on client we wait 500ms
@@ -1052,12 +1052,12 @@ namespace {
     static std::atomic<std::uint64_t> g_lastMarkerNotifyMs  { 0 };
     static constexpr std::uint64_t kMarkerNotifyDeferMs    = 500;
     static constexpr std::uint64_t kMarkerNotifyPeriodMs   = 1000;
-    // Step 13 — forward-declared here so PollCruiseActiveByte can reset on
+    // Step 13 - forward-declared here so PollCruiseActiveByte can reset on
     // cruise ENTER. Definition stays inside the namespace block lower down.
     static std::atomic<bool> g_step13FiredThisCruise{ false };
     static std::atomic<bool> g_step13Fatal{ false };
 
-    // L.5 Phase 4 Step 14 — manual resolver call on client. The cruise ENTER
+    // L.5 Phase 4 Step 14 - manual resolver call on client. The cruise ENTER
     // fn (FUN_1413FDC90) skips the resolver (FUN_1413FDFD0) when force=true.
     // The resolver populates engine state read by planet rendering subsystem
     // (POI tracking + nearest-target lookup). On client we use force=true so
@@ -1066,7 +1066,7 @@ namespace {
     static constexpr std::uintptr_t kRVA_CruiseResolverFn = 0x13FDE00;
     static std::atomic<bool> g_step14Fatal{ false };
 
-    // L.5 Phase 4 Step 15 — bracket cruise toggle FUN_1413FDC90 with pre/post
+    // L.5 Phase 4 Step 15 - bracket cruise toggle FUN_1413FDC90 with pre/post
     // memory dumps to capture EXACTLY what the engine writes during the cruise
     // enter/exit transition. Hooks both force=true (client) and force=false
     // (host natural pipeline). Diff PRE→POST delta on each side to find:
@@ -1082,7 +1082,7 @@ namespace {
         std::atomic<std::uint64_t> receivedAtMs{ 0 };
     };
     static PendingCruiseOrient g_pendingCruiseOrient;
-    // L.5 Phase 4 Step 10 — memory-diff dump. Higher-rate (10Hz) hex dump of
+    // L.5 Phase 4 Step 10 - memory-diff dump. Higher-rate (10Hz) hex dump of
     // ~10 cruise-related memory regions, so we can diff host vs client and
     // identify globals that evolve on host but stagnate on client during
     // cruise. Drives the search for the missing planet-rendering /
@@ -1090,7 +1090,7 @@ namespace {
     static std::atomic<std::uint64_t> g_lastCruiseMemDumpMs{ 0 };
     static constexpr std::uint64_t kCruiseMemDumpIntervalMs = 100;
 
-    // L.5 Phase 1.5 — generic event-source vtable first-seen logger. The
+    // L.5 Phase 1.5 - generic event-source vtable first-seen logger. The
     // pre-existing CommonLibSF cruise vtables didn't match (Phase 1 result),
     // so the post-patch cruise system likely uses different vtables. Log
     // EVERY unique event-source vtable on first occurrence with the module
@@ -1120,7 +1120,7 @@ namespace {
         return false;
     }
 
-    // V4 Fire-Probe state — dedup unique event-source-vtable per session, log
+    // V4 Fire-Probe state - dedup unique event-source-vtable per session, log
     // payload + context up to N times. User test scenario: 5x left-click +
     // 5x right-click in pilot seat, then 1-2x on-foot fire for control.
     static constexpr std::size_t   kFireProbeMaxUnique     = 64;
@@ -1181,7 +1181,7 @@ namespace {
     }
 
     // ----------------------------------------------------------------------
-    // V3 iter5 — Havok cache hook (bhkCharacterStateSpaceship vt[8])
+    // V3 iter5 - Havok cache hook (bhkCharacterStateSpaceship vt[8])
     // ----------------------------------------------------------------------
     //
     // RE finding (RE_HavokVt8 + RE_HavokPropagator):
@@ -1199,7 +1199,7 @@ namespace {
     // Strategy: hook FUN_1423ba880, run original, then override the rotation
     // cache (+0xa0/+0xb0/+0xc0) with host's transmitted values. Engine's
     // downstream sync then propagates our values to the ship NiNode → render
-    // sees them. We DO NOT touch translation (+0xd0) — ship REFR is anchor at
+    // sees them. We DO NOT touch translation (+0xd0) - ship REFR is anchor at
     // (0,0,0); writing translation here could break collision/skybox systems.
     //
     // Bidirectional: only override on the PASSIVE side (g_isActivePilot=false).
@@ -1211,18 +1211,18 @@ namespace {
     static std::atomic<std::uint64_t> g_havokOverrideCount{ 0 };
     static std::atomic<std::uint64_t> g_lastHavokLogMs{ 0 };
 
-    // V3 iter8 — direct rotation/state read/write on havok body's nested data.
+    // V3 iter8 - direct rotation/state read/write on havok body's nested data.
     //
     // RE finding (RE_HavokRotation on vftbl 0x4D65D60):
     //   vt[+0x258] getter (FUN_1423bfba0) reads 64 bytes (8 qwords) from
     //     body[+0x4D0]+0x50..+0x8F  (4x vec4 = 4x4 matrix or hknpMotionState).
     //   vt[+0x260] setter calls FUN_1423bae50 which memcpy's 64 bytes back.
-    //   This is what vt[8] passes `local_b8` (48 bytes) to via vt[+0x260] —
+    //   This is what vt[8] passes `local_b8` (48 bytes) to via vt[+0x260] -
     //   so this 64-byte block IS the ship's transform/motion state that drives
     //   the physics body downstream.
     //
     // iter7 mistake: tried vt[+0x270] which is POSITION (16B), seen as
-    //   "quat=(10.6, 31.5, 0.99, 0)" — XYZ coords, not a quat.
+    //   "quat=(10.6, 31.5, 0.99, 0)" - XYZ coords, not a quat.
 
     static constexpr std::uintptr_t kHavokBodyDataPtrOffset    = 0x4D0;
     static constexpr std::uintptr_t kHavokStateOffsetInData    = 0x50;
@@ -1257,7 +1257,7 @@ namespace {
     // Type-guard for SafeCommitHavokTransform: vtable of the body vt[8] processes
     // (the known-good ship-flight controller). Recorded LIVE in HookedBhkSpaceshipVt8
     // so no hardcoded vtable RVA. The Tick body-commit only fires the proxy-controller
-    // SetTransform when the target body is this SAME type — otherwise it would call
+    // SetTransform when the target body is this SAME type - otherwise it would call
     // the wrong slot-0x260 function (the rigidbody controller's has a different
     // signature) on a mismatched body (e.g. g_playerBhkBody snapping to a station).
     static std::atomic<std::uintptr_t> g_shipBodyVtbl{ 0 };
@@ -1266,14 +1266,14 @@ namespace {
     // no longer makes the physics body move, so a STANDING/unseated client is not
     // carried by the host's ship (symptom: "only the quest-marker moves"). The
     // engine's body-data SetTransform writes the SAME +0x50 block AND commits it into
-    // the live hknp world (calls FUN_14235dce0 under the Havok world write-lock) —
+    // the live hknp world (calls FUN_14235dce0 under the Havok world write-lock) -
     // that world-commit is exactly what carries anything standing on the body.
     // We call it directly on the data block (*(body+0x4D0)), the same block
     // SafeWriteHavokState already targets, so no vtable-type ambiguity.
     // RE (Ghidra Starfield244): FUN_1423b8840 = data-block SetTransform, REL::ID 125839
     // (236 RVA 0x23BAE50); signature (dataBlock, ptr-to-8-qwords / 16 floats). Writes
     // dataBlock+0x50..+0x88 then commits if dataBlock+0x160 != 0. SEH-guarded; no-op on
-    // null. Rotation only — host translate stays the (0,0,0) cockpit anchor.
+    // null. Rotation only - host translate stays the (0,0,0) cockpit anchor.
     static constexpr std::uintptr_t kRVA_HavokBodySetTransform = 0x23B8840;  // REL::ID 125839
     using HavokBodySetTransformFn = void(__fastcall*)(void* /*dataBlock*/, const void* /*xform16*/);
     static void SafeCommitHavokTransform(void* a_havokBody, const float a_in[16])
@@ -1287,7 +1287,7 @@ namespace {
             // SetTransform. A different controller type has a different slot-0x260
             // function + signature, so only fire the commit when this body is the
             // SAME type as the known-good vt[8] ship body. Otherwise fall back to the
-            // cache-only memcpy (old behavior — never worse than before).
+            // cache-only memcpy (old behavior - never worse than before).
             const std::uintptr_t vt    = *reinterpret_cast<std::uintptr_t*>(p);
             const std::uintptr_t known = g_shipBodyVtbl.load(std::memory_order_acquire);
             if (known != 0 && vt == known) {
@@ -1305,12 +1305,12 @@ namespace {
     static std::atomic<std::uint64_t> g_v3iter7ApplyCount{ 0 };
     static std::atomic<std::uint64_t> g_lastIter7LogMs{ 0 };
 
-    // V3 iter9 — param_1 (bhkState) layout dump for player-ship identification.
+    // V3 iter9 - param_1 (bhkState) layout dump for player-ship identification.
     static std::atomic<bool> g_param1Dumped{ false };
 
-    // V3 iter10 — outgoing havok state buffer is declared earlier in the
+    // V3 iter10 - outgoing havok state buffer is declared earlier in the
     // anonymous namespace so MaybeSyncShipTransform can use it.
-    // Helpers to publish/consume — kept in non-__try functions because
+    // Helpers to publish/consume - kept in non-__try functions because
     // std::lock_guard introduces unwinding which conflicts with __try.
     static void PublishOutgoingHavokState(const float a_in[16])
     {
@@ -1326,7 +1326,7 @@ namespace {
         return true;
     }
 
-    // === V3 iter13 — Active-pilot detection via per-body motion EMA ===
+    // === V3 iter13 - Active-pilot detection via per-body motion EMA ===
     //
     // For each unique havok-body pointer seen as `a_param2`, track row3
     // (translation) across calls and accumulate a per-frame motion EMA. The
@@ -1336,7 +1336,7 @@ namespace {
     // engine produces no acceleration without input, so its EMA stays low.
     //
     // Apply-feedback (passive sees host's motion echoed via our own writes)
-    // is suppressed by a short cooldown after each successful write — during
+    // is suppressed by a short cooldown after each successful write - during
     // cooldown we force passive and reset the EMA baselines.
     static constexpr int            kIter13SlotCount       = 4;
     static constexpr float          kIter13EmaAlpha        = 0.15f;
@@ -1344,12 +1344,12 @@ namespace {
     static constexpr float          kIter13ActiveThreshSq  = 0.0025f;
     static constexpr std::uint64_t  kIter13ActiveHoldMs    = 3000;
     static constexpr std::uint64_t  kIter13ApplyCooldownMs = 200;
-    // Max age of cached havok body pointer — used by Tick to keep applying
+    // Max age of cached havok body pointer - used by Tick to keep applying
     // received transforms when vt[8] stops firing (e.g. local player not
     // seated → engine stops physics-stepping the ship → vt[8] silent).
     static constexpr std::uint64_t  kIter13TickBodyMaxAgeMs = 30000;
 
-    // M.1 V2 — player-ship body identification.
+    // M.1 V2 - player-ship body identification.
     // The vt[8] hook fires for ALL ships in the simulation, including NPCs.
     // Without this gate, the passive apply path writes the host's player-
     // ship transform to *every* body on the client → all NPC ships cluster
@@ -1372,7 +1372,7 @@ namespace {
     // drives the STATION → ship fuses with it + physics stutter (unplayable).
     static std::atomic<float> g_psMatchBestD2{ 3.4e38f };
     static std::atomic<void*> g_psMatchBestBody{ nullptr };
-    // v2 — sticky lock. Logs proved two bodies both report d2=0 and
+    // v2 - sticky lock. Logs proved two bodies both report d2=0 and
     // FLICKER every 200ms window: once the flight apply writes the host
     // transform to the wrong body, that body sits exactly at g_psPos too, so
     // min-d2 can no longer tell them apart (apply-feedback contamination).
@@ -1385,7 +1385,7 @@ namespace {
     static std::atomic<int>  g_psStickyMiss{ 0 };       // consecutive windows held body absent
     static constexpr int     kPSStickyReleaseWindows = 3;
 
-    // M.1 V2 iter2 — NPC ship state cache.
+    // M.1 V2 iter2 - NPC ship state cache.
     // We track up to 16 unique non-player bodies seen via vt[8]. Each slot
     // caches the body's last havok state. A 1Hz Tick broadcasts active slots
     // (lastUpdate < 5s ago) as PKT_NPC_SHIP_BATCH.
@@ -1410,14 +1410,14 @@ namespace {
         void*         body              = nullptr;
         float         pos[3]            = { 0, 0, 0 };
         std::uint64_t seenMs            = 0;
-        // M.1 V2 iter2d — cached "to-write" state from latest match.
+        // M.1 V2 iter2d - cached "to-write" state from latest match.
         // The vt[8] hook writes this every physics step so engine physics
         // can't drift the body away (1Hz batch overwrites would otherwise
         // be steamrolled by 60Hz local sim).
         bool          hasPendingApply   = false;
         float         pendingState[16]  = {};
         std::uint64_t pendingMs         = 0;
-        // M.1 V2 iter2g — snapshot interpolation. We keep prev + current
+        // M.1 V2 iter2g - snapshot interpolation. We keep prev + current
         // target snapshots and lerp translation between them based on
         // wall-clock time. Eliminates the 10Hz teleport oscillation that
         // pure target-snap produced.
@@ -1427,7 +1427,7 @@ namespace {
     };
     static NpcLocalBody  g_npcLocalBodies[kNpcShipSlotCount];
     static std::mutex    g_npcLocalBodiesMtx;
-    // Pending received batch — drained by Tick to apply transforms.
+    // Pending received batch - drained by Tick to apply transforms.
     struct PendingNpcEntry {
         std::uint32_t handleHash;
         float         havokState[16];
@@ -1436,7 +1436,7 @@ namespace {
     static std::mutex                   g_pendingNpcBatchMtx;
     static std::atomic<std::uint64_t>   g_pendingNpcBatchMs{ 0 };
     static constexpr std::uint64_t      kPendingNpcBatchStaleMs = 3000;
-    // Match radius (squared) — remote ↔ local body. Encounter ships drift
+    // Match radius (squared) - remote ↔ local body. Encounter ships drift
     // independently per-machine; 5km radius captures more proc-gen variance
     // without false-matching unrelated ships (typical inter-ship spacing in
     // encounters is much larger than 5km).
@@ -1454,18 +1454,18 @@ namespace {
     static std::atomic<std::uint64_t>  g_iter13DetectCount{ 0 };
     static std::atomic<std::uint64_t>  g_iter13LastDetectLogMs{ 0 };
     // Cached body pointer (and last-seen timestamp) from passive vt[8]
-    // applies — used by Tick fallback when vt[8] stops firing.
+    // applies - used by Tick fallback when vt[8] stops firing.
     static std::atomic<void*>          g_iter13CachedApplyBody{ nullptr };
     static std::atomic<std::uint64_t>  g_iter13CachedApplyBodyMs{ 0 };
     static std::atomic<std::uint64_t>  g_iter13TickApplyCount{ 0 };
     static std::atomic<std::uint64_t>  g_iter13LastTickApplyLogMs{ 0 };
 
-    // V3 iter14 — deterministic pilot signal. Iter13 motion-only detection
+    // V3 iter14 - deterministic pilot signal. Iter13 motion-only detection
     // can't recognize a parked-in-space pilot (no motion → no EMA → active=0).
     // Combine network role + IsInSpace + GetSpaceship + occupiedFurniture
     // handle to definitively identify the local pilot, independent of motion.
     //
-    // L.3 V4 — pilot handover. Either side can pilot when seated. If both
+    // L.3 V4 - pilot handover. Either side can pilot when seated. If both
     // are seated simultaneously: both broadcast, both stay in active mode
     // (passive apply doesn't run when active=true), each sees own engine
     // sim. When one stands → starts applying other's transform → other's
@@ -1480,7 +1480,7 @@ namespace {
     {
         auto& net = Pulsar::Network::GetSingleton();
         if (!net.IsConnected()) return false;
-        // L.3 V4 — IsHost gate removed. Both peers can pilot.
+        // L.3 V4 - IsHost gate removed. Both peers can pilot.
 
         // L.7 post-bridge guard. Engine load places client into
         // host's saved pilot chair (full furn binding intact), which
@@ -1496,7 +1496,7 @@ namespace {
             return false;
         }
 
-        // L.3 V4.1 — host-priority tiebreaker for the DUAL-PILOT case. When BOTH
+        // L.3 V4.1 - host-priority tiebreaker for the DUAL-PILOT case. When BOTH
         // peers sit in their (same-FormID) cockpit chair, the seated-only test
         // below makes BOTH claim pilot → both go active → an active pilot never
         // runs the passive apply, so the client stops applying the host's flight
@@ -1504,7 +1504,7 @@ namespace {
         // in the pilot seat; stand up and it syncs again" (verified 2026-06-21
         // logs: host row0 rotating live, client row0 frozen, both active=1).
         // Resolve in favour of the HOST: if we are the client AND the host is
-        // actively piloting (a fresh PKT_SHIP_TRANSFORM is arriving), YIELD —
+        // actively piloting (a fresh PKT_SHIP_TRANSFORM is arriving), YIELD -
         // return false so we stay passive and apply the host's flight even while
         // seated. If the host is NOT sending (not piloting), we don't yield.
         if (!net.IsHost()) {
@@ -1534,17 +1534,17 @@ namespace {
                 }
             }
         } __except (EXCEPTION_EXECUTE_HANDLER) {}
-        // L.3 V4 — HUD fallback removed (it persisted after standing up,
+        // L.3 V4 - HUD fallback removed (it persisted after standing up,
         // keeping host marked as pilot indefinitely → broadcast continued →
         // client's seat seemed occupied → client couldn't sit). The engine's
         // seated check (furnHandle != 0) is correct on host AND on client
-        // when client actually sits in the seat — the earlier "client sits
+        // when client actually sits in the seat - the earlier "client sits
         // but seated=0" observation was likely because host's clone still
         // occupied the seat in client's world.
         return inSpace && hasShip && seated;
     }
 
-    // L.3 V4 diagnostic — log piloting flags from Tick (game thread, not
+    // L.3 V4 diagnostic - log piloting flags from Tick (game thread, not
     // throttled by iter13 cooldown). 1Hz rate limit.
     static std::atomic<std::uint64_t> g_v4DiagLastLogMs{ 0 };
     static void V4PilotDiagTick(std::uint64_t a_now)
@@ -1615,7 +1615,7 @@ namespace {
             auto* p    = reinterpret_cast<std::uint8_t*>(a_havokBody);
             auto  data = *reinterpret_cast<std::uintptr_t*>(p + kHavokBodyDataPtrOffset);
             if (!data) return false;
-            // row3 lives at data + 0x50 + 0x30 (+0x80) — translation vec4.
+            // row3 lives at data + 0x50 + 0x30 (+0x80) - translation vec4.
             auto* pos = reinterpret_cast<float*>(
                 data + kHavokStateOffsetInData + 0x30);
             a_out[0] = pos[0];
@@ -1639,7 +1639,7 @@ namespace {
             return;
         }
 
-        // V3 iter14 — deterministic pilot signal. Captured here, applied at
+        // V3 iter14 - deterministic pilot signal. Captured here, applied at
         // the end as an OR-override so motion EMA still updates for diag.
         const bool detPilot = IsLocalDeterministicPilot();
         if (detPilot) {
@@ -1647,7 +1647,7 @@ namespace {
         }
 
         if (!a_body) {
-            // No body this call — apply detPilot decision and exit.
+            // No body this call - apply detPilot decision and exit.
             if (detPilot) g_isActivePilot.store(true, std::memory_order_release);
             return;
         }
@@ -1677,12 +1677,12 @@ namespace {
             if (s.motionEmaSq > maxEmaSq) maxEmaSq = s.motionEmaSq;
         }
 
-        // M.1 V2 iter2e — only trust detPilot for active determination.
+        // M.1 V2 iter2e - only trust detPilot for active determination.
         // Motion EMA was the primary signal pre-iter14, but in space encounters
         // NPC ships drive maxEmaSq > threshold continuously (engine physics
         // simulates pirates at 60Hz), causing active=true on client even
         // when client isn't piloting. detPilot already encodes the right
-        // signal (IsHost + IsInSpace + GetSpaceship + seated) — trust it.
+        // signal (IsHost + IsInSpace + GetSpaceship + seated) - trust it.
         // Keep maxEmaSq logged only for diagnostics.
         if (maxEmaSq > kIter13ActiveThreshSq) {
             g_iter13LastActiveMs.store(a_now, std::memory_order_release);
@@ -1703,7 +1703,7 @@ namespace {
         }
     }
 
-    // M.1 V2 iter2 helpers — keep std::lock_guard out of __try-using functions
+    // M.1 V2 iter2 helpers - keep std::lock_guard out of __try-using functions
     // (C2712 forbids stack-unwinding objects in functions with structured EH).
     static void UpdateLocalNpcBody(void* a_body, const float a_pos[3],
                                     std::uint64_t a_now)
@@ -1734,7 +1734,7 @@ namespace {
         g_npcLocalBodies[slotIdx].seenMs = a_now;
     }
 
-    // M.1 V2 iter2g — read interpolated NPC apply state for given body.
+    // M.1 V2 iter2g - read interpolated NPC apply state for given body.
     // Snapshot interpolation: lerp translation between prev and current
     // pending target, snap rotation to current (rotation matrix lerp would
     // need re-orthonormalization, snap is fine for 10Hz batches).
@@ -1757,13 +1757,13 @@ namespace {
                 } else {
                     const std::uint64_t age = a_now - s.prevMs;
                     alpha = static_cast<float>(age) / static_cast<float>(span);
-                    // Clamp extrapolation to 1.5 batches — smooth motion
+                    // Clamp extrapolation to 1.5 batches - smooth motion
                     // when packets are late, but don't fly off into space.
                     if (alpha > 1.5f) alpha = 1.5f;
                 }
             }
 
-            // M.1 V2 iter2h — rotation matrix lerp + Gram-Schmidt re-
+            // M.1 V2 iter2h - rotation matrix lerp + Gram-Schmidt re-
             // orthonormalize. Pure element-wise lerp would distort the
             // matrix (non-orthonormal); GS recovers a clean rotation.
             // Layout: rows are at floats [0..2], [4..6], [8..10]; the [3],
@@ -1790,7 +1790,7 @@ namespace {
                 if (l1 > 1e-6f) {
                     r1[0] /= l1; r1[1] /= l1; r1[2] /= l1;
                 }
-                // r2 = r0 × r1 (right-handed) — guarantees orthonormality
+                // r2 = r0 × r1 (right-handed) - guarantees orthonormality
                 r2[0] = r0[1]*r1[2] - r0[2]*r1[1];
                 r2[1] = r0[2]*r1[0] - r0[0]*r1[2];
                 r2[2] = r0[0]*r1[1] - r0[1]*r1[0];
@@ -1809,7 +1809,7 @@ namespace {
                 out_state[14] = s.prevState[14]
                               + alpha * (s.pendingState[14] - s.prevState[14]);
             } else {
-                // No prev — snap to target.
+                // No prev - snap to target.
                 std::memcpy(out_state, s.pendingState, 15 * sizeof(float));
             }
             out_state[15] = s.pendingState[15];
@@ -1846,7 +1846,7 @@ namespace {
             g_origBhkSpaceshipVt8(a_param1, a_param2);
         }
 
-        // M.1 V1 — Discovery DONE. vt[8] hook fires for ALL ships in physics
+        // M.1 V1 - Discovery DONE. vt[8] hook fires for ALL ships in physics
         // simulation (verified: 9-16 unique bhkCharacterStateSpaceship
         // instances during pirate encounters). param_1 has no direct REFR
         // back-link at fixed offset (NiAVObject sub-pointers visible at
@@ -1857,7 +1857,7 @@ namespace {
         // Probe code below kept gated (max 16 captures, self-disables) as
         // a development tool; can be deleted once V2 is shipped.
 #ifdef PULSAR_M1_DISCOVERY_PROBE
-        // M.1 V1.3 — discover NPC ships via vt[8] + auto-locate REFR back-link.
+        // M.1 V1.3 - discover NPC ships via vt[8] + auto-locate REFR back-link.
         // Strategy: for each new param_1 we see, scan its qw0..qw47 + body's
         // bw0..bw23. For each plausible heap pointer, deref and check if
         // *(p+0x28) holds a sane formID and *(p+0x44) holds a sane formType
@@ -1882,7 +1882,7 @@ namespace {
                     if (idx < 16) {
                         seenParam1[idx].store(p1addr, std::memory_order_release);
 
-                        // M.1 V1.4 — scan param_1 qw0..qw31 + body bw0..bw15
+                        // M.1 V1.4 - scan param_1 qw0..qw31 + body bw0..bw15
                         // for REFR back-links. NO deref-of-deref (V1.3 caused
                         // crash from multi-threaded heap walks). Cross-ship
                         // dedupe: if a REFR pointer was reported for another
@@ -1912,10 +1912,10 @@ namespace {
                                 fid = *reinterpret_cast<std::uint32_t*>(ptr + 0x28);
                                 ft  = *reinterpret_cast<std::uint8_t*>(ptr + 0x2E);
                             } __except (EXCEPTION_EXECUTE_HANDLER) { return; }
-                            // Lenient formID range — runtime IDs 0xFF-prefixed,
+                            // Lenient formID range - runtime IDs 0xFF-prefixed,
                             // master/plugin IDs in lower ranges.
                             if (fid == 0 || fid == 0xFFFFFFFFu) return;
-                            // No formType filter — log whatever we find. The
+                            // No formType filter - log whatever we find. The
                             // first run found ships at ft=0x4A but base form
                             // might be something else. We'll filter post-hoc
                             // from the data we collect.
@@ -1925,7 +1925,7 @@ namespace {
                             if (rc > 32) rc = 32;
                             for (int i = 0; i < rc; ++i) {
                                 if (seenRefrPtr[i].load(std::memory_order_acquire) == ptr) {
-                                    return;  // singleton — already reported for another ship
+                                    return;  // singleton - already reported for another ship
                                 }
                             }
                             int rc2 = seenRefrCount.fetch_add(1, std::memory_order_acq_rel);
@@ -1937,7 +1937,7 @@ namespace {
 
                         __try {
                             auto* p1 = reinterpret_cast<std::uint8_t*>(a_param1);
-                            // Scan 0..47 — V1.3 found the REFR back-link at
+                            // Scan 0..47 - V1.3 found the REFR back-link at
                             // qw37 (+0x128), so we need at least 48 qwords.
                             std::uint64_t qw[48]{};
                             for (int i = 0; i < 48; ++i) {
@@ -2002,13 +2002,13 @@ namespace {
 
         const std::uint64_t now = ::GetTickCount64();
 
-        // M.1 V2 — refresh player-ship-position cache (200ms throttle).
+        // M.1 V2 - refresh player-ship-position cache (200ms throttle).
         const std::uint64_t lastPSC = g_psPosCacheMs.load(std::memory_order_relaxed);
         if ((now - lastPSC) > 200) {
             g_psPosCacheMs.store(now, std::memory_order_relaxed);
-            // v2 — sticky lock at the window boundary. If the body we already
+            // v2 - sticky lock at the window boundary. If the body we already
             // hold matched this window, KEEP it (ignore any other body that also
-            // matched — that's the station/contamination). Only (re)acquire the
+            // matched - that's the station/contamination). Only (re)acquire the
             // closest candidate when we have no lock, or the held body has been
             // absent for kPSStickyReleaseWindows windows (ship change / handover).
             {
@@ -2042,7 +2042,7 @@ namespace {
                 auto* p = RE::PlayerCharacter::GetSingleton();
                 auto* ship = p ? p->GetSpaceship(true) : nullptr;
                 if (ship) {
-                    // (2026-06-21) — player-ship-body match reference.
+                    // (2026-06-21) - player-ship-body match reference.
                     // During active flight, match the local havok body against the
                     // HOST's RECEIVED body position (havokState row3 = idx 12/13/14),
                     // NOT ship->data.location. data.location is the ship's LOGICAL
@@ -2075,7 +2075,7 @@ namespace {
             }
         }
 
-        // M.1 V2 — position-match: is THIS body the player's ship?
+        // M.1 V2 - position-match: is THIS body the player's ship?
         // Also: track local body translations (for both player + NPC) so
         // receiver-side matching has fresh local data.
         float bodyPos[3] = { 0, 0, 0 };
@@ -2088,7 +2088,7 @@ namespace {
             const float d2 = dx * dx + dy * dy + dz * dz;
             if (d2 < kPSMatchThreshSq) {
                 isPlayerCandidate = true;
-                // v2 — if the currently-LOCKED body is the one matching now,
+                // v2 - if the currently-LOCKED body is the one matching now,
                 // flag it so the commit block keeps the lock (sticky). This is the
                 // key disambiguator when several bodies report d2≈0: distance can't
                 // tell them apart, so identity (same pointer as last time) does.
@@ -2104,14 +2104,14 @@ namespace {
             }
         }
 
-        // M.1 V2 iter2 — track local NPC body (for receiver-side matching)
+        // M.1 V2 iter2 - track local NPC body (for receiver-side matching)
         // and capture host-side NPC body state (for broadcast). Both via
         // helper functions to keep std::lock_guard out of this __try-using
         // function (C2712).
         // Only track when player-ship-pos cache is valid AND this body is
         // not the (stable) identified player body. L.3 V4 pilot handover:
         // peer's broadcast can move our player body away from REFR.location,
-        // making isPlayerCandidate momentarily false — but the body is still
+        // making isPlayerCandidate momentarily false - but the body is still
         // logically the player ship. Using stable g_playerBhkBody equality
         // keeps identity correct across position drift.
         void* psBodyStable = g_playerBhkBody.load(std::memory_order_acquire);
@@ -2126,11 +2126,11 @@ namespace {
             }
         }
 
-        // Iter13 — owns g_isActivePilot. MaybeSyncShipTransform reads it.
+        // Iter13 - owns g_isActivePilot. MaybeSyncShipTransform reads it.
         Iter13DetectAndSetActive(a_param2, now);
         const bool isActive = g_isActivePilot.load(std::memory_order_acquire);
 
-        // V3 iter9 — one-time param_1 dump on active side only (so we know
+        // V3 iter9 - one-time param_1 dump on active side only (so we know
         // we're looking at a real ship being piloted = highly likely player's).
         if (isActive && !g_param1Dumped.load(std::memory_order_acquire) && a_param1) {
             __try {
@@ -2157,16 +2157,16 @@ namespace {
         }
 
         if (isActive) {
-            // M.1 V2 — only broadcast the *player's* ship body, not whichever
+            // M.1 V2 - only broadcast the *player's* ship body, not whichever
             // body Iter13 happens to flag as active. In encounters multiple
-            // bodies move fast and Iter13 picks the highest EMA — that may
+            // bodies move fast and Iter13 picks the highest EMA - that may
             // be a pirate. Gate broadcast to the position-matched player body.
             void* psBodyA = g_playerBhkBody.load(std::memory_order_acquire);
             if (psBodyA == nullptr || psBodyA != a_param2) return;
 
             float st[16]{};
             if (!SafeReadHavokState(a_param2, st)) return;
-            // Store into the dedicated SEND buffer — separate from receive
+            // Store into the dedicated SEND buffer - separate from receive
             // buffer (g_pendingShipTransform.data) to avoid mixing concerns.
             PublishOutgoingHavokState(st);
             std::uint64_t cnt = g_v3iter7SendCount.fetch_add(1) + 1;
@@ -2182,7 +2182,7 @@ namespace {
             return;
         }
 
-        // M.1 V2 iter2d — non-player bodies: write cached NPC pending state
+        // M.1 V2 iter2d - non-player bodies: write cached NPC pending state
         // every physics step (60Hz). Engine physics writes here too, so we
         // need to override every step to keep client's NPC ships tracking
         // host's positions.
@@ -2192,7 +2192,7 @@ namespace {
                 float npcSt[16];
                 if (TakeNpcPendingApply(a_param2, now, npcSt)) {
                     SafeWriteHavokState(a_param2, npcSt);
-                    // Suppress Iter13 motion detection — the write would
+                    // Suppress Iter13 motion detection - the write would
                     // otherwise count as motion and false-flip "active".
                     g_iter13LastApplyMs.store(now, std::memory_order_release);
                 }
@@ -2200,11 +2200,11 @@ namespace {
             return;  // not player body; player passive apply is below
         }
 
-        // Passive — write received havok state to body.
-        // M.1 V2 — gate to player's bhkBody only. Without this, the passive
+        // Passive - write received havok state to body.
+        // M.1 V2 - gate to player's bhkBody only. Without this, the passive
         // apply path teleports every NPC ship body to the host's player-ship
         // position (cluster bug). If position-match has not yet identified
-        // the player's body, skip the apply — better to wait for a confident
+        // the player's body, skip the apply - better to wait for a confident
         // match than to corrupt all ship transforms.
         if (psBody == nullptr) return;
 
@@ -2219,13 +2219,13 @@ namespace {
         for (int i = 0; i < 16 && allZero; ++i) if (d.havokState[i] != 0.0f) allZero = false;
         if (allZero) return;
 
-        // L.5 Phase 3v8 — narrowed cruise filter. Earlier 1e7 clamp filtered
+        // L.5 Phase 3v8 - narrowed cruise filter. Earlier 1e7 clamp filtered
         // too many normal cruise frames → drift over time (user 2026-05-01
         // 15:51 test). Now only block clearly-pathological values: INF/NaN
         // or magnitude > 1e8 (extreme spikes). Normal cruise positions up to
         // 1e7 pass through, drift eliminated.
         if (IsCruiseActive()) {
-            // Phase 4 Step 7 — relaxed from 1e8 magnitude clamp to NaN/INF only.
+            // Phase 4 Step 7 - relaxed from 1e8 magnitude clamp to NaN/INF only.
             // Cruise produces legitimate 10^11-scale ship positions (verified in
             // EXIT pos=(-140665943703,...) logs). The clamp blocked ALL of those,
             // freezing client's ship at cruise-start position → client never near
@@ -2238,7 +2238,7 @@ namespace {
         }
 
         SafeWriteHavokState(a_param2, d.havokState);
-        // Iter13 — mark apply timestamp so motion detection enters cooldown
+        // Iter13 - mark apply timestamp so motion detection enters cooldown
         // and doesn't false-positive on host's deltas echoing through.
         g_iter13LastApplyMs.store(now, std::memory_order_release);
         // Cache body pointer so Tick can keep applying when vt[8] stops
@@ -2271,8 +2271,8 @@ namespace {
         }
     }
 
-    // L.5 Phase 2 — poll cruise-active byte from Tick. SEH-guarded read.
-    // L.5 Phase 3 debug — read all cruise-state globals + actor/ship cell
+    // L.5 Phase 2 - poll cruise-active byte from Tick. SEH-guarded read.
+    // L.5 Phase 3 debug - read all cruise-state globals + actor/ship cell
     // formIDs and emit one structured log line. Called at every state
     // transition + 1Hz during cruise. SEH-guarded; missing data shown as 0/null.
     static void LogCruiseSnapshot(const char* a_label)
@@ -2317,7 +2317,7 @@ namespace {
         rd_f32(base + kRVA_CruiseDuration2,   duration2);
         rd_f32(base + kRVA_CruiseTimeSubVal,  subVal);
 
-        // Phase 4 diag — assoc form pointers + their formIDs (TESForm.formID @ +0x28).
+        // Phase 4 diag - assoc form pointers + their formIDs (TESForm.formID @ +0x28).
         std::uint64_t af0 = 0, af1 = 0, af2 = 0, af3 = 0;
         std::uint32_t af0Id = 0, af1Id = 0, af2Id = 0, af3Id = 0;
         rd_u64(base + kRVA_CruiseAssocForm0, af0);
@@ -2329,7 +2329,7 @@ namespace {
         if (af2) rd_u32(af2 + 0x28, af2Id);
         if (af3) rd_u32(af3 + 0x28, af3Id);
 
-        // Phase 4 diag — also read DAT_145EB8274 (arrival state) + DAT_145EB2857 (UI selector).
+        // Phase 4 diag - also read DAT_145EB8274 (arrival state) + DAT_145EB2857 (UI selector).
         std::uint32_t arrivalState = 0;
         std::uint8_t  uiSelector = 0;
         rd_u32(base + kRVA_CruiseArrivalState, arrivalState);
@@ -2344,7 +2344,7 @@ namespace {
         float meshX = 0, meshY = 0, meshZ = 0;
         std::uint64_t havokBodyAddr = 0;
         float row3X = 0, row3Y = 0, row3Z = 0;
-        // Player position — different from ship.data which is always 0
+        // Player position - different from ship.data which is always 0
         // (ship is anchor). Player.data may encode position relative to
         // the cell origin / current POI, which could be the signal that
         // identifies "near POI X".
@@ -2454,7 +2454,7 @@ namespace {
             dataX, dataY, dataZ, meshX, meshY, meshZ, row3X, row3Y, row3Z);
     }
 
-    // L.5 Phase 4 Step 10 — SEH-safe hex dump of one memory region. Emits
+    // L.5 Phase 4 Step 10 - SEH-safe hex dump of one memory region. Emits
     // ONE log line per region via REX::INFO (spdlog file). Switched from
     // NASLog after the NAS \\<NAS> share couldn't be opened from Starfield
     // process context (file stayed empty). The python diff tool matches on
@@ -2508,7 +2508,7 @@ namespace {
             std::string_view(hex, hpos));
     }
 
-    // L.5 Phase 4 Step 10 — chase a pointer in memory and dump pointed-to
+    // L.5 Phase 4 Step 10 - chase a pointer in memory and dump pointed-to
     // bytes. Used for sink-context smart-ptrs etc. where the actual state
     // lives behind the static slot.
     static void LogCruiseHexChase(const char* a_role,
@@ -2525,7 +2525,7 @@ namespace {
                            static_cast<std::uintptr_t>(target), a_bytes);
     }
 
-    // L.5 Phase 4 Step 10 — broad memory dump for runtime diff. Called at
+    // L.5 Phase 4 Step 10 - broad memory dump for runtime diff. Called at
     // 10Hz during cruise on both host and client. Output is parsed by
     // tools/diff_cruise_dumps.py. Each region is one log line with a
     // region-name tag so the diff matches by tag at the same wall-clock.
@@ -2540,32 +2540,32 @@ namespace {
             ? (net.IsHost() ? "HOST" : "CLI ")
             : "SOLO";
 
-        // Header line — wall-clock + tick + label, lets the diff tool slice
+        // Header line - wall-clock + tick + label, lets the diff tool slice
         // the log into per-tick blocks.
         PLOG_INFO("[PULSAR] L.5 D10 [{}] {} BLOCK tick={}"sv,
                   role, a_label,
                   static_cast<unsigned long long>(::GetTickCount64()));
 
         // -- Cruise statics, primary block (byteMain, byte2nd, arrival,
-        // uiSelector, gates) — RVA window 0x5EAA4C0..0x5EB2900.
+        // uiSelector, gates) - RVA window 0x5EAA4C0..0x5EB2900.
         LogCruiseHexRegion(role, a_label, "cruise_5EB22",
                            base + 0x5EAA4C0, 256);
         LogCruiseHexRegion(role, a_label, "cruise_5EB28",
                            base + 0x5EAAA40, 256);
 
         // -- Cruise statics, secondary (state machine, distance, dur counter,
-        // assoc-form area) — 0x5EB8200..0x5EB8500.
+        // assoc-form area) - 0x5EB8200..0x5EB8500.
         LogCruiseHexRegion(role, a_label, "cruise_5EB82",
                            base + 0x5EB8200, 512);
         LogCruiseHexRegion(role, a_label, "cruise_5EAA8",
                            base + 0x5EAA800, 256);
 
-        // -- Cruise orient/UI block (orient0..3, dur MAX, UI strings) —
+        // -- Cruise orient/UI block (orient0..3, dur MAX, UI strings) -
         // 0x5F31C00..0x5F2A058.
         LogCruiseHexRegion(role, a_label, "cruise_5F31C",
                            base + 0x5F31C00, 512);
 
-        // -- Cruise sink-context area (smart-ptrs + per-tick decrement) —
+        // -- Cruise sink-context area (smart-ptrs + per-tick decrement) -
         // 0x5FBC800..0x5FB4C80 + 0x5FC7700.
         LogCruiseHexRegion(role, a_label, "cruise_5FBC8",
                            base + 0x5FBC800, 512);
@@ -2573,7 +2573,7 @@ namespace {
                            base + 0x5FC7700, 256);
 
         // -- Per-tick math write targets (DAT_14591EFE4 cluster, DAT_145E75490,
-        // DAT_145FBD140) — small windows around each.
+        // DAT_145FBD140) - small windows around each.
         LogCruiseHexRegion(role, a_label, "tick_591EF",
                            base + 0x5916FA8, 128);
         LogCruiseHexRegion(role, a_label, "tick_5E754",
@@ -2585,7 +2585,7 @@ namespace {
         LogCruiseHexRegion(role, a_label, "cruise_590E2",
                            base + 0x5906260, 64);
 
-        // -- Player world-state singleton (DAT_145F4AFD0 area) — used by
+        // -- Player world-state singleton (DAT_145F4AFD0 area) - used by
         // arrival-init's cell-stream task as `worldState ptr`.
         LogCruiseHexRegion(role, a_label, "ws_5F4AF",
                            base + 0x5F43230, 256);
@@ -2645,7 +2645,7 @@ namespace {
 
         const std::uint8_t prev = g_lastCruiseActive.load(std::memory_order_acquire);
         if (prev == 0xFF) {
-            // First poll — initialize without firing transition.
+            // First poll - initialize without firing transition.
             g_lastCruiseActive.store(cur, std::memory_order_release);
             return;
         }
@@ -2676,7 +2676,7 @@ namespace {
         const std::uint64_t suppress = g_cruiseApplySuppressUntilMs.load(std::memory_order_acquire);
         const bool inSuppressWindow = (now < suppress);
 
-        // Phase 4 — flag whether this exit was "auto-arrival" (post-arrivalInit)
+        // Phase 4 - flag whether this exit was "auto-arrival" (post-arrivalInit)
         // or "manual" (player pressed cruise key mid-flight). Manual exit
         // doesn't trigger FUN_140B6EB20 (cell-stream task), so client may not
         // see same cell content as host post-exit.
@@ -2689,13 +2689,13 @@ namespace {
             g_arrivalSeenThisCruise.store(false, std::memory_order_release);
             g_step13FiredThisCruise.store(false, std::memory_order_release);
             g_lastMarkerNotifyMs.store(0, std::memory_order_release);
-            // Step 16 — mark self-initiated if not in suppress window (we
+            // Step 16 - mark self-initiated if not in suppress window (we
             // caused this cruise locally vs received and applied a remote one).
             g_cruiseSelfInitiated.store(!inSuppressWindow, std::memory_order_release);
             exitType = "(start)";
         }
         if (prev == 1 && cur == 0) {
-            // Cruise exit — clear self-initiated flag for next session.
+            // Cruise exit - clear self-initiated flag for next session.
             g_cruiseSelfInitiated.store(false, std::memory_order_release);
         }
 
@@ -2710,14 +2710,14 @@ namespace {
 
         // Broadcast: any connected peer can initiate cruise (Step 16 bidirectional).
         // Suppression prevents re-broadcasting a transition we just applied
-        // from a remote packet — the originator broadcasts, the receiver
+        // from a remote packet - the originator broadcasts, the receiver
         // applies + suppresses.
         if (net.IsConnected() && !inSuppressWindow) {
             Pulsar::Network::CruiseStateData payload{};
             payload.enable      = cur ? 1 : 0;
             payload.shipFormId  = shipFormId;
             payload.timestampMs = now;
-            // L.5 Phase 3v3 — at EXIT broadcast, capture host's world position
+            // L.5 Phase 3v3 - at EXIT broadcast, capture host's world position
             // (3 doubles at DAT_145F31DA0/DA8/DB0). Client overrides its own
             // before EXIT call so engine derives final position from same state.
             // At ENTER we still send 0s (client force-ENTER computes its own).
@@ -2735,7 +2735,7 @@ namespace {
                     payload.shipPosX = payload.shipPosY = payload.shipPosZ = 0.0;
                 }
             }
-            // Phase 4 Step 4 — at ENTER broadcast, capture host's resolved
+            // Phase 4 Step 4 - at ENTER broadcast, capture host's resolved
             // destination formID (DAT_145EB8284 low 32b). Resolver FUN_1413FDFD0
             // already ran inside the engine ENTER fn before our poll fires.
             // Client writes this before its force-ENTER so per-tick arrival
@@ -2754,7 +2754,7 @@ namespace {
             Pulsar::Network::PacketWriter w(
                 Pulsar::Network::PKT_CRUISE_STATE, buf, sizeof(buf));
             if (w.Write(payload)) {
-                net.Send(w.Data(), w.Size(), true);  // reliable — single rare event
+                net.Send(w.Data(), w.Size(), true);  // reliable - single rare event
                 PLOG_INFO(
                     "[PULSAR] L.5 CruiseState SEND: enable={} ship=0x{:08X} dest=0x{:08X} pos=({:.0f},{:.0f},{:.0f})"sv,
                     static_cast<int>(payload.enable), payload.shipFormId,
@@ -2762,7 +2762,7 @@ namespace {
                     payload.shipPosX, payload.shipPosY, payload.shipPosZ);
             }
 
-            // L.5 Phase 3 v2 — capture host's shipCell at cruise start so we
+            // L.5 Phase 3 v2 - capture host's shipCell at cruise start so we
             // can compare at EXIT and gate the resync. Skip resync entirely
             // when shipCell is unchanged (intra-system cruise, common case).
             if (cur == 1) {
@@ -2776,11 +2776,11 @@ namespace {
                 } __except (EXCEPTION_EXECUTE_HANDLER) {}
                 g_preCruiseShipCellID.store(startShipCell, std::memory_order_release);
                 PLOG_INFO(
-                    "[PULSAR] L.5 Phase 3v2: cruise START — captured shipCell=0x{:08X}"sv,
+                    "[PULSAR] L.5 Phase 3v2: cruise START - captured shipCell=0x{:08X}"sv,
                     startShipCell);
             }
 
-            // L.5 Phase 3 — host: on EXIT broadcast, arm post-cruise resync.
+            // L.5 Phase 3 - host: on EXIT broadcast, arm post-cruise resync.
             // Cruise can navigate static-space → static-space (different
             // system) which the existing HostTryTakeoffResync proc-boundary
             // logic does NOT detect. Use the EXIT signal as the trigger.
@@ -2794,7 +2794,7 @@ namespace {
         }
     }
 
-    // L.5 Phase 4 Step 6 — poll DAT_145EB2856 ("arrival initiated" gate). On
+    // L.5 Phase 4 Step 6 - poll DAT_145EB2856 ("arrival initiated" gate). On
     // 0->1 transition, host's per-tick math just fired FUN_1413FA140 (= "Cruise
     // Mode Arrival Initiated"). We broadcast a PKT_CRUISE_STATE with arrivalInit
     // = 1 so client mirrors that engine state and dur countdown / cell-stream
@@ -2832,14 +2832,14 @@ namespace {
         g_arrivalSeenThisCruise.store(true, std::memory_order_release);
 
         auto& net = Pulsar::Network::GetSingleton();
-        // Step 16 — bidirectional: any connected originator broadcasts the
+        // Step 16 - bidirectional: any connected originator broadcasts the
         // arrival init, since only the originator's per-tick math actually
         // fires it (DAT_145EB2856 0→1 is per-tick computation).
         if (!net.IsConnected()) return;
         if (!g_cruiseSelfInitiated.load(std::memory_order_acquire)) {
             // We received this cruise from a remote peer; their per-tick
             // math drives arrival init too. We won't see a meaningful
-            // 0→1 here unless the engine fired locally — which only
+            // 0→1 here unless the engine fired locally - which only
             // happens for self-initiated cruises.
             return;
         }
@@ -2847,7 +2847,7 @@ namespace {
         const std::uint64_t now = ::GetTickCount64();
         const std::uint64_t suppress = g_cruiseApplySuppressUntilMs.load(std::memory_order_acquire);
         if (now < suppress) {
-            PLOG_INFO("[PULSAR] L.5 Phase 4 Step 6: arrival 0->1 in suppress window — skip"sv);
+            PLOG_INFO("[PULSAR] L.5 Phase 4 Step 6: arrival 0->1 in suppress window - skip"sv);
             return;
         }
 
@@ -2866,11 +2866,11 @@ namespace {
         payload.shipFormId  = shipFormId;
         payload.timestampMs = now;
 
-        // Phase 4 Step 7 — capture host's UI state + arrival state machine value
+        // Phase 4 Step 7 - capture host's UI state + arrival state machine value
         // so client's FUN_1413FA140 has same inputs.
-        // Phase 4 Step 7b — also capture orient globals (DAT_145F31DA0/DA8/DB0).
+        // Phase 4 Step 7b - also capture orient globals (DAT_145F31DA0/DA8/DB0).
         // The cell-stream task (FUN_140B6EB20) fires inside FUN_1413FEBA0's
-        // dur countdown — BEFORE EXIT cleanup. Phase 3v3 writes orient at EXIT
+        // dur countdown - BEFORE EXIT cleanup. Phase 3v3 writes orient at EXIT
         // (too late for cell stream). Writing at arrivalInit (= dur start)
         // ensures the streaming sees host's world position when picking what
         // content to load (planet, station mesh, NPC ships).
@@ -2902,10 +2902,10 @@ namespace {
         }
     }
 
-    // L.5 Phase 3 — fires the SaveBuffer-resync once the post-cruise delay
+    // L.5 Phase 3 - fires the SaveBuffer-resync once the post-cruise delay
     // elapses on host. Re-uses the L.2 BeginHostQuicksaveTransfer pipeline
     // (its own 30s cooldown applies, so back-to-back cruise+takeoff in the
-    // same window collapses to one transfer — acceptable).
+    // same window collapses to one transfer - acceptable).
     static void TickPostCruiseResync()
     {
         const std::uint64_t due = g_postCruiseResyncDueMs.load(std::memory_order_acquire);
@@ -2919,18 +2919,18 @@ namespace {
 
         auto& net = Pulsar::Network::GetSingleton();
         if (!net.IsConnected() || !net.IsHost()) {
-            PLOG_INFO("[PULSAR] L.5 Phase 3: resync due but not host/connected — skip"sv);
+            PLOG_INFO("[PULSAR] L.5 Phase 3: resync due but not host/connected - skip"sv);
             return;
         }
 
-        // L.5 Phase 3v7 — gated resync (same-cell skip restored). Cross-cell
+        // L.5 Phase 3v7 - gated resync (same-cell skip restored). Cross-cell
         // cruise (cross-system far-travel) → SaveBuffer fires (rare). Same-
         // cell cruise (intra-system, e.g. moving closer to a planet) → skip;
         // user's explicit guidance after 3v6 always-resync caused client
         // crash-to-menu on second same-cell cruise (2026-05-01 15:25 test).
         // L.3 V3 cruise-suspend (3v5) prevents in-cruise freeze.
         // Same-cell content drift (different POI proximity) accepted as
-        // known limitation — engine's POI state is not in any single global
+        // known limitation - engine's POI state is not in any single global
         // we've located, deeper RE deferred.
         std::uint32_t curShipCell = 0;
         __try {
@@ -2945,7 +2945,7 @@ namespace {
 
         if (curShipCell == startShipCell || curShipCell == 0) {
             PLOG_INFO(
-                "[PULSAR] L.5 Phase 3v7: shipCell unchanged 0x{:08X} → 0x{:08X} — skip resync (intra-system cruise)"sv,
+                "[PULSAR] L.5 Phase 3v7: shipCell unchanged 0x{:08X} → 0x{:08X} - skip resync (intra-system cruise)"sv,
                 startShipCell, curShipCell);
             NASLOG("L.5 Phase 3v7: same shipCell 0x%08X, skipping resync",
                    curShipCell);
@@ -2954,7 +2954,7 @@ namespace {
         }
 
         PLOG_INFO(
-            "[PULSAR] L.5 Phase 3v7: shipCell CHANGED 0x{:08X} → 0x{:08X} — firing SaveBuffer-resync (cross-system cruise)"sv,
+            "[PULSAR] L.5 Phase 3v7: shipCell CHANGED 0x{:08X} → 0x{:08X} - firing SaveBuffer-resync (cross-system cruise)"sv,
             startShipCell, curShipCell);
         NASLOG("L.5 Phase 3v7: shipCell 0x%08X -> 0x%08X, firing resync",
                startShipCell, curShipCell);
@@ -2963,11 +2963,11 @@ namespace {
         net.BeginHostQuicksaveTransfer();
     }
 
-    // L.5 Phase 2 — apply a queued remote cruise transition. Runs on game
+    // L.5 Phase 2 - apply a queued remote cruise transition. Runs on game
     // thread from Tick. Calls the cruise toggle function with the bool.
     static void ApplyPendingCruise()
     {
-        // Phase 4 Step 6 — separate trigger for arrival-init. Fires
+        // Phase 4 Step 6 - separate trigger for arrival-init. Fires
         // FUN_1413FA140 directly so client's per-frame dur countdown +
         // cell-stream task run mirroring host. Doesn't touch ENTER/EXIT
         // state (cruise byte stays 1, sinks already allocated).
@@ -2981,14 +2981,14 @@ namespace {
                 g_cruiseApplySuppressUntilMs.store(::GetTickCount64() + 1500,
                                                     std::memory_order_release);
 
-                // Phase 4 Step 7 — write host's state machine value + UI selector
+                // Phase 4 Step 7 - write host's state machine value + UI selector
                 // BEFORE calling FUN_1413FA140 so its internal copy
                 // (DAT_145EB84D4 = DAT_145EB8274) and UI string lookup
                 // (DAT_145EB2857 controls Arrival vs EndCruise path) match host.
-                // Phase 4 Step 7b — also write orient globals (DAT_145F31DA0/8/0)
+                // Phase 4 Step 7b - also write orient globals (DAT_145F31DA0/8/0)
                 // BEFORE FUN_1413FA140 so the cell-stream task (FUN_140B6EB20)
                 // fired during dur countdown picks content based on host's world
-                // coords. Phase 3v3 writes orient at EXIT (too late — cell-stream
+                // coords. Phase 3v3 writes orient at EXIT (too late - cell-stream
                 // already ran with stale snapshot from cruise ENTER).
                 const std::uint32_t state = g_pendingCruise.arrivalState.load(std::memory_order_acquire);
                 const std::uint8_t  uiSel = g_pendingCruise.uiSelector.load(std::memory_order_acquire);
@@ -3032,7 +3032,7 @@ namespace {
                 }
                 LogCruiseSnapshot("APPLY-POST ARRIVAL-INIT");
 
-                // Phase 4 Step 12 — schedule marker re-eval 500ms from now
+                // Phase 4 Step 12 - schedule marker re-eval 500ms from now
                 // so engine state has time to settle after arrival init's
                 // gate flips + cell-stream task runs.
                 g_markerNotifyDueMs.store(::GetTickCount64() + kMarkerNotifyDeferMs,
@@ -3068,11 +3068,11 @@ namespace {
         g_cruiseApplySuppressUntilMs.store(::GetTickCount64() + 1500,
                                             std::memory_order_release);
 
-        // L.5 D3 — snapshot client state BEFORE applying remote toggle.
+        // L.5 D3 - snapshot client state BEFORE applying remote toggle.
         LogCruiseSnapshot(enable ? "APPLY-PRE ENTER" : "APPLY-PRE EXIT");
 
         if (enable) {
-            // Phase 4 Step 4 — write host's resolved destination formID into
+            // Phase 4 Step 4 - write host's resolved destination formID into
             // DAT_145EB8284 BEFORE the force-ENTER call. force=true skips the
             // engine's own resolver (FUN_1413FDFD0) which would normally set
             // this field, so without our write it stays 0 → per-tick arrival
@@ -3102,7 +3102,7 @@ namespace {
                 PLOG_WARN("[PULSAR] L.5 CruiseApply ENTER: SEH exception"sv);
             }
 
-            // L.5 Phase 4 Step 14 — force=true on client SKIPS the resolver
+            // L.5 Phase 4 Step 14 - force=true on client SKIPS the resolver
             // (FUN_1413FDFD0) at offset 0x1413FDB2E. The resolver iterates
             // world manager's POI list, sets nearest-POI tracking state, and
             // populates fields read by planet rendering. User observation:
@@ -3130,7 +3130,7 @@ namespace {
                 }
             }
         } else {
-            // L.5 Phase 3v3 — write host's world position into the engine's
+            // L.5 Phase 3v3 - write host's world position into the engine's
             // 3 globals BEFORE the EXIT call. The exit-cleanup path uses these
             // doubles to derive the final ship position (visible planets / NPC
             // ships are loaded relative to this position). Without this write,
@@ -3168,17 +3168,17 @@ namespace {
                 PLOG_WARN("[PULSAR] L.5 CruiseApply EXIT: SEH exception"sv);
             }
 
-            // Phase 4 deep — explicit cell-stream re-fire post-EXIT was attempted
+            // Phase 4 deep - explicit cell-stream re-fire post-EXIT was attempted
             // (FUN_140B6EB20 with worldState ptr arg) but consistently SEH'd.
             // Removed; the natural engine call during dur countdown handles
             // cell content (NPCs/POI station load successfully).
 
-            // Phase 4 deep iter2 — LocationMarkerArrayUpdate::Event refire
+            // Phase 4 deep iter2 - LocationMarkerArrayUpdate::Event refire
             // attempted but SEH'd (game-thread context not satisfied).
             // Removed; planet rendering needs deeper sync of cruise per-tick state.
         }
 
-        // L.5 D3 — snapshot client state AFTER apply. Diff against PRE
+        // L.5 D3 - snapshot client state AFTER apply. Diff against PRE
         // tells us what the engine ENTER/EXIT fn actually did.
         LogCruiseSnapshot(enable ? "APPLY-POST ENTER" : "APPLY-POST EXIT");
     }
@@ -3221,7 +3221,7 @@ namespace {
         } __except (EXCEPTION_EXECUTE_HANDLER) {}
     }
 
-    // L.7 Path A.2 — close SpaceshipHud menu layer post-load.
+    // L.7 Path A.2 - close SpaceshipHud menu layer post-load.
     // Out-of-line so __try doesn't trip C2712 on the caller, which has
     // unwinding locals.
     static bool SafeCloseSpaceshipHudImpl()
@@ -3240,7 +3240,7 @@ namespace {
         __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
     }
 
-    // L.7 Path A.3 — empirically verified bits that flip when the
+    // L.7 Path A.3 - empirically verified bits that flip when the
     // engine sets the pilot lock state from a save: actor+0x37c bit 4
     // = "in vehicle" (per FUN_141aeb6f0 RE), actorState2 bit 12.
     // Clearing these alone with the 30s retry-loop broke pilot handover;
@@ -3272,9 +3272,9 @@ namespace {
         }
     }
 
-    // L.5 Phase 3v4 — post-load force-unseat for client. 1-SHOT fire 5s
+    // L.5 Phase 3v4 - post-load force-unseat for client. 1-SHOT fire 5s
     // post-load. After save-bridge load the save contains host's
-    // "I am piloting" state — client's player may end up seated as pilot.
+    // "I am piloting" state - client's player may end up seated as pilot.
     // L.3 V4 then re-detects host-as-pilot and resumes proper sync.
     //
     // History: L.7 expanded this to a 30s retry-loop to handle engine
@@ -3283,7 +3283,7 @@ namespace {
     // sit-down would get its furniture handle cleared by the loop, leaving
     // the user stuck in chair with no UI (regression observed 2026-05-06
     // 13:50). REVERTED to 1-shot. Re-affirmation edge case handled less
-    // robustly but pilot handover works for normal gameplay — that's the
+    // robustly but pilot handover works for normal gameplay - that's the
     // bigger-impact requirement.
     static std::atomic<std::uint64_t> g_lastUnseatHandledLoadTick{ 0 };
     // Kept for the IsPostLoadUnseatInProgress public API. Set true during
@@ -3291,7 +3291,7 @@ namespace {
     // while the engine is still completing post-load init.
     static std::atomic<bool> g_unseatInProgress{ false };
 
-    // (g_postBridgeInputLockoutUntilMs hoisted up — see decl near g_isActivePilot.)
+    // (g_postBridgeInputLockoutUntilMs hoisted up - see decl near g_isActivePilot.)
 
     static void TickPostLoadUnseat()
     {
@@ -3314,7 +3314,7 @@ namespace {
         // Wait for engine settle (5s) so the save-load actor pointers are stable.
         const std::uint64_t now = ::GetTickCount64();
         if ((now - lastLoad) < 5000) {
-            // Mark in-progress while we wait — main apply path defers.
+            // Mark in-progress while we wait - main apply path defers.
             g_unseatInProgress.store(true, std::memory_order_release);
             return;
         }
@@ -3330,13 +3330,13 @@ namespace {
 
         const std::uint32_t furnFormID = SafeReadFurnHandle(p);
         if (furnFormID == 0) {
-            PLOG_INFO("[L.5] Unseat: not seated post-load — skip"sv);
+            PLOG_INFO("[L.5] Unseat: not seated post-load - skip"sv);
             g_unseatInProgress.store(false, std::memory_order_release);
             return;
         }
 
         PLOG_INFO(
-            "[L.5] Unseat: client seated post-load (furn=0x{:08X}) — 1-shot clear"sv,
+            "[L.5] Unseat: client seated post-load (furn=0x{:08X}) - 1-shot clear"sv,
             furnFormID);
         NASLOG("L5-288 UNSEAT 1-shot furn=0x%08X", furnFormID);
 
@@ -3345,7 +3345,7 @@ namespace {
         // to unseat manually; engine's own press-and-hold handler runs
         // the proper anim + state-machine transition.
         //
-        // What we DON'T do here (and why) — destructive Path A.1/A.3
+        // What we DON'T do here (and why) - destructive Path A.1/A.3
         // steps were REMOVED 2026-05-07 because they sabotaged manual
         // E-unseat:
         //   * SafeClearFurnHandlePlayer (writes 0 → mh+0x428): engine's
@@ -3369,7 +3369,7 @@ namespace {
         // observation.
         const bool hudHideOk = SafeCloseSpaceshipHud();
         PLOG_INFO(
-            "[L.7] post-load HUD+TakeoffMenu kHide = {} (furn=0x{:08X}) — "
+            "[L.7] post-load HUD+TakeoffMenu kHide = {} (furn=0x{:08X}) - "
             "user must hold E ~2s to unseat"sv,
             hudHideOk ? "OK" : "noop/SEH", furnFormID);
         NASLOG("L7-299d HUD-kHide=%s furn=0x%08X",
@@ -3388,7 +3388,7 @@ namespace {
         // → no ship-transform broadcasts → ship sync froze. 8s is enough
         // for the engine post-load settle (5s in TickPostLoadUnseat) plus
         // a small input grace window. The lockout also auto-releases when
-        // the user manually unseats (furn handle=0) — see TickEarlyReleaseLockout.
+        // the user manually unseats (furn handle=0) - see TickEarlyReleaseLockout.
         const std::uint64_t lockoutEnd = ::GetTickCount64() + 8000;
         g_postBridgeInputLockoutUntilMs.store(lockoutEnd, std::memory_order_release);
         PLOG_INFO(
@@ -3400,7 +3400,7 @@ namespace {
 
     // L.7 early-release the post-bridge lockout when the local
     // player has unseated (furn handle = 0). Once unseated, the saved
-    // pilot-binding state is naturally drained — no need to keep
+    // pilot-binding state is naturally drained - no need to keep
     // suppressing pilot detection or zeroing input. Without this, if the
     // host stood up first, both sides would stay passive until lockout
     // timer expires → ship sync gap.
@@ -3414,7 +3414,7 @@ namespace {
         auto* p = RE::PlayerCharacter::GetSingleton();
         if (!p) return;
         std::uint32_t furn = SafeReadFurnHandle(p);
-        if (furn != 0) return;  // still seated — keep lockout
+        if (furn != 0) return;  // still seated - keep lockout
 
         g_postBridgeInputLockoutUntilMs.store(0, std::memory_order_release);
         PLOG_INFO("[L.7] post-bridge lockout released early (user unseated)"sv);
@@ -3428,7 +3428,7 @@ namespace {
     // forward view is blocked by the partner's clone (visible behind
     // chair, sometimes overlapping). Rule (revision): if the
     // local player is seated AND the remote clone is in the same cell,
-    // hide the clone — regardless of where the clone visually stands
+    // hide the clone - regardless of where the clone visually stands
     // (per user request 2026-05-07). When local stands up (furn handle
     // becomes 0), clone becomes visible again.
     //
@@ -3478,7 +3478,7 @@ namespace {
             // Local not seated → never hide.
             if (g_cloneCulledForCoPilot.exchange(false, std::memory_order_acq_rel)) {
                 SetClone3DAppCulled(clone, false);
-                PLOG_INFO("[L.7] clone visibility — SHOW (local stood up)"sv);
+                PLOG_INFO("[L.7] clone visibility - SHOW (local stood up)"sv);
                 NASLOG("L7-299b clone-visibility SHOW (local stood up)");
             }
             return;
@@ -3499,7 +3499,7 @@ namespace {
         SetClone3DAppCulled(clone, overlap);
         g_cloneCulledForCoPilot.store(overlap, std::memory_order_release);
         PLOG_INFO(
-            "[L.7] clone visibility — {} (local seated furn=0x{:08X}, "
+            "[L.7] clone visibility - {} (local seated furn=0x{:08X}, "
             "cell-match player=0x{:08X} clone=0x{:08X})"sv,
             overlap ? "HIDE" : "SHOW", hPlayer, playerCell, cloneCell);
         NASLOG("L7-299b clone-visibility %s playerCell=0x%08X cloneCell=0x%08X",
@@ -3507,17 +3507,17 @@ namespace {
     }
 
     // L.7 Path A.5 (QuickSave/QuickLoad reset cycle) and Path A.6
-    // (SendInput VK_E hold) — both REMOVED 2026-05-07 . A.5 was
+    // (SendInput VK_E hold) - both REMOVED 2026-05-07 . A.5 was
     // disruptive (extra load screen) and A.6 crashed clients with
     // NULL+0x24 access violation during the loading menu. Replaced with
     // the simpler "user holds E for ~2s manually" workaround now that
     // SAME-CELL-RESTORE teleport is gone .
 
-    // L.5 Phase 4 Step 12 — DISABLED. FUN_141A1ED40 SEH'd 100% of the time
+    // L.5 Phase 4 Step 12 - DISABLED. FUN_141A1ED40 SEH'd 100% of the time
     // even mid-cruise (test 2026-05-01 22:09). The Notify call walks a sink
     // list that's invalid on client. Replaced with Step 13 below.
     //
-    // L.5 Phase 4 Step 13 — call FUN_1409FAC52 on client during cruise to
+    // L.5 Phase 4 Step 13 - call FUN_1409FAC52 on client during cruise to
     // force lazy-init of the singleton at 0x1461E2340 (memory diff Step 10
     // showed this stays uninit on client, while host inits it during cruise).
     // The fn is a magic-static pattern: if already inited returns ptr; else
@@ -3530,16 +3530,16 @@ namespace {
     static void TickMarkerNotify()
     {
         // L.5 Phase 4 Step 12 + 13 both DISABLED.
-        // Step 12: FUN_141A1ED40 SEH'd 100% — Notify walks invalid sink list.
+        // Step 12: FUN_141A1ED40 SEH'd 100% - Notify walks invalid sink list.
         // Step 13: FUN_1409FAC52 hard-crashed client (SEH frame bypassed) when
-        //   client initiated cruise on its own — call chain into FUN_1428CFB80
+        //   client initiated cruise on its own - call chain into FUN_1428CFB80
         //   needs engine state client doesn't have.
         // Drain deferred timestamp (left over from Step 12) so it doesn't trip
         // anything else.
         g_markerNotifyDueMs.store(0, std::memory_order_release);
     }
 
-    // L.5 Phase 4 Step 11 — host broadcasts cruise orient @5Hz; client applies
+    // L.5 Phase 4 Step 11 - host broadcasts cruise orient @5Hz; client applies
     // received orient directly to DAT_145F31DA0/DA8/DB0. Called from Tick()
     // every frame; gates on cruise-active byte.
     static void TickCruiseOrient()
@@ -3552,7 +3552,7 @@ namespace {
             reinterpret_cast<std::uintptr_t>(GetModuleHandleW(nullptr));
         if (!base) return;
 
-        // Step 16 — bidirectional: the cruise originator (whoever initiated
+        // Step 16 - bidirectional: the cruise originator (whoever initiated
         // locally) broadcasts orient. The receiver applies. Originator's
         // engine actually does cruise math; receiver's force=true skipped it.
         if (g_cruiseSelfInitiated.load(std::memory_order_acquire)) {
@@ -3567,10 +3567,10 @@ namespace {
                 payload.posY = *reinterpret_cast<double*>(base + kRVA_CruiseOrient1);
                 payload.posZ = *reinterpret_cast<double*>(base + kRVA_CruiseOrient2);
             } __except (EXCEPTION_EXECUTE_HANDLER) { return; }
-            // Skip if all-zero (engine hasn't populated yet — happens briefly
+            // Skip if all-zero (engine hasn't populated yet - happens briefly
             // at cruise ENTER before resolver runs).
             if (payload.posX == 0.0 && payload.posY == 0.0 && payload.posZ == 0.0) return;
-            // Skip NaN/INF — broken floats break engine elsewhere.
+            // Skip NaN/INF - broken floats break engine elsewhere.
             if (!std::isfinite(payload.posX) || !std::isfinite(payload.posY) ||
                 !std::isfinite(payload.posZ)) return;
             payload.timestampMs = now;
@@ -3580,7 +3580,7 @@ namespace {
             Pulsar::Network::PacketWriter w(
                 Pulsar::Network::PKT_CRUISE_ORIENT, buf, sizeof(buf));
             if (w.Write(payload)) {
-                net.Send(w.Data(), w.Size(), false);  // unreliable — stream
+                net.Send(w.Data(), w.Size(), false);  // unreliable - stream
             }
         } else {
             // Client: drain pending and write to globals.
@@ -3601,7 +3601,7 @@ namespace {
         }
     }
 
-    // L.5 D3+D10 — periodic snapshot during cruise. LogCruiseSnapshot at 1Hz
+    // L.5 D3+D10 - periodic snapshot during cruise. LogCruiseSnapshot at 1Hz
     // (structured human-readable). LogCruiseMemDump at 10Hz (broad memory
     // hex dump for runtime diff). Both are SEH-guarded.
     static void TickCruiseSnapshot()
@@ -3624,7 +3624,7 @@ namespace {
             LogCruiseMemDump("PERIODIC");
         }
 
-        // 1Hz structured snapshot (D3 — kept for human readability).
+        // 1Hz structured snapshot (D3 - kept for human readability).
         const std::uint64_t lastSnap = g_lastCruiseSnapshotMs.load(std::memory_order_acquire);
         if ((now - lastSnap) >= kCruiseSnapshotIntervalMs) {
             g_lastCruiseSnapshotMs.store(now, std::memory_order_release);
@@ -3664,7 +3664,7 @@ namespace {
     static void __fastcall HookedNotifyDispatch(void* a_eventSource, void* a_dispatcher)
     {
         // Quick filter: most calls are NOT PMO. The PMO singleton VA is
-        // a constant — pointer compare avoids any per-call work for other
+        // a constant - pointer compare avoids any per-call work for other
         // event types.
         const std::uintptr_t pmoSrc = ResolvePMOEventSourceVA();
         if (reinterpret_cast<std::uintptr_t>(a_eventSource) == pmoSrc) {
@@ -3745,14 +3745,14 @@ namespace {
         }
         g_notifyTotalCount.fetch_add(1, std::memory_order_relaxed);
 
-        // V3 — ship NiNode transform sync. The PMO Notify is a stable per-
+        // V3 - ship NiNode transform sync. The PMO Notify is a stable per-
         // pilot-frame anchor on host AND client, so we piggyback the sync
         // here to avoid a second hook. Gated on PMO-source match.
         if (reinterpret_cast<std::uintptr_t>(a_eventSource) == pmoSrc) {
             MaybeSyncShipTransform();
         }
 
-        // V4 Fire-Probe v3 — match-only against 3 candidate vtables. Drop
+        // V4 Fire-Probe v3 - match-only against 3 candidate vtables. Drop
         // the newEvt firehose; we already know the vtables don't match the
         // resolved one for OnPlayerFireWeapon (probe v2 had 200 newEvt logs
         // none matching). Try WeaponFired + ProjectileBeginUpdate too.
@@ -3797,7 +3797,7 @@ namespace {
                         }
                     } __except (EXCEPTION_EXECUTE_HANDLER) {}
 
-                    // V4 Phase A v5 — for WeaponFired, qw[8] looks like a
+                    // V4 Phase A v5 - for WeaponFired, qw[8] looks like a
                     // per-shot pointer (per-shot delta ~0x40). Probe-test:
                     // deref as Projectile* and dump the same fields. This
                     // moment is later in projectile lifecycle than
@@ -3855,7 +3855,7 @@ namespace {
                             raw[8], raw[9], raw[10], raw[11], raw[12], raw[13], raw[14], raw[15]);
                     }
 
-                    // V4 Phase A — for ProjBeginUpdate, payload IS the
+                    // V4 Phase A - for ProjBeginUpdate, payload IS the
                     // RE::Projectile* (TESObjectREFR-derived, sizeof 0x250).
                     // Extract V1-relevant fields per CommonLibSF Projectile.h.
                     if (payload && std::strcmp(matchKind, "ProjBeginUpdate") == 0) {
@@ -3919,7 +3919,7 @@ namespace {
                             vel[0], vel[1], vel[2],
                             damage, power, speedMult, range);
 
-                        // L.4 V1 — SEND PKT_SHIP_FIRE if we are the active
+                        // L.4 V1 - SEND PKT_SHIP_FIRE if we are the active
                         // pilot. baseFormId / weaponFormId extracted above.
                         // Fires twice per click (paired cannons); V1.1 will
                         // dedupe if needed.
@@ -3933,7 +3933,7 @@ namespace {
                             fire.weaponFormId      = weaponFormId;
                             fire.baseProjFormId    = baseFormId;
                             fire.timestampMs       = ::GetTickCount64();
-                            // slice 3 — real shot geometry so the client can
+                            // slice 3 - real shot geometry so the client can
                             // spawn the SAME aimed bolt (host already aimed). All
                             // already read above from the live RE::Projectile.
                             fire.origin[0] = pos[0];
@@ -3976,7 +3976,7 @@ namespace {
             }
         }
 
-        // L.5 Phase 1 — Cruise event probe. Match a_eventSource->vtable
+        // L.5 Phase 1 - Cruise event probe. Match a_eventSource->vtable
         // against the 4 known cruise BSTGlobalEvent::EventSource vtables and
         // log payload qwords. Logging-only; Phase 2 will add network sends.
         if (a_eventSource != nullptr) {
@@ -3996,7 +3996,7 @@ namespace {
                 else if (srcVtblC == vtLck) cruiseKind = "OnCruiseLockCourse";
                 else if (srcVtblC == vtArr) cruiseKind = "SpaceCruiseArrival";
 
-                // L.5 Phase 1.5 EvtDisco probe removed — Phase 0 RE done,
+                // L.5 Phase 1.5 EvtDisco probe removed - Phase 0 RE done,
                 // cruise = AVCruise ActorValue. Direct hook on EnableCruiseMode
                 // installed below; generic event-source discovery no longer
                 // needed.
@@ -4086,7 +4086,7 @@ namespace {
     // and broadcast (host) or overwrite with received (client).
     static void __fastcall HookedFlightInputProcess(void* a_handler, void* a_event)
     {
-        // Diagnostic — log every 1s regardless of network state, so we know
+        // Diagnostic - log every 1s regardless of network state, so we know
         // whether vt[7] is even called per-frame during flight.
         std::uint64_t fc = g_hookFireCount.fetch_add(1);
         std::uint64_t now0 = ::GetTickCount64();
@@ -4100,7 +4100,7 @@ namespace {
                    (unsigned long long)reinterpret_cast<std::uintptr_t>(a_handler));
         }
 
-        // Always run engine logic first — never skip it (would break input).
+        // Always run engine logic first - never skip it (would break input).
         if (g_origFlightInputProcess) {
             g_origFlightInputProcess(a_handler, a_event);
         }
@@ -4112,7 +4112,7 @@ namespace {
         const std::uint64_t now = ::GetTickCount64();
 
         if (net.IsHost()) {
-            // Active pilot — capture and broadcast.
+            // Active pilot - capture and broadcast.
             float x = 0, y = 0, z = 0;
             std::uint8_t pilotByte = 0;
             if (!SafeReadInputBuf(a_handler, x, y, z, pilotByte)) return;
@@ -4162,7 +4162,7 @@ namespace {
                 if ((cnt % 120) == 0) {
                     PLOG_INFO(
                         "[PULSAR] [L.7] FlightInput LOCKOUT active "
-                        "(remaining {}ms) — zeroed input"sv,
+                        "(remaining {}ms) - zeroed input"sv,
                         lockoutUntil - now);
                 }
                 return;
@@ -4200,7 +4200,7 @@ namespace {
     // V1 helpers below (kept for diagnostic-dump usage)
     // -----------------------------------------------------------------------
 
-    // L.5 Phase 4 Step 15 — bracket the cruise toggle with pre/post mem dumps.
+    // L.5 Phase 4 Step 15 - bracket the cruise toggle with pre/post mem dumps.
     static void __fastcall HookedCruiseToggle(bool force)
     {
         const char* labelPre  = force ? "PRE-TOGGLE force=true"  : "PRE-TOGGLE force=false";
@@ -4265,32 +4265,32 @@ void Init()
         return;
     }
     PLOG_INFO(
-        "[PULSAR] FlightSync L.3 V2 V1 init — ctor hook @ 0x{:X}"sv,
+        "[PULSAR] FlightSync L.3 V2 V1 init - ctor hook @ 0x{:X}"sv,
         reinterpret_cast<std::uintptr_t>(fn));
     NASLOG("FlightSync: init, ctor hook installed");
 
-    // V4 Fire-Probe — resolve + log candidate vtables at init so we have
+    // V4 Fire-Probe - resolve + log candidate vtables at init so we have
     // ground truth even if no fire event ever fires.
     {
         const std::uintptr_t vtA = ResolveFireVt(g_fireVt_OnPlayer, 413845);
         const std::uintptr_t vtB = ResolveFireVt(g_fireVt_Generic , 412442);
         const std::uintptr_t vtC = ResolveFireVt(g_fireVt_ProjBeg , 454462);
         PLOG_INFO(
-            "[PULSAR] FireProbe init — vtA(OnPlayerFire 413845)=0x{:X} "
+            "[PULSAR] FireProbe init - vtA(OnPlayerFire 413845)=0x{:X} "
             "vtB(WeaponFired 412442)=0x{:X} vtC(ProjBeginUpdate 454462)=0x{:X}"sv,
             vtA, vtB, vtC);
     }
 
-    // L.5 Phase 2 — log the cruise-active byte address at init and arm the
+    // L.5 Phase 2 - log the cruise-active byte address at init and arm the
     // polling. No hook installed; poll runs from Tick.
     {
         std::uintptr_t ptr = REL::Offset{ kRVA_CruiseActiveByte }.address();
         g_cruiseActiveBytePtr.store(ptr, std::memory_order_release);
         PLOG_INFO(
-            "[PULSAR] L.5 CruisePoll armed — byte @ 0x{:X}"sv, ptr);
+            "[PULSAR] L.5 CruisePoll armed - byte @ 0x{:X}"sv, ptr);
     }
 
-    // L.5 Phase 4 Step 15 — hook cruise toggle FUN_1413FDC90 to bracket it
+    // L.5 Phase 4 Step 15 - hook cruise toggle FUN_1413FDC90 to bracket it
     // with memory dumps. Captures pre+post snapshots on both host (force=
     // false natural pipeline) and client (force=true forced pipeline). Diff
     // reveals exactly what the engine writes during enter that force=true
@@ -4320,7 +4320,7 @@ void Init()
         }
     }
 
-    // V2: hook the flight-input processor — vt[7] of PlayerFlightControls.
+    // V2: hook the flight-input processor - vt[7] of PlayerFlightControls.
     // Verified to fire only on flight-mode attach (count=0 single-shot in
     // diagnostic test). Kept for diagnostic visibility.
     void* fn2 = reinterpret_cast<void*>(
@@ -4339,7 +4339,7 @@ void Init()
                       static_cast<int>(st2));
         } else {
             PLOG_INFO(
-                "[PULSAR] FlightSync V2 init — flight-input hook @ 0x{:X}"sv,
+                "[PULSAR] FlightSync V2 init - flight-input hook @ 0x{:X}"sv,
                 reinterpret_cast<std::uintptr_t>(fn2));
             NASLOG("FlightSync V2: input hook installed @ 0x%llX",
                    (unsigned long long)reinterpret_cast<std::uintptr_t>(fn2));
@@ -4347,7 +4347,7 @@ void Init()
     }
 
     // V2.1: hook the per-frame PMO fire site (FUN_142115260). Diagnostic
-    // pass first — verify it actually fires per-frame during piloting.
+    // pass first - verify it actually fires per-frame during piloting.
     // Once confirmed, we'll add the broadcast/override logic.
     void* fn3 = reinterpret_cast<void*>(
         REL::Offset{ kRVA_PMOFire }.address());
@@ -4365,7 +4365,7 @@ void Init()
                       static_cast<int>(st3));
         } else {
             PLOG_INFO(
-                "[PULSAR] FlightSync V2.1 init — PMO fire hook @ 0x{:X}"sv,
+                "[PULSAR] FlightSync V2.1 init - PMO fire hook @ 0x{:X}"sv,
                 reinterpret_cast<std::uintptr_t>(fn3));
             NASLOG("FlightSync V2.1: PMO fire hook installed @ 0x%llX",
                    (unsigned long long)reinterpret_cast<std::uintptr_t>(fn3));
@@ -4392,7 +4392,7 @@ void Init()
         } else {
             const std::uintptr_t pmoSrc = ResolvePMOEventSourceVA();
             PLOG_INFO(
-                "[PULSAR] FlightSync V2.2 init — Notify hook @ 0x{:X}, PMO source @ 0x{:X}"sv,
+                "[PULSAR] FlightSync V2.2 init - Notify hook @ 0x{:X}, PMO source @ 0x{:X}"sv,
                 reinterpret_cast<std::uintptr_t>(fn4), pmoSrc);
             NASLOG("FlightSync V2.2: Notify hook installed @ 0x%llX, PMO source @ 0x%llX",
                    (unsigned long long)reinterpret_cast<std::uintptr_t>(fn4),
@@ -4420,7 +4420,7 @@ void Init()
                           static_cast<int>(st5));
             } else {
                 PLOG_INFO(
-                    "[PULSAR] FlightSync V3 iter5 init — bhkSpaceship vt[8] hook @ 0x{:X}"sv,
+                    "[PULSAR] FlightSync V3 iter5 init - bhkSpaceship vt[8] hook @ 0x{:X}"sv,
                     reinterpret_cast<std::uintptr_t>(fn5));
                 NASLOG("FlightSync V3 iter5: bhkSpaceship vt[8] hook installed @ 0x%llX",
                        (unsigned long long)reinterpret_cast<std::uintptr_t>(fn5));
@@ -4434,7 +4434,7 @@ void Shutdown()
     g_modelPtr.store(0, std::memory_order_release);
 }
 
-// M.1 V2 iter2 — host-side: drain NPC ship slots → broadcast batch (1Hz).
+// M.1 V2 iter2 - host-side: drain NPC ship slots → broadcast batch (1Hz).
 static void NpcBatchTickSend(std::uint64_t a_now)
 {
     auto& net = Pulsar::Network::GetSingleton();
@@ -4482,20 +4482,20 @@ static void NpcBatchTickSend(std::uint64_t a_now)
     }
 }
 
-// M.1 V2 iter2 — client-side: position-match pending batch → apply.
+// M.1 V2 iter2 - client-side: position-match pending batch → apply.
 static void NpcBatchTickApply(std::uint64_t a_now)
 {
     auto& net = Pulsar::Network::GetSingleton();
     if (!net.IsConnected() || net.IsHost()) return;
 
-    // Don't apply when client isn't in space — avoids matching stale local
+    // Don't apply when client isn't in space - avoids matching stale local
     // body entries from a previous space session against fresh remote data.
     if (!g_psPosValid.load(std::memory_order_acquire)) return;
 
     const std::uint64_t batchAt = g_pendingNpcBatchMs.load(std::memory_order_acquire);
     if (batchAt == 0 || (a_now - batchAt) > kPendingNpcBatchStaleMs) return;
 
-    // M.1 V2 iter2d — match-and-cache approach.
+    // M.1 V2 iter2d - match-and-cache approach.
     // Match phase (here, throttled): for each remote entry, find best local
     // body and store state in slot's pendingApply. Apply phase happens 60Hz
     // in the vt[8] hook so engine physics can't drift bodies between matches.
@@ -4511,7 +4511,7 @@ static void NpcBatchTickApply(std::uint64_t a_now)
     {
         std::lock_guard<std::mutex> lock(g_pendingNpcBatchMtx);
         if (g_pendingNpcBatch.empty()) return;
-        entries = g_pendingNpcBatch;  // copy, don't clear — vt[8] re-applies cached state
+        entries = g_pendingNpcBatch;  // copy, don't clear - vt[8] re-applies cached state
     }
 
     void* psBody = g_playerBhkBody.load(std::memory_order_acquire);
@@ -4541,7 +4541,7 @@ static void NpcBatchTickApply(std::uint64_t a_now)
             }
             if (bestIdx >= 0) {
                 auto& slot = g_npcLocalBodies[bestIdx];
-                // M.1 V2 iter2g — promote current target to prev BEFORE
+                // M.1 V2 iter2g - promote current target to prev BEFORE
                 // overwriting (snapshot history for interpolation).
                 if (slot.hasPendingApply) {
                     std::memcpy(slot.prevState, slot.pendingState,
@@ -4560,7 +4560,7 @@ static void NpcBatchTickApply(std::uint64_t a_now)
             }
         }
 
-        // Un-stick: any local that wasn't matched this pass — clear its
+        // Un-stick: any local that wasn't matched this pass - clear its
         // pending apply. Otherwise we'd keep writing stale remote-state to
         // it from a previous match, fighting engine physics → jitter.
         for (int i = 0; i < kNpcShipSlotCount; ++i) {
@@ -4627,33 +4627,33 @@ void Tick()
 {
     auto& netForV3 = Pulsar::Network::GetSingleton();
 
-    // L.4 V1.1 — visual notification removed (see globals comment).
+    // L.4 V1.1 - visual notification removed (see globals comment).
     {
         const std::uint64_t nowMs = ::GetTickCount64();
         NpcBatchTickSend(nowMs);
         NpcBatchTickApply(nowMs);
         V4PilotDiagTick(nowMs);
 
-        // L.5 — poll cruise-active global byte for transitions, apply any
+        // L.5 - poll cruise-active global byte for transitions, apply any
         // queued remote cruise transition. Phase 3: trigger post-EXIT
         // SaveBuffer-resync on host once the delay window elapses.
         // D3: 1Hz periodic snapshot of cruise-state globals during cruise.
         PollCruiseActiveByte();
-        PollCruiseArrivalByte();  // Phase 4 Step 6 — DAT_145EB2856 arrival-init detection
+        PollCruiseArrivalByte();  // Phase 4 Step 6 - DAT_145EB2856 arrival-init detection
         ApplyPendingCruise();
         TickPostCruiseResync();
         TickPostLoadUnseat();
         TickEarlyReleaseLockout();  // L.7 release lockout when user unseats
         TickCoPilotInvisibility();  // L.7 hide overlapping clone in pilot chair
-        TickCruiseOrient();       // Phase 4 Step 11 — continuous orient sync @5Hz
-        TickMarkerNotify();       // Phase 4 Step 12 — force client marker re-eval mid-cruise
+        TickCruiseOrient();       // Phase 4 Step 11 - continuous orient sync @5Hz
+        TickMarkerNotify();       // Phase 4 Step 12 - force client marker re-eval mid-cruise
         TickCruiseSnapshot();
 
-        // L.3 V4 — when local is detPilot but vt[8] silent (engine not
+        // L.3 V4 - when local is detPilot but vt[8] silent (engine not
         // physics-stepping the body, observed on client even when seated),
         // force g_isActivePilot from Tick so MaybeSyncShipTransform
         // (called from PMO Notify, which DOES fire on client) broadcasts.
-        // ALWAYS sync the active flag to detPilot — without this, after
+        // ALWAYS sync the active flag to detPilot - without this, after
         // standing up vt[8] also stops firing on host so g_isActivePilot
         // stays at "1" stuck. Explicit reset is mandatory.
         if (netForV3.IsConnected()) {
@@ -4672,11 +4672,11 @@ void Tick()
         }
     }
 
-    // V3 — late-frame apply attempt. Notify-hook apply (post-physics-output)
+    // V3 - late-frame apply attempt. Notify-hook apply (post-physics-output)
     // gets overwritten by something running later in the frame. Tick runs in
     // the SFSE OnUpdate callback which may be later in the frame than Notify.
     // Multiple write points = whichever runs last wins.
-    // Gate on !g_isActivePilot — applying received data on the active side
+    // Gate on !g_isActivePilot - applying received data on the active side
     // fights the player's own physics (user reported "fliegen war komisch").
     if (netForV3.IsConnected() && kV3ApplyEnabled
         && !g_isActivePilot.load(std::memory_order_acquire)) {
@@ -4709,7 +4709,7 @@ void Tick()
                     }
                 }
 
-                // V3 iter13 — also write havokState to cached body, in case
+                // V3 iter13 - also write havokState to cached body, in case
                 // vt[8] is silent (engine stopped stepping the ship because
                 // local player isn't seated). Only valid if we recently saw
                 // the body via vt[8] passive applies.
@@ -4731,10 +4731,10 @@ void Tick()
                     for (int i = 0; i < 16 && allZero; ++i) {
                         if (d.havokState[i] != 0.0f) allZero = false;
                     }
-                    // L.5 Phase 3v8 — narrowed cruise filter (matches iter8).
+                    // L.5 Phase 3v8 - narrowed cruise filter (matches iter8).
                     bool cruiseSpike = false;
                     if (IsCruiseActive()) {
-                        // Phase 4 Step 7 — relaxed (see vt[8] hook for rationale).
+                        // Phase 4 Step 7 - relaxed (see vt[8] hook for rationale).
                         const float x = d.havokState[12];
                         const float y = d.havokState[13];
                         const float z = d.havokState[14];
@@ -4836,7 +4836,7 @@ void Tick()
     Pulsar::Network::PacketWriter w(
         Pulsar::Network::PKT_FLIGHT_STATE, buf, sizeof(buf));
     if (!w.Write(snap)) return;
-    net.Send(w.Data(), w.Size(), false);  // unreliable — frequent, lossy ok
+    net.Send(w.Data(), w.Size(), false);  // unreliable - frequent, lossy ok
 
     std::uint64_t cnt = g_diagSampleCount.fetch_add(1);
     if ((cnt % 60) == 0) {
@@ -4863,7 +4863,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
     if (!r.IsValid()) return;
 
     if (r.Type() == Pulsar::Network::PKT_FLIGHT_STATE) {
-        // V1 — receiver-side stage (no longer applied; kept for back-compat).
+        // V1 - receiver-side stage (no longer applied; kept for back-compat).
         Pulsar::Network::FlightStateData snap{};
         if (!r.Read(snap)) return;
         g_pending.data         = snap;
@@ -4873,7 +4873,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
     }
 
     if (r.Type() == Pulsar::Network::PKT_FLIGHT_INPUT) {
-        // V2 — store host's flight input axes; the input hook on the game
+        // V2 - store host's flight input axes; the input hook on the game
         // thread reads this and overrides handler+0x40 each frame.
         Pulsar::Network::FlightInputData payload{};
         if (!r.Read(payload)) return;
@@ -4884,7 +4884,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
     }
 
     if (r.Type() == Pulsar::Network::PKT_PMO_PAYLOAD) {
-        // V2.2 — full PMO event payload (96 bytes). The Notify hook on
+        // V2.2 - full PMO event payload (96 bytes). The Notify hook on
         // the game thread reads this and overwrites the engine's
         // about-to-be-fired payload before original Notify dispatches.
         Pulsar::Network::PMOPayloadData payload{};
@@ -4896,14 +4896,14 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
     }
 
     if (r.Type() == Pulsar::Network::PKT_SHIP_TRANSFORM) {
-        // V3 — ship NiNode world transform (48 bytes). Apply runs in the
+        // V3 - ship NiNode world transform (48 bytes). Apply runs in the
         // PMO Notify hook on game thread; this just stages.
         Pulsar::Network::ShipTransformData payload{};
         if (!r.Read(payload)) return;
         g_pendingShipTransform.data = payload;
         g_pendingShipTransform.receivedAtMs.store(::GetTickCount64(), std::memory_order_release);
         g_pendingShipTransform.armed.store(true, std::memory_order_release);
-        // L.3 V5 — cache shipFormID so SafeGetShipNiAVObject can fall back
+        // L.3 V5 - cache shipFormID so SafeGetShipNiAVObject can fall back
         // to a FormID lookup when our local GetSpaceship returns null.
         if (payload.shipFormID != 0) {
             g_lastReceivedShipFormID.store(payload.shipFormID,
@@ -4913,7 +4913,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
     }
 
     if (r.Type() == Pulsar::Network::PKT_SHIP_FIRE) {
-        // L.4 V1 — wire validation. Visual stub deferred to V2.
+        // L.4 V1 - wire validation. Visual stub deferred to V2.
         Pulsar::Network::ShipFireData payload{};
         if (!r.Read(payload)) return;
         const std::uint64_t now = ::GetTickCount64();
@@ -4923,23 +4923,23 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
             payload.shooterShipFormId, payload.weaponFormId,
             payload.baseProjFormId, payload.timestampMs,
             (now > payload.timestampMs) ? (now - payload.timestampMs) : 0);
-        // slice 3 — hand off to ShipCombatSync to spawn the visible bolt
+        // slice 3 - hand off to ShipCombatSync to spawn the visible bolt
         // on the game thread (queues; drained in ShipCombatSync::Tick).
         Pulsar::ShipCombatSync::OnRemoteFire(payload);
         return;
     }
 
     if (r.Type() == Pulsar::Network::PKT_CRUISE_STATE) {
-        // L.5 Phase 2 — host says cruise toggled. Stage for game-thread apply.
+        // L.5 Phase 2 - host says cruise toggled. Stage for game-thread apply.
         Pulsar::Network::CruiseStateData payload{};
         if (!r.Read(payload)) return;
-        // Phase 4 Step 6 — arrival-init packets are a separate trigger; they
+        // Phase 4 Step 6 - arrival-init packets are a separate trigger; they
         // arrive WHILE cruise is active (enable=1) so we must NOT re-arm the
         // ENTER/EXIT path (would call ENTER fn again and double-allocate sinks).
         if (payload.arrivalInit) {
             g_pendingCruise.arrivalState.store(payload.arrivalState, std::memory_order_release);
             g_pendingCruise.uiSelector.store(payload.uiSelector, std::memory_order_release);
-            // Phase 4 Step 7b — orient globals at arrival moment for cell-stream task.
+            // Phase 4 Step 7b - orient globals at arrival moment for cell-stream task.
             std::uint64_t bitsX, bitsY, bitsZ;
             std::memcpy(&bitsX, &payload.shipPosX, sizeof(bitsX));
             std::memcpy(&bitsY, &payload.shipPosY, sizeof(bitsY));
@@ -4958,7 +4958,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
         }
         g_pendingCruise.enable.store(payload.enable, std::memory_order_release);
         g_pendingCruise.receivedAtMs.store(::GetTickCount64(), std::memory_order_release);
-        // Phase 3v3 — stage host's world position (only meaningful for EXIT;
+        // Phase 3v3 - stage host's world position (only meaningful for EXIT;
         // ENTER carries 0s). Stored as raw double bits in atomic uint64.
         std::uint64_t bitsX, bitsY, bitsZ;
         std::memcpy(&bitsX, &payload.shipPosX, sizeof(bitsX));
@@ -4967,7 +4967,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
         g_pendingCruise.shipPosX.store(bitsX, std::memory_order_release);
         g_pendingCruise.shipPosY.store(bitsY, std::memory_order_release);
         g_pendingCruise.shipPosZ.store(bitsZ, std::memory_order_release);
-        // Phase 4 Step 4 — stage destination formID for ApplyPendingCruise.
+        // Phase 4 Step 4 - stage destination formID for ApplyPendingCruise.
         g_pendingCruise.destFormId.store(payload.destFormId, std::memory_order_release);
         g_pendingCruise.armed.store(true, std::memory_order_release);
         PLOG_INFO(
@@ -4979,7 +4979,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
     }
 
     if (r.Type() == Pulsar::Network::PKT_CRUISE_ORIENT) {
-        // Phase 4 Step 11 — continuous orient stream. Stage; TickCruiseOrient
+        // Phase 4 Step 11 - continuous orient stream. Stage; TickCruiseOrient
         // applies on game thread when cruise byte is active on this side too.
         Pulsar::Network::CruiseOrientData payload{};
         if (!r.Read(payload)) return;
@@ -4998,7 +4998,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
     }
 
     if (r.Type() == Pulsar::Network::PKT_NPC_SHIP_BATCH) {
-        // M.1 V2 iter2 — queue for game-thread apply via NpcBatchTickApply.
+        // M.1 V2 iter2 - queue for game-thread apply via NpcBatchTickApply.
         Pulsar::Network::NPCShipBatch batch{};
         if (!r.Read(batch)) return;
         const std::uint64_t now = ::GetTickCount64();

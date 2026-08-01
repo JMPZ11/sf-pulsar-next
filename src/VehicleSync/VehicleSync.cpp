@@ -48,7 +48,7 @@ namespace Pulsar::VehicleSync
     // ---- occupiedFurniture handle read -----------------------------------
     // Raw read + zero-check on the PLAYER's AIProcess chain. When the player
     // isn't in any furniture the handle is 0 and we must NOT call into
-    // Starfield's GetSmartPointer — the handle lookup derefs a stale
+    // Starfield's GetSmartPointer - the handle lookup derefs a stale
     // free-list entry on non-Actor handle buckets and crashes (observed on
     // Bondar proc-cell, dump a857dda8 @ 2026-04-22).
     //
@@ -72,7 +72,7 @@ namespace Pulsar::VehicleSync
         }
     }
 
-    // Diagnostic — read both furniture-handle slots raw. Moon Jumper might use
+    // Diagnostic - read both furniture-handle slots raw. Moon Jumper might use
     // currentFurniture (+0x424) rather than occupiedFurniture (+0x428), or
     // ships might not use either. Plain uint32 raw reads → SEH-safe.
     static void SafeReadFurnHandlesDiag(RE::Actor* a_actor,
@@ -95,9 +95,9 @@ namespace Pulsar::VehicleSync
         }
     }
 
-    // Diagnostic — is the player inside a spaceship? Moon Jumper may be
+    // Diagnostic - is the player inside a spaceship? Moon Jumper may be
     // classified as spaceship-REF, not furniture. TESObjectREFR::GetSpaceship
-    // is a non-virtual helper — plain call, but wrap anyway in case the
+    // is a non-virtual helper - plain call, but wrap anyway in case the
     // actor's cell isn't loaded cleanly.
     static RE::TESObjectREFR* SafeGetSpaceship(RE::Actor* a_actor)
     {
@@ -109,12 +109,12 @@ namespace Pulsar::VehicleSync
         }
     }
 
-    // ---- diagnostic — dump MJ FURN + bhkCollisionObject raw fields ------
+    // ---- diagnostic - dump MJ FURN + bhkCollisionObject raw fields ------
     // Called on mode-change (host enter/exit MJ, client SnapInto moment) and
     // periodically while seated. Captures:
     //   FURN vtable[0],  FURN+0x8C (data.location), FURN+0x98 (angle)
     //   FURN+0xA8 (loadedData ptr), loadedData->various (refr internal)
-    //   FURN+0x70 path — extras-array pointer (not bhkColObj as first thought;
+    //   FURN+0x70 path - extras-array pointer (not bhkColObj as first thought;
     //   bhkColObj lives through loadedData instead)
     //   Actor actorState1/actorState2 for the host player
     // Plain C read, SEH-guarded. Output: one-line log with all hex fields.
@@ -143,7 +143,7 @@ namespace Pulsar::VehicleSync
             f_formID     = *reinterpret_cast<uint32_t*>(f + 0x28);
             f_formType   = *reinterpret_cast<uint8_t*>(f + 0x2E);
             f_plus70     = *reinterpret_cast<uint64_t*>(f + 0x70);
-            // data.location @ +0x8C is 3 floats — pack as u64 bits for hex log
+            // data.location @ +0x8C is 3 floats - pack as u64 bits for hex log
             std::memcpy(&f_loc_x, f + 0x8C, 4);
             std::memcpy(&f_loc_y, f + 0x90, 4);
             std::memcpy(&f_loc_z, f + 0x94, 4);
@@ -174,7 +174,7 @@ namespace Pulsar::VehicleSync
             } __except (EXCEPTION_EXECUTE_HANDLER) {}
         }
         // Compute RVAs for vtable + slot fn pointers (exe_base may be 0 if
-        // GetModuleHandleW failed — then RVAs stay absolute).
+        // GetModuleHandleW failed - then RVAs stay absolute).
         uint64_t vt_rva = exe_base && f_vtbl > exe_base ? f_vtbl - exe_base : f_vtbl;
         uint64_t s88_rva = exe_base && vt_slot_88 > exe_base ? vt_slot_88 - exe_base : vt_slot_88;
         uint64_t s89_rva = exe_base && vt_slot_89 > exe_base ? vt_slot_89 - exe_base : vt_slot_89;
@@ -191,7 +191,7 @@ namespace Pulsar::VehicleSync
     }
 
     // ---- position writers -------------------------------------------------
-    // TESObjectREFR::SetPosition lives at vtable slot 0x89 — CommonLibSF
+    // TESObjectREFR::SetPosition lives at vtable slot 0x89 - CommonLibSF
     // doesn't bind it by name, but RemotePlayerManager proves it works on
     // non-Actor refs (marker moves). Signature matches Actor::SetPosition
     // (NiPoint3 by ref + bool). For a FURN there's no char controller, so
@@ -215,7 +215,7 @@ namespace Pulsar::VehicleSync
             setPos(a_ref, pos, true);
 
             // Diag: MJ FURN observed NOT writing to data.location via vtable[0x89]
-            // on 1.16.236 — slot is wrong for this subclass, or furniture system
+            // on 1.16.236 - slot is wrong for this subclass, or furniture system
             // pins position post-SnapInto. Force raw write as backup so we can
             // at least DIAG whether engine reverts it.
             auto* f = reinterpret_cast<uint8_t*>(a_ref);
@@ -253,7 +253,7 @@ namespace Pulsar::VehicleSync
         }
     }
 
-    // Raw write all 3 Euler angles — DISABLED: writing to +0x98/+0x9C crashed
+    // Raw write all 3 Euler angles - DISABLED: writing to +0x98/+0x9C crashed
     // the client with garbage-pointer formType deref (rbx=float bits, saved
     // return=0x3c888889=float 1/60). Starfield's TESObjectREFR layout apparently
     // has a non-float field at +0x9C that must not be float-written.
@@ -280,11 +280,11 @@ namespace Pulsar::VehicleSync
     }
 
     // Force-write Yaw rotation onto a NiAVObject's world.rotate (3x3 matrix
-    // at +0x8C per NPCSync pattern — it writes world.translate at +0xB0, so
+    // at +0x8C per NPCSync pattern - it writes world.translate at +0xB0, so
     // the 52-byte NiTransform is rotate@+0x8C, translate@+0xB0).
     // Starfield's Bethesda convention: Z-up, Y-forward (maybe). Build a
     // standard Z-rotation matrix ignoring rotX/rotY for now (pitch/roll lives
-    // in Havok body quaternion anyway — we'd need the Havok write for those).
+    // in Havok body quaternion anyway - we'd need the Havok write for those).
     //
     //    [  cos(z)  -sin(z)   0 ]
     //    [  sin(z)   cos(z)   0 ]
@@ -471,7 +471,7 @@ namespace Pulsar::VehicleSync
 
     // Raw, SEH-wrapped nearest-FURN scan. Avoids ForEachReference because
     // during Moon-Jumper activation in a proc-cell the cell's references
-    // array is mid-teardown (observed data=NULL, size=0xC4E60000 garbage —
+    // array is mid-teardown (observed data=NULL, size=0xC4E60000 garbage -
     // dump eb28ecb1 @ 2026-04-22). The lock ForEachReference takes doesn't
     // protect against that state.
     //
@@ -538,7 +538,7 @@ namespace Pulsar::VehicleSync
                                          25.0f);
     }
 
-    // Client-side matcher — same raw SEH-wrapped scan as host. Filters by
+    // Client-side matcher - same raw SEH-wrapped scan as host. Filters by
     // baseFormID when provided; otherwise falls back to any nearest FURN.
     static RE::TESObjectREFR* FindLocalFurn(RE::TESObjectCELL* a_cell,
                                             uint32_t a_hostBaseID,
@@ -624,7 +624,7 @@ namespace Pulsar::VehicleSync
 
         // Diagnostic: heartbeat every 1s with all candidate furniture-slot
         // states. Logs only when something non-zero shows up OR every 10s
-        // otherwise — avoids spam but captures the moment the user enters
+        // otherwise - avoids spam but captures the moment the user enters
         // the Moon Jumper.
         {
             uint64_t dnow = GetTickCount64();
@@ -656,7 +656,7 @@ namespace Pulsar::VehicleSync
                     SafeDumpFurnDiag("HOST-transition", furnNow, player);
                 }
             }
-            // Additional heartbeat dump when actively seated — every 1.5s while
+            // Additional heartbeat dump when actively seated - every 1.5s while
             // occupiedFurniture is held, so we can see fields evolve DURING
             // drive (settles, vehicle-state activation, etc.).
             static uint64_t s_lastSitDump = 0;
@@ -721,7 +721,7 @@ namespace Pulsar::VehicleSync
 
         // Resolve cross-plugin identity of the FURN base: plugin filename +
         // flag-aware local ID. Same T34 pattern NPCSync uses for TESNPC base
-        // resolution — lets the client re-encode the base under its own
+        // resolution - lets the client re-encode the base under its own
         // load order (ESL/medium plugins have different FE/FF prefixes per
         // machine depending on load index).
         if ((hostBaseID & 0xFF000000) != 0xFF000000) {
@@ -810,7 +810,7 @@ namespace Pulsar::VehicleSync
     static constexpr float kYawOffsetRad = -1.5707963f;  // -pi/2: map travel dir onto chassis local +Y forward
     static int SafeSetMotionType(RE::TESObjectREFR* ref, int32_t motionType, bool allowActivate);  // fwd; defined below
 
-    // Raw +0x110 (collisionObject) read — own __try fn (callers hold C++ guards).
+    // Raw +0x110 (collisionObject) read - own __try fn (callers hold C++ guards).
     static void* SafeReadNodeColObj(RE::NiAVObject* a_node)
     {
         __try {
@@ -1182,7 +1182,7 @@ namespace Pulsar::VehicleSync
     //
     // On 0→1 transition: find the nearest FURN-REFR to the clone across the
     //   clone's parentCell + a wider radius via raw SEH-wrapped scan, call
-    //   baseObj->Activate(actionRef=clone) — engine-native sit sequence.
+    //   baseObj->Activate(actionRef=clone) - engine-native sit sequence.
     // While 1: each tick, SetPosition the FURN to the clone's position.
     //   Seat-anchored clone follows the FURN, so as PKT_POSITION moves the
     //   clone, the FURN moves with it and the clone visually stays seated.
@@ -1203,7 +1203,7 @@ namespace Pulsar::VehicleSync
     static std::mutex s_seatedMutex;
 
     // Dispatch Papyrus PulsarFurnSync.SpawnAndSitForClone(base, x, y, z, angle, clone).
-    // Async — the spawned FURN appears after engine processes the call.
+    // Async - the spawned FURN appears after engine processes the call.
     // We re-scan in steady state to pick it up.
     static bool CallPapyrusSpawnAndSit(uint32_t baseFormID,
                                        float x, float y, float z, float angleZ,
@@ -1293,7 +1293,7 @@ namespace Pulsar::VehicleSync
         return vm->DispatchStaticCall(objName, funcName, argFn, callback, 0);
     }
 
-    // Direct engine API — Actor::SnapIntoInteraction(actor, furn). Sets
+    // Direct engine API - Actor::SnapIntoInteraction(actor, furn). Sets
     // occupiedFurniture handle, validates 3D, triggers sit animation,
     // anchors actor to FURN sit-marker. Bypasses the AI package path that
     // our PerformActionHook was blocking (ActionGetUp was observed in log).
@@ -1303,7 +1303,7 @@ namespace Pulsar::VehicleSync
     using SnapIntoInteraction_t = uint8_t(__fastcall*)(RE::Actor*, RE::TESObjectREFR*);
     static REL::Relocation<SnapIntoInteraction_t> g_snapInto{ REL::ID(97243) };
 
-    // Direct native call — ObjectReference.SetMotionType(motionType, allowActivate).
+    // Direct native call - ObjectReference.SetMotionType(motionType, allowActivate).
     // Identified via Ghidra: Papyrus registration at 0x14208E6E0 maps
     // "SetMotionType" to NativeLatentFunction2<TESObjectREFR, void, uint, bool>
     // with handler FUN_142083b40 (REL::ID 118463). Functor Run() at RVA 0x2080600:
@@ -1315,13 +1315,13 @@ namespace Pulsar::VehicleSync
     using SetMotionType_t = char(__fastcall*)(void*, uint32_t, RE::TESObjectREFR*, int32_t, bool);
     static REL::Relocation<SetMotionType_t> g_setMotionType{ REL::ID(118463) };
 
-    // ObjectReference.SetAngle(float afX, float afY, float afZ) — Papyrus native.
+    // ObjectReference.SetAngle(float afX, float afY, float afZ) - Papyrus native.
     // Handler found via "SetAngle" string xref at 0x14208D699, function ptr via
     // `lea r9, [rip - 0xae62]` → VA 0x14207F690 = RVA 0x207F690. Verified:
     // entry prolog saves xmm3 (1st float arg = x), mov r14, r8 (Self), mov ebx,
     // edx (stackID), mov rsi, rcx (vm). Args: (vm, stackID, self, x, y, z).
-    // Latent — creates SetAngleFunctor queued for Run(). Engine path writes
-    // both data.angle AND propagates to Havok body quaternion — exactly what
+    // Latent - creates SetAngleFunctor queued for Run(). Engine path writes
+    // both data.angle AND propagates to Havok body quaternion - exactly what
     // we need for MJ rotation to visually match.
     // (g_setAngle fn ptr is declared up top near Init(); init happens in Init().)
 
@@ -1405,10 +1405,10 @@ namespace Pulsar::VehicleSync
         return winner;
     }
 
-    // Iterate TESDataHandler.formArrays[kCELL] — every CELL form loaded in
-    // memory — filter to attached cells, run the raw FURN scan on each.
+    // Iterate TESDataHandler.formArrays[kCELL] - every CELL form loaded in
+    // memory - filter to attached cells, run the raw FURN scan on each.
     // When a_baseFilter is non-zero, only REFRs with that exact TESFurniture
-    // base are accepted — critical for picking the correct Moon Jumper
+    // base are accepted - critical for picking the correct Moon Jumper
     // instead of a random nearby bench. a_anchorX/Y/Z is the search center
     // (typically the host's reported FURN position, not the clone's).
     static RE::TESObjectREFR* FindNearestFurnToClone(RE::Actor* a_clone,
@@ -1427,7 +1427,7 @@ namespace Pulsar::VehicleSync
         }
         // Clone's parentCell can go stale when we SetPosition data.location
         // directly without a full SetParentCell. The CLIENT player's
-        // parentCell is always live — that's where the user is standing and
+        // parentCell is always live - that's where the user is standing and
         // where map-placed FURNs are guaranteed to be loaded.
         RE::TESObjectCELL* primaryCell = a_clone->parentCell;
         auto* localPlayer = RE::PlayerCharacter::GetSingleton();
@@ -1439,7 +1439,7 @@ namespace Pulsar::VehicleSync
         float bestDist2 = a_radius * a_radius;
 
         // 1. Primary cell scan (client player's parentCell preferred over
-        //    clone's — clone's cell pointer goes stale).
+        //    clone's - clone's cell pointer goes stale).
         if (primaryCell) {
             best = FindLocalFurn(primaryCell, a_baseFilter, p, a_radius);
             if (best) {
@@ -1634,7 +1634,7 @@ namespace Pulsar::VehicleSync
         return foundBest;
     }
 
-    // SEH-wrapped helpers — one per anim event. Each helper owns ONE
+    // SEH-wrapped helpers - one per anim event. Each helper owns ONE
     // BSFixedString (destructor → C2712 if combined with __try in same
     // function), so we split. NotifyAnimationGraphImpl can crash if the
     // actor graph is in transient state, hence __try.
@@ -1676,7 +1676,7 @@ namespace Pulsar::VehicleSync
         } __except (EXCEPTION_EXECUTE_HANDLER) {}
     }
 
-    // Try SnapIntoInteraction with nullptr furn — likely inverse of seat-snap.
+    // Try SnapIntoInteraction with nullptr furn - likely inverse of seat-snap.
     static void SafeSnapOut(RE::Actor* a_clone)
     {
         if (!a_clone) return;
@@ -1688,7 +1688,7 @@ namespace Pulsar::VehicleSync
     void OnRemoteSeatedUpdate(RE::Actor* a_clone, bool a_seated,
                               float a_x, float a_y, float a_z)
     {
-        // BISECT REVERT 15:25 — keep the state-map update path so
+        // BISECT REVERT 15:25 - keep the state-map update path so
         // IsCloneSeated() returns true and RemotePlayer::ProcessPending
         // skips the per-tick clone SetPosition (= no clone-on-chair
         // conflict with local player). Skip ONLY the SafeSetMotionType
@@ -1723,7 +1723,7 @@ namespace Pulsar::VehicleSync
         // disabling seating (/) killed that follow → clone no longer
         // tracked the moving vehicle. The actual crash (engine CondEval walking a
         // DANGLING list at obj+0xA0 during furniture-enter, RVA 0x140B7D69D /
-        // 0x1422CC350 family — dangling ref from clone despawn churn, NOT the
+        // 0x1422CC350 family - dangling ref from clone despawn churn, NOT the
         // furniture occupant) is now caught by CrashGuard Guard #4 (SEH shield),
         // independent of seating, so seating is safe again. Flag kept for a quick
         // off-switch. Proper despawn de-register is post-Alpha.
@@ -1743,17 +1743,17 @@ namespace Pulsar::VehicleSync
         // the local player) from sitting. L.3 V4 pilot-handover requires
         // this transition.
         if ((st.seated || st.pendingSpawn) && !a_seated) {
-            PLOG_INFO("[PULSAR] VehicleSync: clone 0x{:08X} unseated (spawnedByUs={}) — firing GetUp anim"sv,
+            PLOG_INFO("[PULSAR] VehicleSync: clone 0x{:08X} unseated (spawnedByUs={}) - firing GetUp anim"sv,
                       a_clone->formID, st.spawnedByUs);
             PassengerUnboard();  // host stopped driving -> release the soft passenger
 
-            // L.7 diag — capture client engine state right at the
+            // L.7 diag - capture client engine state right at the
             // moment host's clone unseats. Per user reports, this is when
             // the local-client pilot lock releases, so diffing diag values
             // before/after this call should reveal the lock field.
             Pulsar::Diag293::OnHostCloneUnseated();
 
-            // L.3 V4 motionType=Stationary restore SKIPPED 15:25 — pairs
+            // L.3 V4 motionType=Stationary restore SKIPPED 15:25 - pairs
             // with the 0→1 SafeSetMotionType skip below. We never set
             // Dynamic in the first place, so no need to restore Stationary.
             // if (st.furn) {
@@ -1771,11 +1771,11 @@ namespace Pulsar::VehicleSync
 
             // Plan C: forced respawn. The previously-working version of this
             // sync exhibited "host clone despawned briefly, then re-spawned
-            // standing" behavior — that's exactly RequestForceRespawn.
+            // standing" behavior - that's exactly RequestForceRespawn.
             // Despawns clone now, respawns ~2s later in fresh standing pose.
             //
             // We previously also tried SafeFireStandUpAnim, SafeSnapOut, and
-            // SafeClearFurnHandle — they all fired without crashing but
+            // SafeClearFurnHandle - they all fired without crashing but
             // didn't help (anim events were wrong names, SnapInto(nullptr)
             // was likely a no-op or worse, manual handle-clear redundant).
             // Removed all three: the engine state clears via ForceRespawn
@@ -1801,7 +1801,7 @@ namespace Pulsar::VehicleSync
                 }
             }
 
-            // BISECT FIX 15:30 — set seated=true EARLY so RemotePlayer's
+            // BISECT FIX 15:30 - set seated=true EARLY so RemotePlayer's
             // position-apply skip kicks in IMMEDIATELY. Without this, the
             // clone gets teleported onto the chair (where local player sits)
             // and the engine sees 2 actors on 1 chair → both stuck, neither
@@ -1812,7 +1812,7 @@ namespace Pulsar::VehicleSync
             st.lastFurnMoveMs = 0;
 
             // Without a resolved base we can't tell the MJ apart from a
-            // bench. Log and bail — Schritt B (PlaceAtMe fallback) will
+            // bench. Log and bail - Schritt B (PlaceAtMe fallback) will
             // take over once implemented; for now we stay passive.
             if (hostBaseResolved == 0) {
                 static uint64_t s_lastNoBase = 0;
@@ -1826,31 +1826,31 @@ namespace Pulsar::VehicleSync
 
             // Map-placed FURN (like Moon Jumper in Bondar) has the SAME base
             // form on both machines. If client has the MJ in its parentCell
-            // at all, it IS the same vehicle — match by base with huge
+            // at all, it IS the same vehicle - match by base with huge
             // radius so distance from host doesn't gate it.
             auto* furn = FindNearestFurnToClone(a_clone, 10000.0f, hostBaseResolved,
                                                 hostPosX, hostPosY, hostPosZ);
             if (furn) {
-                // Schritt A hit — reuse client's existing FURN.
+                // Schritt A hit - reuse client's existing FURN.
                 auto base = furn->GetBaseObject();
                 uint32_t baseID = base ? base->GetFormID() : 0;
                 auto furnPos = furn->GetPosition();
                 float dfx = furnPos.x - hostPosX, dfy = furnPos.y - hostPosY, dfz = furnPos.z - hostPosZ;
                 float furnDist = std::sqrt(dfx * dfx + dfy * dfy + dfz * dfz);
 
-                // Dump BEFORE motion/snap — baseline client-side MJ state.
+                // Dump BEFORE motion/snap - baseline client-side MJ state.
                 SafeDumpFurnDiag("CLIENT-pre-snap", furn, a_clone);
 
-                // BISECT 15:25 — SafeSetMotionType(2/Dynamic) SKIPPED.
+                // BISECT 15:25 - SafeSetMotionType(2/Dynamic) SKIPPED.
                 // Setting Dynamic on FURN blocks LOCAL player from sitting
                 // (Bethesda's sit-validation refuses Dynamic FURNs). With
                 // both peers sharing a static cell, leaving FURN Stationary
                 // means clone won't follow ship motion in flight, but local
                 // player can sit/stand normally. Visual ship-flight sync of
-                // clone-on-chair remains broken — separate fix.
+                // clone-on-chair remains broken - separate fix.
                 int mtOk = -1;  // intentionally not setting motionType
                 int snapOk = SafeSnapInto(a_clone, furn);
-                // Dump AFTER snap — see what SnapInto+motionType changed.
+                // Dump AFTER snap - see what SnapInto+motionType changed.
                 SafeDumpFurnDiag("CLIENT-post-snap", furn, a_clone);
                 PLOG_INFO("[PULSAR] VehicleSync: [A] SnapInto clone=0x{:08X} -> furn=0x{:08X} base=0x{:08X} dist={:.1f}m motion(skipped)={} snap={}"sv,
                           a_clone->formID, furn->formID, baseID, furnDist, mtOk, snapOk);
@@ -1861,7 +1861,7 @@ namespace Pulsar::VehicleSync
                 return;
             }
 
-            // Schritt B is disabled — `CallPapyrusSpawnAndSit` triggered an
+            // Schritt B is disabled - `CallPapyrusSpawnAndSit` triggered an
             // IDDB REL::ID=0 resolution fail inside BSScriptUtil when the
             // TESForm pack path hit a stale 1.16.236 binding (dll popup:
             // "Rel/IDDB.cpp 417 failed to find offset ... Invalid id: 0").
@@ -1872,12 +1872,12 @@ namespace Pulsar::VehicleSync
             uint64_t nnow = GetTickCount64();
             if (nnow - s_lastNoB > 3000) {
                 s_lastNoB = nnow;
-                PLOG_INFO("[PULSAR] VehicleSync: [A] no match, [B] disabled — vehicle unsynced this pass"sv);
+                PLOG_INFO("[PULSAR] VehicleSync: [A] no match, [B] disabled - vehicle unsynced this pass"sv);
             }
             return;
         }
 
-        // Steady state — still seated. Two cases:
+        // Steady state - still seated. Two cases:
         // (a) pendingSpawn: re-scan for the FURN we requested. The Papyrus
         //     PlaceAtMe completes asynchronously, usually within a frame or
         //     two. Once we find it, we latch st.furn and mark spawnedByUs.
@@ -1895,7 +1895,7 @@ namespace Pulsar::VehicleSync
                 PLOG_INFO("[PULSAR] VehicleSync: [B] spawn resolved clone=0x{:08X} furn=0x{:08X}"sv,
                           a_clone->formID, furn->formID);
             } else if (GetTickCount64() - st.spawnRequestMs > 5000) {
-                // Spawn didn't complete within 5 s — give up.
+                // Spawn didn't complete within 5 s - give up.
                 PLOG_WARN("[PULSAR] VehicleSync: [B] spawn timeout, abandoning"sv);
                 st.pendingSpawn = false;
                 st.expectedBaseID = 0;
@@ -1904,12 +1904,12 @@ namespace Pulsar::VehicleSync
         }
 
         // Steady state (seated). Drive FURN position to host's AUTHORITATIVE
-        // FURN position (from PKT_VEHICLE_POS), NOT the clone-actor pos —
+        // FURN position (from PKT_VEHICLE_POS), NOT the clone-actor pos -
         // the actor sits at a seat-offset from the FURN origin, so driving
         // the FURN to the actor pos would be ~1-2m off. Seat-anchoring puts
         // the clone at seat-offset from FURN, which on client yields the
         // correct actor world pos if FURN is at host-FURN pos.
-        // No time-throttle — every PKT_POSITION-driven update teleports.
+        // No time-throttle - every PKT_POSITION-driven update teleports.
         if (st.seated && a_seated && st.furn) {
             float fx = a_x, fy = a_y, fz = a_z;
             float rx = 0.0f, ry = 0.0f, rz = 0.0f;
@@ -1934,7 +1934,7 @@ namespace Pulsar::VehicleSync
             float angleBefore = 0.0f, angleAfter = 0.0f;
             int angleOk = 0;
             if (haveRot) {
-                // SetAngle Papyrus-native call DISABLED — triggered client
+                // SetAngle Papyrus-native call DISABLED - triggered client
                 // game-thread freeze (log thread kept logging ~30s after
                 // disconnect, no DMP = not a hard exception, latent-functor
                 // deadlock likely). Keep the fn pointer resolved for later
@@ -1958,7 +1958,7 @@ namespace Pulsar::VehicleSync
                           st.furn->formID, fx, fy, fz,
                           curX, curY, curZ, drift, ok,
                           rz, angleBefore, angleAfter, angleOk);
-                // Periodic dump of MJ internals on client — see if Havok/engine
+                // Periodic dump of MJ internals on client - see if Havok/engine
                 // flips any fields between our SetPosition calls.
                 SafeDumpFurnDiag("CLIENT-steady", st.furn, a_clone);
             }
@@ -1984,7 +1984,7 @@ namespace Pulsar::VehicleSync
         size_t n = s_seatedByCloneID.size();
         s_seatedByCloneID.clear();
         PLOG_INFO(
-            "[PULSAR] VehicleSync: Reset() — cleared {} cached clone/FURN entries"sv,
+            "[PULSAR] VehicleSync: Reset() - cleared {} cached clone/FURN entries"sv,
             n);
     }
 }

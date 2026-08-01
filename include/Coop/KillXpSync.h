@@ -18,7 +18,7 @@
 // APPLY: on PKT_KILL_XP we award the SAME XP to our own player via the same
 //   primitive with source=0xc (no multiplier, and our capture hook ignores 0xc
 //   so there is no echo) UNLESS we already earned natural XP for that host-ref
-//   (the dedup set) — which is exactly the both-shoot case, so no double-count.
+//   (the dedup set) - which is exactly the both-shoot case, so no double-count.
 //
 // Gated by Config::coopShareKillXp (default on). RE: see
 // reference_kill_xp_re memory + docs/design/specs/2026-06-24-coop-kill-xp-sharing-design.md.

@@ -31,10 +31,10 @@ namespace Pulsar::WorldSync::Grab {
 namespace {
 
     // ---- Engine RVAs (verified via Ghidra 2026-04-25, Starfield 1.16.236)
-    // FUN_140B9A650 — lazy-init wrapper, returns &singleton @ 0x145977F18
-    // FUN_140B9A6C0 — lazy-init wrapper, returns &singleton @ 0x145977F40
+    // FUN_140B9A650 - lazy-init wrapper, returns &singleton @ 0x145977F18
+    // FUN_140B9A6C0 - lazy-init wrapper, returns &singleton @ 0x145977F40
     // V2a confirmed only Source A fires for player E-Hold (B is something
-    // else — NPC grab? Workshop? — left registered for future logging).
+    // else - NPC grab? Workshop? - left registered for future logging).
     constexpr std::uintptr_t kRVA_GetGrabSrcA = 0xB99E70;
     constexpr std::uintptr_t kRVA_GetGrabSrcB = 0xB99EE0;
 
@@ -42,7 +42,7 @@ namespace {
     static GetGrabSrcFn g_getGrabSrcA = nullptr;
     static GetGrabSrcFn g_getGrabSrcB = nullptr;
 
-    // ObjectReference.SetMotionType native — REL::ID(118463). Identified via
+    // ObjectReference.SetMotionType native - REL::ID(118463). Identified via
     // VehicleSync's RE pass: only motionType ∈ {1,2} is accepted; 1=Stationary
     // (freezes Havok body, SetPosition no-ops), 2=Dynamic (lets SetPosition
     // writes stick). For grabbed items on receiver we force-Dynamic so the
@@ -68,7 +68,7 @@ namespace {
         }
     }
 
-    // V3 — fall-on-release via "drop from height" trick.
+    // V3 - fall-on-release via "drop from height" trick.
     //   Starfield's Papyrus base has NO ApplyHavokImpulse / impulse natives
     //   (Bethesda removed them; verified PapyrusBase + Game/Debug/ObjRef.psc).
     //   The latent-native bypass (V3 attempt 1) deadlocked because the engine
@@ -81,21 +81,21 @@ namespace {
     //   epsilon (~0.1u empirically across havok-port games).
     constexpr float kReleaseLiftZ = 0.5f;
 
-    // Position-broadcast cadence while holding. 30 Hz = 33 ms — trades a
+    // Position-broadcast cadence while holding. 30 Hz = 33 ms - trades a
     // bit more bandwidth for smoother motion than the 20 Hz BoneSync.
     constexpr std::int64_t kTickIntervalMs = 33;
 
     // Receiver-side guard: if a position-update packet arrives for a REFR
     // that hasn't moved more than this distance (squared, world units)
     // since last apply, skip the SetPosition to reduce engine churn.
-    // Lowered to 0.0025 (~0.05u) — items move sub-unit during hold.
+    // Lowered to 0.0025 (~0.05u) - items move sub-unit during hold.
     constexpr float kMinMoveDist2 = 0.0025f;
 
     // ---- Local raw-offset helpers ---------------------------------------
     //
     // 2026-04-29: NULL-only check insufficient. Crash dump
     // Starfield_04-28-22-48.dmp showed `e.target.get() == 0xFFFFFFFFFFFFFFFF`
-    // (sentinel from a freed/just-deallocated REFR) — engine still fired
+    // (sentinel from a freed/just-deallocated REFR) - engine still fired
     // TESGrabReleaseEvent for an NPC's stale grab target while host was
     // walking through cells solo. The original `if (!form)` passed the -1
     // through and we crashed reading [rdi+0x28].
@@ -164,7 +164,7 @@ namespace {
             *reinterpret_cast<float*>(f + 0x90) = y;
             *reinterpret_cast<float*>(f + 0x94) = z;
 
-            // niNode transform writes — force the visual to follow.
+            // niNode transform writes - force the visual to follow.
             void* loadedDataPtr = *reinterpret_cast<void**>(f + 0xB8);
             if (loadedDataPtr) {
                 auto* ld = reinterpret_cast<std::uint8_t*>(loadedDataPtr);
@@ -179,7 +179,7 @@ namespace {
                     *reinterpret_cast<float*>(d3 + 0xB0) = x;
                     *reinterpret_cast<float*>(d3 + 0xB4) = y;
                     *reinterpret_cast<float*>(d3 + 0xB8) = z;
-                    // previousWorld.translate @ +0xC0 + 0x30 — prevents
+                    // previousWorld.translate @ +0xC0 + 0x30 - prevents
                     // motion-blur lerp from "snap" to old position.
                     *reinterpret_cast<float*>(d3 + 0xF0) = x;
                     *reinterpret_cast<float*>(d3 + 0xF4) = y;
@@ -231,14 +231,14 @@ namespace {
         }
     }
 
-    // ---- Sender state — currently held REFR + tick clock ----------------
+    // ---- Sender state - currently held REFR + tick clock ----------------
 
     struct HeldState {
         RE::TESObjectREFR* refr        = nullptr;
         std::uint32_t      refID       = 0;
         std::uint32_t      baseID      = 0;
         std::uint8_t       baseType    = 0;
-        // Last position we broadcast — for the t==0 send always go.
+        // Last position we broadcast - for the t==0 send always go.
         float              lastPx = 0, lastPy = 0, lastPz = 0;
         bool               firstSent = false;
     };
@@ -257,7 +257,7 @@ namespace {
     static std::mutex                s_pendingMutex;
     static std::vector<PendingGrab>  s_pending;
 
-    // Last-applied REFR per (resolvedBase + initial-pos cell key) — so a
+    // Last-applied REFR per (resolvedBase + initial-pos cell key) - so a
     // stream of position-update packets can re-target the same REFR
     // without repeating the full cell-scan each tick. Keyed by base
     // FormID alone (a cell typically has at most one item with a given
@@ -419,14 +419,14 @@ void Init()
         srcA->RegisterSink(&s_sinkA);
         PLOG_INFO("[PULSAR] GrabSync: sink A registered (active path)"sv);
     } else {
-        PLOG_WARN("[PULSAR] GrabSync: source A null — sink A not registered"sv);
+        PLOG_WARN("[PULSAR] GrabSync: source A null - sink A not registered"sv);
     }
     if (rawB) {
         auto* srcB = reinterpret_cast<RE::BSTEventSource<RE::TESGrabReleaseEvent>*>(rawB);
         srcB->RegisterSink(&s_sinkB);
         PLOG_INFO("[PULSAR] GrabSync: sink B registered (logging only)"sv);
     } else {
-        PLOG_WARN("[PULSAR] GrabSync: source B null — sink B not registered"sv);
+        PLOG_WARN("[PULSAR] GrabSync: source B null - sink B not registered"sv);
     }
 }
 
@@ -451,7 +451,7 @@ void Tick()
     if (!net.IsConnected()) {
         if (++s_disconnectLogged % 30 == 1) {
             PLOG_INFO(
-                "[PULSAR] GrabSync TICK: holding ref=0x{:08X} but NOT CONNECTED — skipping TX (count {})"sv,
+                "[PULSAR] GrabSync TICK: holding ref=0x{:08X} but NOT CONNECTED - skipping TX (count {})"sv,
                 snap.refID, s_disconnectLogged);
         }
         return;
@@ -461,7 +461,7 @@ void Tick()
     float rx = 0, ry = 0, rz = 0;
     ReadRefrPos(snap.refr, rx, ry, rz);
 
-    // No sender-side jitter gate — engine updates data.location with
+    // No sender-side jitter gate - engine updates data.location with
     // sub-unit per-tick deltas during E-Hold; gating on movement filtered
     // out actual carry motion. The 30 Hz rate-limit + receiver-side jitter
     // guard prevent network/engine spam.
@@ -509,7 +509,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
             d.basePlugin[0] ? d.basePlugin : "(none)",
             resolved, d.posX, d.posY, d.posZ);
     }
-    // grabbed=1 updates intentionally silent — they fire ~30 Hz.
+    // grabbed=1 updates intentionally silent - they fire ~30 Hz.
 }
 
 void DrainPending()
@@ -542,7 +542,7 @@ void DrainPending()
             }
         }
 
-        // Cache miss OR initial grab — run the matcher.
+        // Cache miss OR initial grab - run the matcher.
         if (!refr) {
             if (player->parentCell) {
                 refr = SafeFindRefByBaseInCell(
@@ -594,7 +594,7 @@ void DrainPending()
             // Force-Dynamic once per active session so the engine's
             // niNode-from-body sync follows our writes (via vt[0x89]'s
             // Havok-teleport flag). Stationary(1) would freeze that sync
-            // and kill visual movement — verified by iter6 regression.
+            // and kill visual movement - verified by iter6 regression.
             bool needForce = false;
             {
                 std::lock_guard g(s_activeMutex);
@@ -624,7 +624,7 @@ void DrainPending()
                 at.lastPx = d.px; at.lastPy = d.py; at.lastPz = d.pz;
             }
         } else {
-            // Release — teleport the body slightly above the final pos, then
+            // Release - teleport the body slightly above the final pos, then
             // restore Dynamic motion with allowActivate=true. Havok wakes the
             // body and gravity pulls it the small drop distance. Visually the
             // item just falls from "where the host released" instead of

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# PULSAR Lobby — live monitoring dashboard (stdlib only, no deps).
+# PULSAR Lobby - live monitoring dashboard (stdlib only, no deps).
 #
 # Pulls three live signals and serves them as a self-refreshing page:
 #   * Docker Engine API over the mounted unix socket -> container health,
@@ -28,7 +28,7 @@ RETAIN_DAYS = int(os.environ.get("HISTORY_RETAIN_DAYS", "30"))
 PERSIST_SEC = int(os.environ.get("HISTORY_PERSIST_SEC", "15"))   # write cadence
 # Time-series columns persisted for the long-range history / filters.
 HIST_COLS   = ["players", "relay_bps", "cpu", "mem", "disk", "sessions", "lobbies"]
-# Module owner / publisher identity — appears in st_client as a permanent system
+# Module owner / publisher identity - appears in st_client as a permanent system
 # connection, NOT a real player. Labelled separately in the presence panel.
 OWNER_ID    = os.environ.get("OWNER_IDENTITY", "").lower()
 WATCH       = [c for c in os.environ.get(
@@ -542,7 +542,7 @@ def bg_loop():
 PAGE = r"""<!DOCTYPE html>
 <html lang="de"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PULSAR Lobby — Live Monitor</title>
+<title>PULSAR Lobby - Live Monitor</title>
 <style>
 :root{--bg:#0a0e17;--card:#121826;--card2:#1a2235;--bd:#243049;--fg:#e6edf6;
 --mut:#8b9bb4;--ok:#34d399;--warn:#fbbf24;--err:#f87171;--acc:#60a5fa;--pur:#a78bfa}
@@ -653,7 +653,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
 function fmtRate(b){if(b<1024)return b.toFixed(0)+' <small>B/s</small>';
  if(b<1048576)return (b/1024).toFixed(1)+' <small>KB/s</small>';return (b/1048576).toFixed(2)+' <small>MB/s</small>';}
-function short(h){if(!h)return '—';h=String(h).replace(/^0x/,'');return h.slice(0,6)+'…'+h.slice(-4);}
+function short(h){if(!h)return '-';h=String(h).replace(/^0x/,'');return h.slice(0,6)+'…'+h.slice(-4);}
 function ago(iso){if(!iso)return '';let t=Date.parse(String(iso).replace(/\+00:00$/,'Z'));if(isNaN(t))return '';
  let s=(Date.now()-t)/1000;if(s<60)return Math.floor(s)+'s';if(s<3600)return Math.floor(s/60)+'m';return Math.floor(s/3600)+'h';}
 let lastLog='', LD=null;
@@ -684,7 +684,7 @@ function renderAlerts(){
 function renderLobbies(){
  const d=LD;if(!d)return;
  // Closing a lobby hard-deletes the row now, so the table only ever holds
- // open / in_game lobbies — no "closed" state to handle here.
+ // open / in_game lobbies - no "closed" state to handle here.
  const L=d.lobbies||[];
  const q=($('lobq')?$('lobq').value:'').toLowerCase().trim();
  const F=L.filter(l=>lobState.status.has(l.status)&&lobState.pw.has(l.pw?'yes':'no')
@@ -693,7 +693,7 @@ function renderLobbies(){
  $('lobbies').innerHTML=(F.length?'<table><tr><th>Code</th><th>Name</th><th>Status</th><th>Spieler</th><th>Host</th><th>Adresse</th><th>Alter</th></tr>'+
   F.map(l=>'<tr><td><span class="code">'+esc(l.code)+'</span></td><td>'+esc(l.name)+(l.pw?' <span class="lock">🔒</span>':'')+'</td>'+
    '<td><span class="badge '+(l.status==='open'?'b-open':'b-connecting')+'">'+esc(l.status)+'</span></td>'+
-   '<td>'+l.members+' / '+l.max+'</td><td class="muted">'+short(l.host)+'</td><td class="muted">'+esc(l.host_addr||'—')+'</td>'+
+   '<td>'+l.members+' / '+l.max+'</td><td class="muted">'+short(l.host)+'</td><td class="muted">'+esc(l.host_addr||'-')+'</td>'+
    '<td class="muted">'+ago(l.created)+'</td></tr>').join('')+'</table>'
   :'<div class="empty">Keine Lobby (für aktuellen Filter)</div>')+
   '<div style="padding:8px 16px;border-top:1px solid #1b2436" class="muted">'+F.length+' von '+L.length+' Lobbys angezeigt</div>';
@@ -708,8 +708,8 @@ function renderRsess(){
  $('rsess').innerHTML=(RS.length?'<table><tr><th>Session</th><th>Modus</th><th>NAT</th><th>Host</th><th>Client</th><th>Relay-Durchsatz</th><th>Idle</th></tr>'+
    RS.map(s=>'<tr><td class="pill">'+esc(s.id)+'</td>'+
     '<td><span class="badge b-'+s.mode+'">'+(lbl[s.mode]||s.mode)+'</span></td>'+
-    '<td>'+(s.nat?'<span class="badge b-'+s.nat+'">'+(s.nat==='same'?'same-LAN':'cross-NAT')+'</span>':'—')+'</td>'+
-    '<td class="muted">'+esc(s.host||'—')+'</td><td class="muted">'+esc(s.client||'—')+'</td>'+
+    '<td>'+(s.nat?'<span class="badge b-'+s.nat+'">'+(s.nat==='same'?'same-LAN':'cross-NAT')+'</span>':'-')+'</td>'+
+    '<td class="muted">'+esc(s.host||'-')+'</td><td class="muted">'+esc(s.client||'-')+'</td>'+
     '<td>'+fmtRate(s.rate||0)+'</td>'+
     '<td class="muted">'+((s.age_ms||0)/1000).toFixed(1)+'s</td></tr>').join('')+'</table>'+
     '<div style="padding:8px 16px;border-top:1px solid #1b2436" class="muted">'+RS.length+' von '+all.length+' Sessions · ⇄ relayed = über Server · ⇢ direct = P2P · same-LAN/cross-NAT</div>'
@@ -746,7 +746,7 @@ $('gear').onclick=()=>{const s=$('settings');const show=s.style.display==='none'
 
 async function tick(){
  let d;try{d=await (await fetch('api/stats',{cache:'no-store'})).json();}catch(e){
-  $('dot').className='dot off';$('meta').textContent='offline — '+e;return;}
+  $('dot').className='dot off';$('meta').textContent='offline - '+e;return;}
  LD=d;
  const on=d.server&&d.server.online;
  $('dot').className='dot '+(on?'on':'off');
@@ -755,7 +755,7 @@ async function tick(){
  // server
  const openN=(d.lobbies||[]).filter(l=>l.status==='open').length;
  $('server').innerHTML='<div class="big"><div class="x"><div class="n">Status</div><div class="v" style="color:'+(on?'var(--ok)':'var(--err)')+'">'+(on?'ONLINE':'OFFLINE')+'</div></div>'+
-  '<div class="x"><div class="n">DB-Latenz</div><div class="v">'+(on?d.server.latency_ms+' <small>ms</small>':'—')+'</div></div>'+
+  '<div class="x"><div class="n">DB-Latenz</div><div class="v">'+(on?d.server.latency_ms+' <small>ms</small>':'-')+'</div></div>'+
   '<div class="x"><div class="n">Spieler live</div><div class="v" style="color:'+((d.players_live||0)>0?'var(--ok)':'')+'">'+(d.players_live||0)+'</div></div>'+
   '<div class="x"><div class="n">Lobbys offen</div><div class="v">'+openN+' <small>/ '+(d.lobbies?d.lobbies.length:0)+'</small></div></div></div>'+
   (on?'':'<div class="empty">'+esc(d.server.error||'')+'</div>');
@@ -782,10 +782,10 @@ async function tick(){
    const cpu=c.cpu||0,mem=c.mem_pct||0;
    const cls=v=>v>80?'crit':v>50?'hi':'';
    return '<tr><td>'+esc(c.name)+'</td>'+
-    '<td><span class="badge '+(run?'b-run':'b-dead')+'">'+esc(c.state||'—')+'</span></td>'+
-    '<td>'+(run?cpu.toFixed(1)+'% <div class="bar"><i class="'+cls(cpu)+'" style="width:'+Math.min(100,cpu)+'%"></i></div>':'—')+'</td>'+
-    '<td>'+(run?(c.mem_mb||0)+' MB <div class="bar"><i class="'+cls(mem)+'" style="width:'+Math.min(100,mem)+'%"></i></div>':'—')+'</td>'+
-    '<td>'+(run?'<span class="up">'+fmtRate(c.tx_rate||0)+'</span> / <span class="down">'+fmtRate(c.rx_rate||0)+'</span>':'—')+'</td></tr>';
+    '<td><span class="badge '+(run?'b-run':'b-dead')+'">'+esc(c.state||'-')+'</span></td>'+
+    '<td>'+(run?cpu.toFixed(1)+'% <div class="bar"><i class="'+cls(cpu)+'" style="width:'+Math.min(100,cpu)+'%"></i></div>':'-')+'</td>'+
+    '<td>'+(run?(c.mem_mb||0)+' MB <div class="bar"><i class="'+cls(mem)+'" style="width:'+Math.min(100,mem)+'%"></i></div>':'-')+'</td>'+
+    '<td>'+(run?'<span class="up">'+fmtRate(c.tx_rate||0)+'</span> / <span class="down">'+fmtRate(c.rx_rate||0)+'</span>':'-')+'</td></tr>';
   }).join('');
 
  renderLobbies();
@@ -810,7 +810,7 @@ async function tick(){
  // p2p / hole-punching
  const rl=d.relay||{};const p2p=rl.p2p_rate;
  $('p2p').innerHTML='<div class="big">'+
-  '<div class="x"><div class="n">P2P-Quote</div><div class="v" style="color:'+(p2p>=50?'var(--ok)':(p2p==null?'':'var(--warn)'))+'">'+(p2p==null?'—':p2p+'%')+'</div></div>'+
+  '<div class="x"><div class="n">P2P-Quote</div><div class="v" style="color:'+(p2p>=50?'var(--ok)':(p2p==null?'':'var(--warn)'))+'">'+(p2p==null?'-':p2p+'%')+'</div></div>'+
   '<div class="x"><div class="n">direct / relayed</div><div class="v"><span style="color:var(--ok)">'+(rl.direct||0)+'</span> <small>/</small> <span style="color:var(--pur)">'+(rl.relayed||0)+'</span></div></div>'+
   '<div class="x"><div class="n">Sessions</div><div class="v">'+(rl.count||0)+' <small>/ '+(rl.cap||0)+'</small></div></div></div>'+
   '<div style="padding:8px 16px;border-top:1px solid #1b2436" class="muted">Peak '+(rl.peak||0)+' gleichzeitig · '+(rl.total||0)+' Sessions gesamt · '+(rl.rendezvous||0)+' Rendezvous</div>';
@@ -826,13 +826,13 @@ async function tick(){
 
  // infrastructure
  const inf=d.infra||{};const h=inf.host||{};const df=inf.df||{};
- const pc=(v,hi)=>v==null?'—':'<span style="color:'+(v>(hi||85)?'var(--err)':(v>60?'var(--warn)':'var(--fg)'))+'">'+v+'%</span>';
+ const pc=(v,hi)=>v==null?'-':'<span style="color:'+(v>(hi||85)?'var(--err)':(v>60?'var(--warn)':'var(--fg)'))+'">'+v+'%</span>';
  $('infra').innerHTML='<div class="big">'+
-  '<div class="x"><div class="n">Host-Last</div><div class="v">'+(h.load?h.load[0].toFixed(2):'—')+' <small>/'+(h.cpus||'?')+'</small></div></div>'+
+  '<div class="x"><div class="n">Host-Last</div><div class="v">'+(h.load?h.load[0].toFixed(2):'-')+' <small>/'+(h.cpus||'?')+'</small></div></div>'+
   '<div class="x"><div class="n">RAM</div><div class="v">'+pc(h.mem_used_pct)+'</div></div>'+
   '<div class="x"><div class="n">Disk</div><div class="v">'+pc(h.disk_used_pct)+' <small>'+(h.disk_total_gb||'?')+'G</small></div></div>'+
-  '<div class="x"><div class="n">TLS-Cert</div><div class="v" style="color:'+(inf.cert_days!=null&&inf.cert_days<14?'var(--warn)':'')+'">'+(inf.cert_days!=null?Math.round(inf.cert_days)+' <small>Tage</small>':'—')+'</div></div></div>'+
-  '<div style="padding:8px 16px;border-top:1px solid #1b2436" class="muted">DB-Volume '+(df.stdb_mb!=null?df.stdb_mb+' MB':'—')+' · Volumes '+(df.volumes_mb||0)+' MB · Images '+(df.images_mb||0)+' MB</div>';
+  '<div class="x"><div class="n">TLS-Cert</div><div class="v" style="color:'+(inf.cert_days!=null&&inf.cert_days<14?'var(--warn)':'')+'">'+(inf.cert_days!=null?Math.round(inf.cert_days)+' <small>Tage</small>':'-')+'</div></div></div>'+
+  '<div style="padding:8px 16px;border-top:1px solid #1b2436" class="muted">DB-Volume '+(df.stdb_mb!=null?df.stdb_mb+' MB':'-')+' · Volumes '+(df.volumes_mb||0)+' MB · Images '+(df.images_mb||0)+' MB</div>';
 
  // log
  const lg=d.relay_log||'';
@@ -874,10 +874,10 @@ function renderHist(){
  const s=histData.series||{},sel=METRICS.filter(m=>selM.has(m.k));
  $('history').innerHTML=sel.length?sel.map(m=>{
   const data=s[m.k]||[],last=data.length?data[data.length-1][1]:null;
-  return '<div class="spark-row"><div class="spark-lbl" style="color:'+m.color+'">'+m.label+'</div>'+sparkR(data,m.color)+'<div class="spark-val">'+(last==null?'—':m.fmt(last))+'</div></div>';
+  return '<div class="spark-row"><div class="spark-lbl" style="color:'+m.color+'">'+m.label+'</div>'+sparkR(data,m.color)+'<div class="spark-val">'+(last==null?'-':m.fmt(last))+'</div></div>';
  }).join(''):'<div class="empty">keine Metrik gewählt</div>';
  const n=Math.max(0,...METRICS.map(m=>(s[m.k]||[]).length)),rl=(RANGES.find(r=>r[1]===curRange)||[])[0]||'';
- $('histmeta').textContent=' · '+rl+' · '+n+' Punkte'+(n<2?' (sammelt noch — alle 15s ein Wert)':'');
+ $('histmeta').textContent=' · '+rl+' · '+n+' Punkte'+(n<2?' (sammelt noch - alle 15s ein Wert)':'');
 }
 async function loadHist(){
  try{histData=await (await fetch('api/history?range='+curRange,{cache:'no-store'})).json();}catch(e){histData=null;}
@@ -903,7 +903,7 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/", "/index.html"):
             self._send(200, PAGE.encode(), "text/html; charset=utf-8")
         elif path == "/api/stats":
-            # served from the background sampler — every request is cheap
+            # served from the background sampler - every request is cheap
             self._send(200, json.dumps(_latest).encode(), "application/json")
         elif path == "/api/history":
             q = {}

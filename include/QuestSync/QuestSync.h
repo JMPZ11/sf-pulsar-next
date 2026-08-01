@@ -5,7 +5,7 @@
 
 namespace Pulsar::QuestSync {
 
-    // Phase 1 — register sinks on the global TESQuestStageEvent /
+    // Phase 1 - register sinks on the global TESQuestStageEvent /
     // TESQuestStartStopEvent BSTEventSource singletons (RVA 0x5978238 +
     // 0x5978288 respectively, both verified against SFSE 0.2.19
     // GameEvents.h:1846-1849). Resolves the native stage-set worker
@@ -18,7 +18,7 @@ namespace Pulsar::QuestSync {
     void Shutdown();
 
     // Network-thread receive entry. Dispatches PKT_QUEST_STAGE / _START /
-    // _STOP to the per-packet handlers. Apply runs on the network thread —
+    // _STOP to the per-packet handlers. Apply runs on the network thread -
     // the native worker is thread-safe enough for an isolated stage write
     // (no allocation, no cell-streamer touch); if we later observe races
     // we'll switch to a game-thread queue. Mirrors LockSync's pending-vec

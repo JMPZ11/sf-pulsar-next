@@ -13,7 +13,7 @@ namespace RE {
 // form-state via vt[0x1B] LoadGame on the matching clone reference.
 //
 // Struct layout reverse-engineered from FUN_14181D690 + FUN_140B2EF30 stack
-// init sites — see memory/reference_cell_transition_re.md for full breakdown.
+// init sites - see memory/reference_cell_transition_re.md for full breakdown.
 namespace Pulsar::Forms
 {
     // Mirrors Starfield's BGSSaveFormBuffer (size 0x80). Layout reconstructed
@@ -23,10 +23,10 @@ namespace Pulsar::Forms
     // Concrete impl is BGSSaveLoadUtilities::BGSSaveFormBufferIgnoreIDs
     // (REL::ID 450091, vtable @ 0x144CB02A8). The "abstract" vtable @
     // 0x144CB08B8 (REL::ID 450162) is used by FUN_140B2EF30/14181D690 as a
-    // marker for non-virtual-dispatch save paths — but for general TESForm
+    // marker for non-virtual-dispatch save paths - but for general TESForm
     // vt[0x1A] SaveGame() calls, use the IgnoreIDs concrete vtable.
     //
-    // Trailing region @ +0x59..+0x7F is left as raw bytes — Ghidra showed
+    // Trailing region @ +0x59..+0x7F is left as raw bytes - Ghidra showed
     // unaligned uint64 writes there which can't be expressed cleanly in
     // standard C++ struct layout.
     struct alignas(8) SaveFormBufferRaw {
@@ -54,12 +54,12 @@ namespace Pulsar::Forms
     static_assert(offsetof(SaveFormBufferRaw, changeFlags)  == 0x50, "changeFlags @ +0x50");
     static_assert(offsetof(SaveFormBufferRaw, flags)        == 0x58, "flags @ +0x58");
 
-    // Public init — runs the layout probe at plugin load. The serialize
+    // Public init - runs the layout probe at plugin load. The serialize
     // probe is deferred (player isn't loaded at plugin-init time) and fires
     // from TickProbe() once the player becomes available.
     void Init();
 
-    // Game-thread tick — calls the Phase-2 serialize probe exactly once,
+    // Game-thread tick - calls the Phase-2 serialize probe exactly once,
     // gated on: host-mode + player loaded into a cell + client connected
     // + ≥10s settle delay after first connection (so the connect-time
     // save+transfer pipeline has finished and we don't mutate save-mgr
@@ -71,7 +71,7 @@ namespace Pulsar::Forms
 
     // Phase-2: Serialize a form via vt[0x1A] SaveGame. Returns the blob bytes.
     // Empty on failure (null form, save threw, dataBuffer null, oversized,
-    // etc.). Safe to call on any TESForm — wrapped in __try/__except — but
+    // etc.). Safe to call on any TESForm - wrapped in __try/__except - but
     // forms with side-effecting SaveGame impls may misbehave outside the
     // engine's actual save context. First test target: TESNPC.
     //
@@ -94,11 +94,11 @@ namespace Pulsar::Forms
 
     // Host-side: serialize the player REFR and send it to the client as
     // PKT_FORM_BLOB. targetFormID=0 means "apply to the receiver's clone of
-    // the sender's player". Sender-/host-only — silently no-op on client or
+    // the sender's player". Sender-/host-only - silently no-op on client or
     // when not connected. Use after cell-transition to trigger biped re-init.
     void BroadcastPlayerForm(std::uint32_t targetFormID = 0);
 
-    // Receiver-side packet handler — called from NetworkHost dispatcher.
+    // Receiver-side packet handler - called from NetworkHost dispatcher.
     // Caches the blob keyed by sourceFormID for later DeserializeForm call
     // (clone may not be spawned yet at receive time).
     void OnPacketReceived(const std::uint8_t* data, std::size_t length);

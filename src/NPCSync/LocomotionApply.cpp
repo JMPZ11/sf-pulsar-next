@@ -21,7 +21,7 @@ using namespace std::string_view_literals;
 
 namespace Pulsar::NPCSync {
 
-    // #ragdoll (2026-06-25) — kill-pending window. The engine kill (SafeKillActor) is
+    // #ragdoll (2026-06-25) - kill-pending window. The engine kill (SafeKillActor) is
     // ASYNC: actor->IsDead() stays false for several frames after the call. In that gap
     // ApplyLocomotion/TickLerp would keep driving + re-pinning the not-yet-dead NPC, so
     // when death finally lands the body is pinned upright → no ragdoll ("dead but
@@ -64,17 +64,17 @@ namespace Pulsar::NPCSync {
     // the actor IS NOW on the host, not where it was when the packet left.
     struct LerpTarget {
         RE::NiPoint3 pos;          // current packet position
-        RE::NiPoint3 velocity;     // world-space m/s — derived from Δpos / Δt
+        RE::NiPoint3 velocity;     // world-space m/s - derived from Δpos / Δt
         RE::NiPoint3 prevPos;      // previous packet position (for Δ)
         uint64_t     prevMs;       // timestamp of prevPos
         float        rotZ;         // yaw at packet time
         uint64_t     updatedMs;    // current packet's timestamp
-        // Graph-var inputs — re-applied every tick so local AI can't win.
+        // Graph-var inputs - re-applied every tick so local AI can't win.
         uint8_t      moveFlags;
         bool         weaponDrawn;
-        bool         hasPrev;      // false on first packet — no velocity yet
+        bool         hasPrev;      // false on first packet - no velocity yet
         // Host's authoritative graph "Speed" var (Starfield units, matches the
-        // gait-ref scale). Smooth + host-side correct — the value the host NPC's
+        // gait-ref scale). Smooth + host-side correct - the value the host NPC's
         // own engine used to pick its gait. Fed to IMovementDirectControl SetSpeed
         // instead of the spiky Δpos velocity (which made walkers jog). 0 for
         // low-AI (MiddleLow/Low) NPCs → we fall back to Δpos for those.
@@ -88,7 +88,7 @@ namespace Pulsar::NPCSync {
     // the map). Above this, freeze the predicted target at the cap value.
     static constexpr float kMaxPredictSec = 0.25f;  // 250 ms
 
-    // Engage velocity write above ~0.1 m/s — slow walks (graph-var Speed
+    // Engage velocity write above ~0.1 m/s - slow walks (graph-var Speed
     // values as low as 0.5) still need the Havok push.
     static constexpr float kVelocityEpsilon = 0.1f;
 
@@ -96,7 +96,7 @@ namespace Pulsar::NPCSync {
     // mitigate the 0x30B350E bone-array NULL-deref race on the render thread
     // (Havok broadcast wakes a worker thread that races with bone iteration).
     // 200 ms is tighter (5 snaps/s/actor) but only fires when drift really
-    // demands it — combined with the 0.5 m gate the actual snap rate stays
+    // demands it - combined with the 0.5 m gate the actual snap rate stays
     // well below the Phase D v13 flood that crashed.
     static constexpr uint64_t kSnapThrottleMs = 200;
 
@@ -116,13 +116,13 @@ namespace Pulsar::NPCSync {
     //   CC + 0x20                  = body-wrapper (null until Havok attach start)
     //   (CC+0x20) + 0x20           = inner Havok object (null until attach done)
     // vtable slot 79 (byte 0x278) = setLinearVelocity(ccObj, float* vel4).
-    // Gating on both attach levels is mandatory — slot 87 (the world-getter
+    // Gating on both attach levels is mandatory - slot 87 (the world-getter
     // called inside setLinearVelocity) dereferences the inner object without
     // a null check.
     // Returns true iff the velocity write actually landed on a live Havok
     // body. False = one of the middleHigh / CC / body-wrapper / inner-havok
     // gates was null (common for exterior proc-gen NPCs in MiddleLow/Low AI
-    // state) — caller falls back to SetPosition for position sync.
+    // state) - caller falls back to SetPosition for position sync.
     static bool SafeHavokSetLinearVelocity(RE::Actor* actor, float vx, float vy, float vz)
     {
         bool ok = false;
@@ -151,13 +151,13 @@ namespace Pulsar::NPCSync {
             setVel(ccObj, vel4);
             ok = true;
         } __except (EXCEPTION_EXECUTE_HANDLER) {
-            // Body race despite gate — CC detached between the two checks.
+            // Body race despite gate - CC detached between the two checks.
             ok = false;
         }
         return ok;
     }
 
-    // Havok CC body SET-POSITION — vtable slot 0x240/8, sig void(ccObj,float[4],
+    // Havok CC body SET-POSITION - vtable slot 0x240/8, sig void(ccObj,float[4],
     // char,char). Moves the collision controller (the visible mesh follows it)
     // WITHOUT Actor::SetPosition, which resets the anim state-machine each frame
     // (= the "no walk anim / floating" we saw). Ported verbatim from the clone's
@@ -249,7 +249,7 @@ namespace Pulsar::NPCSync {
         }
     }
 
-    // SEH-wrapped yaw lerp. data.angle sits at actor+0x98 — safe to touch, but
+    // SEH-wrapped yaw lerp. data.angle sits at actor+0x98 - safe to touch, but
     // we wrap anyway in case the actor is being torn down concurrently.
     static int SafeLerpRotZ(RE::Actor* actor, float target, float factor)
     {
@@ -299,7 +299,7 @@ namespace Pulsar::NPCSync {
         // assert DirectControl and pin the corpse upright, overriding the death anim
         // (the intermittent "dead but standing" freeze). Let it ragdoll; TickLerp
         // also bails + releases DirectControl on IsDead.
-        // #ragdoll — also bail while kill-pending (async death gap) so we don't re-pin.
+        // #ragdoll - also bail while kill-pending (async death gap) so we don't re-pin.
         if (actor->IsDead() || IsNpcKillPending(actor->formID)) return false;
 
         // Publish the target + derived velocity for the per-tick lerp. Done
@@ -308,7 +308,7 @@ namespace Pulsar::NPCSync {
         //
         // Velocity is derived from (current-pos - previous-pos) / Δt rather
         // than from the graph-var "Speed" field, because Starfield's Speed
-        // var is only populated for MiddleHigh-AI actors — the 70 %+ of
+        // var is only populated for MiddleHigh-AI actors - the 70 %+ of
         // exterior / background NPCs in MiddleLow or Low states report
         // Speed=0 despite visibly walking on the host. Δpos captures the
         // *actual* motion regardless of AI level.
@@ -327,20 +327,20 @@ namespace Pulsar::NPCSync {
                     float newVy = dy / dt;
                     // Reject host teleports / proc-cell swaps / spawn-Jumps.
                     // Max plausible speed is sprint ≈ 5.5 m/s. Anything above
-                    // 8 m/s is a discontinuity — reset velocity to 0 and treat
+                    // 8 m/s is a discontinuity - reset velocity to 0 and treat
                     // the next packet as a fresh reference.
                     const float magSq = newVx * newVx + newVy * newVy;
                     if (magSq > 8.0f * 8.0f) {
                         t.velocity = RE::NiPoint3(0.0f, 0.0f, 0.0f);
                     } else {
-                        // Exponential smoothing 0.6/0.4 — kills single-packet jitter
+                        // Exponential smoothing 0.6/0.4 - kills single-packet jitter
                         // while staying responsive to direction changes within a few packets.
                         t.velocity.x = t.velocity.x * 0.6f + newVx * 0.4f;
                         t.velocity.y = t.velocity.y * 0.6f + newVy * 0.4f;
                         t.velocity.z = 0.0f;
                     }
                 } else {
-                    // Gap too big or zero Δt — reset velocity to avoid overshoot.
+                    // Gap too big or zero Δt - reset velocity to avoid overshoot.
                     t.velocity = RE::NiPoint3(0.0f, 0.0f, 0.0f);
                 }
             }
@@ -358,7 +358,7 @@ namespace Pulsar::NPCSync {
 
         // P3 combat-live: the NPC's own AI owns its position. We keep the lerp
         // TARGET fresh (above) for when it leaves combat, but must NOT write its
-        // position/Havok-velocity here — this per-packet (~30 Hz, throttled 200 ms)
+        // position/Havok-velocity here - this per-packet (~30 Hz, throttled 200 ms)
         // SetPosition snap was fighting the AI movement = the "jitter, can't hit
         // them" bug. Bail before any position write; TickLerp also skips them.
         if (NpcCombatAiLiveOn() && IsNpcCombatLive(actor->formID)) return true;
@@ -388,7 +388,7 @@ namespace Pulsar::NPCSync {
                 void*  setFloatFn  = vt[0x21];
                 void*  graphPtr    = graph.get();
 
-                // Intern once — BSFixedString hits a hashmap; we pay the lookup
+                // Intern once - BSFixedString hits a hashmap; we pay the lookup
                 // cost exactly once per process.
                 //
                 // This set mirrors RemotePlayerManager::DoSetPosition's clone
@@ -420,7 +420,7 @@ namespace Pulsar::NPCSync {
                 static const RE::BSFixedString kGraphDriven("bGraphDriven");
 
                 // Sarah-pattern floats: Speed and CurrentSpeed must both be
-                // the same actual-world-speed value — the anim graph blends
+                // the same actual-world-speed value - the anim graph blends
                 // locomotion weights off their agreement.
                 SafeSetGraphFloatImpl(graphPtr, setFloatFn, &kSpeed,     in.speed);
                 SafeSetGraphFloatImpl(graphPtr, setFloatFn, &kCurSpeed,  in.speed);
@@ -461,7 +461,7 @@ namespace Pulsar::NPCSync {
 
         // --- 2. Havok linear velocity ----------------------------------------
         // World-space velocity from speed + (actor yaw + body-relative heading).
-        // Bethesda forward = (sin(yaw), cos(yaw)) — matches the look-marker
+        // Bethesda forward = (sin(yaw), cos(yaw)) - matches the look-marker
         // convention documented in feedback_pitch_approaches.
         bool velApplied = false;
         if (in.speed > kVelocityEpsilon) {
@@ -485,10 +485,10 @@ namespace Pulsar::NPCSync {
 
         // Snap conditions:
         //   (a) drift exceeds 0.5 m (anim blend can't close it fast enough at
-        //       30 Hz packet rate — and client-side AI can wander the actor
+        //       30 Hz packet rate - and client-side AI can wander the actor
         //       away independently of host, which happens on companions like
         //       Sarah who follow the *client* player locally), OR
-        //   (b) velocity write failed (CC null for MiddleLow/Low-state NPCs —
+        //   (b) velocity write failed (CC null for MiddleLow/Low-state NPCs -
         //       exterior proc-gen, background crowd) AND host reports motion.
         //       Without a Havok-driven push these actors would stand still
         //       while their anim graph plays a walk cycle.
@@ -514,7 +514,7 @@ namespace Pulsar::NPCSync {
             if (canSnap) {
                 SafeSetPositionSnap(actor, in.targetPos, in.targetRotZ);
             } else {
-                // Throttled this tick — still converge yaw so we don't sit
+                // Throttled this tick - still converge yaw so we don't sit
                 // wrong-facing for up to 200 ms.
                 SafeLerpRotZ(actor, in.targetRotZ, 0.2f);
             }
@@ -594,7 +594,7 @@ namespace Pulsar::NPCSync {
         SafeForceDownwardPass(node);
     }
 
-    // SEH-wrapped raw read+write of actor->data.location / angle.z —
+    // SEH-wrapped raw read+write of actor->data.location / angle.z -
     // TickLerp runs in the hot Actor::Update path, so we guard everything.
     // Z is DELIBERATELY NOT lerped: Havok ground-clamp manages Z for non-CC
     // NPCs, and interpolating Z at 60 Hz between packet-to-packet Z deltas
@@ -606,7 +606,7 @@ namespace Pulsar::NPCSync {
             RE::NiPoint3& loc = actor->data.location;
             loc.x += (tgt.x - loc.x) * factor;
             loc.y += (tgt.y - loc.y) * factor;
-            // loc.z left untouched — see comment above.
+            // loc.z left untouched - see comment above.
             const float cur = actor->data.angle.z;
             actor->data.angle.z = cur + (tgtRotZ - cur) * factor;
             return 1;
@@ -615,7 +615,7 @@ namespace Pulsar::NPCSync {
         }
     }
 
-    // SEH-wrapped readback of a graph float var — diagnostic only.
+    // SEH-wrapped readback of a graph float var - diagnostic only.
     static float SafeReadGraphFloat(RE::Actor* actor, const RE::BSFixedString& v)
     {
         __try {
@@ -627,7 +627,7 @@ namespace Pulsar::NPCSync {
         }
     }
 
-    // SEH-wrapped readback of a graph int var — diagnostic only (GRAPH-DIAG).
+    // SEH-wrapped readback of a graph int var - diagnostic only (GRAPH-DIAG).
     static int32_t SafeReadGraphInt(RE::Actor* actor, const RE::BSFixedString& v)
     {
         __try {
@@ -642,12 +642,12 @@ namespace Pulsar::NPCSync {
     // ── crash-fix: anim-graph "settle" gate ───────────────────────────
     // A pure-virtual-call (exception 0xC0000025, STATUS_NONCONTINUABLE_EXCEPTION)
     // crashed the client when we drove a remote NPC's anim-graph while it was
-    // still mid-construction — e.g. a freshly-spawned NPC right after a
+    // still mid-construction - e.g. a freshly-spawned NPC right after a
     // no-load-screen interior door transition (NATheLodge → NAResidential02 /
     // Viewport). The graph manager exists but its behavior-graph vtable slots are
     // still pure-virtual stubs until the async .hkx finishes loading; calling
     // vt[0x21] (SetGraphFloat) then routes into the CRT _purecall handler, which
-    // is NOT SEH-catchable — our __try/__except can't save us. loadMenu does NOT
+    // is NOT SEH-catchable - our __try/__except can't save us. loadMenu does NOT
     // open for interior cell loads, so IsQuiet() can't gate it either.
     //
     // The only defense is prevention: refuse to touch the graph until the actor's
@@ -668,7 +668,7 @@ namespace Pulsar::NPCSync {
     }
 
     // crash-fix v2: global cell-transition cooldown. When the player changes
-    // cell (e.g. NATheLodge→NAResidential02 via an interior door — no loadMenu, so
+    // cell (e.g. NATheLodge→NAResidential02 via an interior door - no loadMenu, so
     // IsQuiet can't see it) the engine re-initializes nearby actors' ANIM GRAPHS
     // while their 3D stays loaded, and the remote-player clone despawns/respawns in
     // the new cell. The behavior-graph vtable is briefly pure-virtual during that
@@ -700,7 +700,7 @@ namespace Pulsar::NPCSync {
         return (now - g_playerCellChangeTick.load(std::memory_order_relaxed)) < kCellChangeCooldownMs;
     }
 
-    // (2026-06-21) — zero-G / in-space gate. In a gravity-less station (or
+    // (2026-06-21) - zero-G / in-space gate. In a gravity-less station (or
     // any space context) NPCs run the engine's FLOAT behavior graph, not the
     // ground-locomotion graph. Forcing ground-loco vars (Speed/Direction/iState…)
     // onto a float graph (a) makes the NPC "walk" instead of float = visible
@@ -758,7 +758,7 @@ namespace Pulsar::NPCSync {
     // Latch the held heading and deadband small deltas; ease in only real turns.
     static std::unordered_map<uint32_t, float> g_idleRotZLatch;
     static std::mutex                          g_idleRotZMutex;
-    constexpr float kIdleRotDeadband = 0.12f;   // rad (~6.9°) — below = fidget, hold
+    constexpr float kIdleRotDeadband = 0.12f;   // rad (~6.9°) - below = fidget, hold
 
     // Keep the latch tracking the live heading while the actor is moving, so it
     // re-pins at the correct facing the instant motion stops (no settle ease).
@@ -780,7 +780,7 @@ namespace Pulsar::NPCSync {
     }
 
     // Tick-rate graph-var writer. Extracted so it can run every actor tick
-    // instead of once per network packet — gives our writes a 60 Hz presence
+    // instead of once per network packet - gives our writes a 60 Hz presence
     // that beats the local AI's 60 Hz overrides.
     static void WriteGraphVarsImpl(RE::Actor* actor, float effectiveSpeed,
                                    float effectiveDir, uint8_t moveFlags,
@@ -790,7 +790,7 @@ namespace Pulsar::NPCSync {
         // NPC is in a quest scene, skip ALL graph-var forcing. The idle branch
         // below pins rotation (DisableAllowRotation/IsUsingCodeDrivenRotation) and
         // kills head-track (bNoHeadTrack), and relied on TickLerp's per-frame rotZ
-        // pin to hold the heading — but TickLerp is suspended for in-scene NPCs, so
+        // pin to hold the heading - but TickLerp is suspended for in-scene NPCs, so
         // that left rotation half-driven and the LISTENING NPC spun/jittered. Hand
         // the whole locomotion + look-at graph back to the local scene.
         if (actor && IsNpcInScene(actor->formID)) return;
@@ -811,7 +811,7 @@ namespace Pulsar::NPCSync {
 
         static const RE::BSFixedString kSpeed("Speed");
         // RE (reference_locomotion_graph_vars): "CurrentSpeed" is NOT a real
-        // graph var — it's absent from the engine's locomotion var table
+        // graph var - it's absent from the engine's locomotion var table
         // (0x144b34xxx), so the old kCurSpeed write was a silent no-op. The
         // smoothed-speed vars the blend tree actually samples for gait selection
         // are SpeedSampled + SpeedSmoothed. Feed both = effectiveSpeed so the
@@ -853,7 +853,7 @@ namespace Pulsar::NPCSync {
 
         // GRAPH-DIAG finding (player reference): the always-animating local player
         // reads iSyncIdleLocomotion = 1 while MOVING (Speed 5-7.7) and 0 while
-        // standing — i.e. 1 = in-locomotion, NOT "1 = idle" as the old comment
+        // standing - i.e. 1 = in-locomotion, NOT "1 = idle" as the old comment
         // claimed. We were writing it INVERTED (0 while moving), so the NPC graph
         // saw "not in locomotion" despite Speed>0 → stuck in idle / tippel-steps.
         // Match the player: 1 = moving.
@@ -899,7 +899,7 @@ namespace Pulsar::NPCSync {
 
         // P1: the combat-state vars must NOT be forced while the NPC is in
         // combat (weapon drawn). Forcing iState=10(normal)/relax/stance/gunDown/
-        // gunActions/sighted=0 every tick — post-origUpdate, so it WINS — resets
+        // gunActions/sighted=0 every tick - post-origUpdate, so it WINS - resets
         // the NPC out of combat-ready stance and suppresses ALL aim/strafe/fire
         // anim. In combat, let the engine's combat controller own these. Out of
         // combat, force the idle/normal set so a walking civilian still leaves
@@ -914,7 +914,7 @@ namespace Pulsar::NPCSync {
             SafeSetGraphIntImpl(graphPtr, setIntFn, &kSighted,           0);
         } else {
             // P3 fire-sync: the NPC's AI is blocked, so the engine won't drive
-            // its combat stance or fire — mirror the host's sampled state (moveFlags
+            // its combat stance or fire - mirror the host's sampled state (moveFlags
             // bit 0x8 = combat-aim, bit 0x4 = firing this packet, set host-side from
             // iSyncGunActions/sighted). Hold the combat-ready aim stance + pulse the
             // gun action so the client actually SEES the enemy aim and shoot.
@@ -926,13 +926,13 @@ namespace Pulsar::NPCSync {
             }
             // The actual fire is triggered by the "WeaponFire" anim EVENT
             // (NotifyFireEvent), not by writing iSyncGunActions (whose pulse value we
-            // can't replicate) — keep it cleared so no stale half-fire state lingers.
+            // can't replicate) - keep it cleared so no stale half-fire state lingers.
             SafeSetGraphIntImpl(graphPtr, setIntFn, &kGunActions, 0);
         }
 
         // NOTE: bGraphDriven write REMOVED. Setting it to 1 appeared to
         // FREEZE the anim state machine instead of enabling external drive
-        // (semantics of this var from T41 RE were unverified — likely it
+        // (semantics of this var from T41 RE were unverified - likely it
         // signals "don't run AI-graph-driver, wait for MovementController
         // agent" which we don't provide). Revert: let engine's own graph
         // drive path tick normally.
@@ -968,10 +968,10 @@ namespace Pulsar::NPCSync {
         return (NowMs() - it->second.updatedMs) <= 5000;
     }
 
-    // Forward decl — definition below (plain-C, uses __try so can't inline here).
+    // Forward decl - definition below (plain-C, uses __try so can't inline here).
     static void SetAIDisabled(RE::Actor* actor, bool disabled);
 
-    // P3 fire-sync: forward decl — sends the "WeaponFire" anim event (deep-RE
+    // P3 fire-sync: forward decl - sends the "WeaponFire" anim event (deep-RE
     // found it interned alongside iSyncGunActions) so the AI-blocked client clone
     // plays the muzzle/fire anim. Throttled. Defined after SafeNotifyGraph below.
     static void NotifyFireEvent(RE::Actor* actor, uint8_t moveFlags);
@@ -1074,7 +1074,7 @@ namespace Pulsar::NPCSync {
     }
 
     // Probe + enable DirectControl once per NPC (2 s retry on failure). No inline
-    // __try here (lock_guard present) — every faulting read goes via a helper.
+    // __try here (lock_guard present) - every faulting read goes via a helper.
     static bool EnsureNpcDirectControl(RE::Actor* actor, NpcDirectCtrl& out)
     {
         const uint32_t id = actor->formID;
@@ -1104,7 +1104,7 @@ namespace Pulsar::NPCSync {
         return true;
     }
 
-    // Engage DirectControl + drive the walk/run ANIM via SetSpeed (vt[3] — the
+    // Engage DirectControl + drive the walk/run ANIM via SetSpeed (vt[3] - the
     // clone's primitive). Position is applied separately (per-frame lerped
     // SetPosition); SetTargetPosition(vt[5]) snapped the actor onto the target
     // every tick = the visible teleport. false → faulted; caller drops it and
@@ -1121,7 +1121,7 @@ namespace Pulsar::NPCSync {
         return true;
     }
 
-    // P1: release a DirectControl-puppet NPC — drop our DC state AND give the
+    // P1: release a DirectControl-puppet NPC - drop our DC state AND give the
     // engine AI back (unblock EvaluatePackage/PerformAction). Call on death /
     // untrack so corpses can ragdoll and departed NPCs aren't left frozen.
     // SEH-safe raw clear of the IMovementDirectControl "active" flag. Enable
@@ -1163,10 +1163,10 @@ namespace Pulsar::NPCSync {
 
         // V2-Step-1c.1: never drive a DEAD actor's position. NPCSync pins the
         // corpse to the host's last position every frame (target ages out only
-        // after 5 s), holding it upright so the ragdoll/death anim can't play —
+        // after 5 s), holding it upright so the ragdoll/death anim can't play -
         // symptom: host-killed enemy is "dead but standing" on the client until a
         // local hit perturbs the physics. Drop its lerp target and let it fall.
-        // #ragdoll — also covers the kill-pending async-death gap (IsDead not true yet).
+        // #ragdoll - also covers the kill-pending async-death gap (IsDead not true yet).
         if (actor->IsDead() || IsNpcKillPending(actor->formID)) {
             {
                 std::lock_guard lk(g_targetsMutex);
@@ -1179,7 +1179,7 @@ namespace Pulsar::NPCSync {
         // V36 (2026-06-30): scripted-scene suspension. If this NPC is currently
         // in a quest scene (it recently spoke a scene line near a player), hand
         // DirectControl back to the engine and skip our position/graph apply so
-        // its LOCAL scene plays out — fixed path, scene animations, gestures and
+        // its LOCAL scene plays out - fixed path, scene animations, gestures and
         // dialogue. Both machines run the same deterministic script, so they stay
         // in sync without the puppet. g_targets keeps updating in the background,
         // so the moment the scene window lapses TickLerp resumes normal sync.
@@ -1216,7 +1216,7 @@ namespace Pulsar::NPCSync {
                 if (NpcDCExperimentOn()) ReleaseNpcDc(actor->formID);  // untracked → give AI back
                 return;
             }
-            // Prediction (dead reckoning) DISABLED 2026-04-23 — it caused
+            // Prediction (dead reckoning) DISABLED 2026-04-23 - it caused
             // visible overshoot-then-snap: velocity smoothing lagged real
             // motion, so predicted pos was consistently ahead of the next
             // real packet pos. Net visual = NPC walks forward then teleports
@@ -1273,7 +1273,7 @@ namespace Pulsar::NPCSync {
             MarkNpcCombatLive(actor->formID, combatLive);
             // diag: log combat-live ON/OFF transitions per NPC. heldOnly=1
             // means the sticky timer is bridging a weaponDrawn drop (= the flicker
-            // we are trying to ride out — if this fires a lot, flicker was the cause).
+            // we are trying to ride out - if this fires a lot, flicker was the cause).
             {
                 static std::unordered_map<uint32_t, bool> s_clState;
                 bool& prev = s_clState[actor->formID];
@@ -1301,7 +1301,7 @@ namespace Pulsar::NPCSync {
                 // NPC position toward the host's position EVERY frame, fighting the
                 // local combat AI's own locomotion → the NPC "spun in circles" and
                 // never closed on / faced the client (combat-live was confirmed stable
-                // ON in the v1b logs, so flicker was NOT the cause — this pull was).
+                // ON in the v1b logs, so flicker was NOT the cause - this pull was).
                 // Let the AI fully own position during combat; only hard-catch-up on
                 // gross desync (cell change / teleport). Positional divergence vs the
                 // host during a fight is the accepted tradeoff.
@@ -1311,7 +1311,7 @@ namespace Pulsar::NPCSync {
                 const float ddy = predicted.y - cur[1];
                 const float ddz = predicted.z - cur[2];
                 const float gap2 = ddx*ddx + ddy*ddy + ddz*ddz;
-                // v5 drift control — thread the needle between v2/v3/v4:
+                // v5 drift control - thread the needle between v2/v3/v4:
                 //   v2 (per-frame f=0.2)    → strong → fought the AI → circling.
                 //   v3 (no correction)      → drifted 15-18 units → "too far apart".
                 //   v4 (throttled 50% jump) → discrete → looked like a teleport.
@@ -1347,7 +1347,7 @@ namespace Pulsar::NPCSync {
                 return;   // AI owns anim/fire; we only weakly bias position on drift
             }
             // jog fix: feed IMovementDirectControl SetSpeed the host's
-            // authoritative graph "Speed" (smooth, in the gait-ref unit — the exact
+            // authoritative graph "Speed" (smooth, in the gait-ref unit - the exact
             // value the host NPC's engine used to pick its gait), exactly like the
             // player clone does. The Δpos velocity (dcSpeed) spikes on packet gaps,
             // and IMC turned those spikes into a jog. Fall back to dcSpeed only when
@@ -1367,7 +1367,7 @@ namespace Pulsar::NPCSync {
             const bool dcOk  = noImc ? true : DriveNpcDirectControl(actor, imcSpeed);
             MarkNpcAiBlocked(actor->formID, dcOk);
             {
-                // Move the mesh a fraction toward the target EVERY frame — this
+                // Move the mesh a fraction toward the target EVERY frame - this
                 // re-asserts all 5 layers incl. the Havok body (drift ~0.02 m,
                 // smooth). We deliberately do NOT enable IMovementDirectControl:
                 // the de-risk proved it kills the walk anim (NPCs glided but
@@ -1385,7 +1385,7 @@ namespace Pulsar::NPCSync {
                 const float gap2 = dpx * dpx + dpy * dpy + dpz * dpz;
                 // hitch fix: the rescue must ALSO fire when the MESH (Havok
                 // body world pos = data3D world.translate @ +0xB0) has drifted from
-                // target even though data.location is close — that mesh-only drift
+                // target even though data.location is close - that mesh-only drift
                 // (observed up to ~33 m) is the visible "hitch" the old data-gated
                 // rescue missed. Only pay the locked node read when the data gap is
                 // small (else we rescue on the data gap anyway).
@@ -1428,10 +1428,10 @@ namespace Pulsar::NPCSync {
                 } else {
                     pinRotZ = IdleRotLatchPin(actor->formID, tgtRotZ);
                 }
-                const float kMeshRescue = 3.0f;   // m — mesh-only drift snap threshold (tunable)
+                const float kMeshRescue = 3.0f;   // m - mesh-only drift snap threshold (tunable)
                 if (gap2 > 5.0f * 5.0f || meshGap2 > kMeshRescue * kMeshRescue) {
                     // Rescue snap: a huge gap (fresh-track / cell-change / host
-                    // teleport / mesh-only drift) is the "hitch" — the per-frame
+                    // teleport / mesh-only drift) is the "hitch" - the per-frame
                     // lerp would crawl across it visibly. One hard SetPosition
                     // catches up in a single frame; the 1-frame anim reset is fine
                     // for a rare large jump.
@@ -1457,7 +1457,7 @@ namespace Pulsar::NPCSync {
                 // Drive the locomotion ANIM from the actual ground speed, applied
                 // here (post-origUpdate) so it WINS over the local AI's idle write.
                 // The legacy TickLerp tail did this at ~line 1032, which our early
-                // return below skips — without it the anim sits at idle/slow while
+                // return below skips - without it the anim sits at idle/slow while
                 // the body glides = the "super-slow walk / floating" the NPCs showed.
                 // speedMag = derived ground velocity, clamped to the anim blend
                 // range (walk ~1.5 / run ~3.5 / sprint ~5.5).
@@ -1540,7 +1540,7 @@ namespace Pulsar::NPCSync {
                                       dcSpeed, graphSpeed);
                         }
                     }
-                    // Player reference (always animates) — once per ~10 s.
+                    // Player reference (always animates) - once per ~10 s.
                     {
                         static uint64_t s_lastPlayerDiag = 0;
                         if (nowDc - s_lastPlayerDiag >= 10000) {
@@ -1575,7 +1575,7 @@ namespace Pulsar::NPCSync {
         // Adaptive lerp: close small gaps gently so anim root-motion can
         // play, close big gaps aggressively so we don't fall so far behind
         // that SetPosition has to snap (which resets the anim state-machine
-        // and interrupts the walk cycle — user's "walk anim starts then
+        // and interrupts the walk cycle - user's "walk anim starts then
         // gets interrupted by a forward jump" symptom).
         float curData[3] = { 0, 0, 0 };
         SafeReadDataLocation(actor, curData);
@@ -1584,19 +1584,19 @@ namespace Pulsar::NPCSync {
         const float currentDriftSq = cdx * cdx + cdy * cdy;
         float useFactor = factor;
         if (currentDriftSq > 9.0f) {
-            // > 3 m gap — fresh-track or host jumped. Direct-write data.location
+            // > 3 m gap - fresh-track or host jumped. Direct-write data.location
             // instead of ramping up factor (factor > ~0.6 visibly pops); writing
             // the full value avoids multi-tick catch-up and avoids SetPosition
             // which is what breaks the anim state.
             useFactor = 1.0f;
         } else if (currentDriftSq > 0.25f) {
-            // 0.5-3 m gap — accelerate catch-up.
+            // 0.5-3 m gap - accelerate catch-up.
             useFactor = 0.5f;
         }
         SafeLerpApply(actor, predicted, tgtRotZ, useFactor);
 
         // --- Periodic SetPosition for mesh+rotation+Havok consistency ------
-        // We tried force-writing NiAVObject.world.translate every tick —
+        // We tried force-writing NiAVObject.world.translate every tick -
         // LOCO-DUMP confirmed our writes land (drift=0.00m immediately after)
         // but Havok's own thread overwrites mesh.world back from collisionObject
         // within 1-2 frames, AND mesh.world.rotation is never touched so the
@@ -1604,7 +1604,7 @@ namespace Pulsar::NPCSync {
         //
         // Only Actor::SetPosition updates all five layers atomically (data,
         // mesh.translate, mesh.rotate, Havok body, cell hashmap). Call it on
-        // a 150 ms throttle — fast enough that between calls the data-lerp +
+        // a 150 ms throttle - fast enough that between calls the data-lerp +
         // graph-var writes produce smooth visual, slow enough to stay well
         // under the Phase D v13 always-snap rate that triggered 0x30B350E.
         float meshBefore[3] = { 0, 0, 0 };
@@ -1618,16 +1618,16 @@ namespace Pulsar::NPCSync {
                 meshReadOk = true;
             }
         }
-        // SetPosition snap — only when drift exceeds threshold AND throttle
+        // SetPosition snap - only when drift exceeds threshold AND throttle
         // allows. Unconditional 150 ms snaps caused visible "light teleport"
         // at user-perception level even when drift was < 0.2 m. With a drift
         // gate, snaps fire only when something real has gone wrong (cell
-        // change, packet gap, or host NPC teleport) — smooth frames get no
+        // change, packet gap, or host NPC teleport) - smooth frames get no
         // snap, just the 60 Hz lerp + origUpdate pipeline.
         {
             // root-cause fix: gate on MESH drift, not data.location drift.
             // The adaptive lerp above writes data.location≈predicted every tick,
-            // so a data-vs-predicted gate reads ≈0 and the snap NEVER fires — yet
+            // so a data-vs-predicted gate reads ≈0 and the snap NEVER fires - yet
             // the visible MESH gets parked metres away (Havok overwrites
             // mesh.world from the collisionObject and never lets go), which is the
             // client jitter. meshBefore (read above) vs predicted is what actually
@@ -1640,7 +1640,7 @@ namespace Pulsar::NPCSync {
                 const float dz = meshBefore[2] - predicted.z;
                 driftSq = dx * dx + dy * dy + dz * dz;
             } else {
-                // Mesh unreadable (no 3D yet) — fall back to data.location so a
+                // Mesh unreadable (no 3D yet) - fall back to data.location so a
                 // truly stuck actor is still rescued; rare.
                 float cur[3] = { 0, 0, 0 };
                 SafeReadDataLocation(actor, cur);
@@ -1713,7 +1713,7 @@ namespace Pulsar::NPCSync {
         // Effective speed from *derived* velocity, CLAMPED to the sane
         // human-actor range. Even with discontinuity-rejection in
         // ApplyLocomotion, smoothing can still transiently produce values
-        // above sprint — clamp hard so the anim blend tree stays in the
+        // above sprint - clamp hard so the anim blend tree stays in the
         // defined speed range (walk ≈ 1.5, run ≈ 3.5, sprint ≈ 5.5).
         float speedMag = std::sqrt(vx * vx + vy * vy);
         if (speedMag > 6.0f) speedMag = 6.0f;
@@ -1763,13 +1763,13 @@ namespace Pulsar::NPCSync {
     // Same logic as the one inside TickLerp, but designed to be called BEFORE
     // g_origActorUpdate. The engine's anim-graph tick reads graph vars during
     // origUpdate; if we write after, our values lag by one frame and the
-    // walk-cycle transition never commits. Pre-writing closes that gap — the
+    // walk-cycle transition never commits. Pre-writing closes that gap - the
     // anim tick sees Speed=1.5 etc. in the SAME frame we set them, so the
     // blend tree enters the walk state immediately.
     void PreTickWriteGraphVars(RE::Actor* actor)
     {
         if (!actor) return;
-        // P3 combat-live: this NPC's own AI drives its anim — do NOT force our
+        // P3 combat-live: this NPC's own AI drives its anim - do NOT force our
         // graph vars (Speed/Direction/iState) on top, that fought the AI and made
         // it jitter / hard to hit. Let the AI own the whole anim+position.
         if (NpcCombatAiLiveOn() && IsNpcCombatLive(actor->formID)) return;
@@ -1795,7 +1795,7 @@ namespace Pulsar::NPCSync {
 
         float speedMag = std::sqrt(velocity.x * velocity.x +
                                    velocity.y * velocity.y);
-        if (speedMag > 6.0f) speedMag = 6.0f;   // clamp — see TickLerp comment
+        if (speedMag > 6.0f) speedMag = 6.0f;   // clamp - see TickLerp comment
         float direction = 0.0f;
         if (speedMag > 0.1f) {
             float curYaw = 0.0f;
@@ -1815,7 +1815,7 @@ namespace Pulsar::NPCSync {
     // return 0;`). Effect: tracked NPCs' MC::Update becomes a no-op, which
     // stops engine AI-driven movement + navmesh pathing without needing to
     // install a full DirectControl MovementAgent (that path is polymorphic
-    // via IBSTCreator registry, not cleanly reachable — see T117-T119).
+    // via IBSTCreator registry, not cleanly reachable - see T117-T119).
     //
     // Anim graph tick runs via the renderer pipeline, not via MC::Update,
     // so walk anim still plays driven by our graph-var writes.
@@ -1850,7 +1850,7 @@ namespace Pulsar::NPCSync {
 
     // P3 fire-sync: mirror the host NPC's weapon fire on the AI-blocked client
     // clone. Deep-RE (FIRE_RE) found "WeaponFire" is an interned graph EVENT (set via
-    // FUN_1428cfb80 alongside iSyncGunActions) — so the proper trigger is the anim
+    // FUN_1428cfb80 alongside iSyncGunActions) - so the proper trigger is the anim
     // event, NOT writing the iSyncGunActions int (whose pulse value 23/34/44 we'd
     // have had to guess). moveFlags bit 0x4 = host is firing this packet. Throttle to
     // a plausible cadence so sustained fire (bit stays set across 30Hz packets) plays
@@ -1867,7 +1867,7 @@ namespace Pulsar::NPCSync {
             if (now - last < 150) return;   // ~6-7 shots/s cap
             last = now;
         }
-        // RE pass 2 (FIRE_RE2): "WeaponFire" Notify returned 0 (rejected — it's a
+        // RE pass 2 (FIRE_RE2): "WeaponFire" Notify returned 0 (rejected - it's a
         // var, not a consumable event). The real attack/fire anim is driven by the
         // "AttackWinStart" event (attack-window open @0x144B30A10). Send that; log
         // both rc's so we can confirm which the graph accepts.

@@ -24,16 +24,16 @@ namespace Pulsar::RemotePlayer::EquipSync
     // graph re-init exists.
     // 2026-06-20: BOTH armor + weapon ON, downed-gates removed. Testing the
     // hypothesis that the weapon-holster graph kick is what PLAYS the (armor-frozen)
-    // bleedout anim — the gate-only builds (weapon OFF) blocked it; the weapon-ON
+    // bleedout anim - the gate-only builds (weapon OFF) blocked it; the weapon-ON
     // build played it. If both-on shows the bleedout, weapon sync was the enabler.
     inline constexpr bool kSyncArmor   = true;
     inline constexpr bool kSyncWeapons = true;
 
-    // Game thread (Main.cpp tick, connected only) — collects the local
+    // Game thread (Main.cpp tick, connected only) - collects the local
     // player's equipment, sends PKT_EQUIP_V2 on change / heartbeat.
     void TickSendLocalEquipment();
 
-    // ENet receive thread — parses PKT_EQUIP_V2, resolves cross-plugin and
+    // ENet receive thread - parses PKT_EQUIP_V2, resolves cross-plugin and
     // queues the set for the game-thread apply in RemotePlayerManager.
     void OnEquipV2Received(const std::uint8_t* a_data, std::size_t a_length);
 }

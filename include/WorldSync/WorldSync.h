@@ -12,7 +12,7 @@ namespace RE { class TESObjectCELL; }
 
 namespace Pulsar::WorldSync {
 
-    // L.7 V12 — internal helper for pre-load clear (kept here so C2712 doesn't
+    // L.7 V12 - internal helper for pre-load clear (kept here so C2712 doesn't
     // hit the caller).
     void detail_ClearPlayerPreLoadFlag(RE::PlayerCharacter* a_player);
 
@@ -21,7 +21,7 @@ namespace Pulsar::WorldSync {
         WAITING_FOR_SAVE,      // Connected, waiting for PKT_SAVE_TRANSFER
         SAVE_RECEIVED,         // Save received, writing to disk
         PENDING_TRIGGER,       // Save written, waiting for main menu before triggering load
-        PENDING_QUIT_FADE,     // L.7 V11 — QuitToMainMenu fired, waiting for fade-out
+        PENDING_QUIT_FADE,     // L.7 V11 - QuitToMainMenu fired, waiting for fade-out
         LOADING,               // Load queued, waiting for game to finish loading
         LOADED                 // Host save loaded, sync active
     };
@@ -38,7 +38,7 @@ namespace Pulsar::WorldSync {
 
     // GetTickCount64 timestamp of when LOADING→LOADED last transitioned.
     // 0 means no load has completed. Used by Main.cpp to gate teleport /
-    // SetPosition calls during the post-load chaos window — engine is still
+    // SetPosition calls during the post-load chaos window - engine is still
     // cell-streaming + actor-init for several seconds after LOADED fires.
     std::uint64_t GetLastLoadCompletedTick();
 
@@ -55,7 +55,7 @@ namespace Pulsar::WorldSync {
 
     // L.7 kAutoSave (bit 0x1) variant for landing-cinematic post-flip
     // window. Empirical test 2026-05-06: TriggerHostQuicksave (bit 0x8)
-    // silent-fails post-landing — engine clears the bit but never writes a
+    // silent-fails post-landing - engine clears the bit but never writes a
     // .sfs file. Engine's own disembark-autosave uses bit 0x1, which works
     // in this state, so we set 0x1 + 0x8 = 0x9 to maximize chances.
     bool TriggerHostAutoSave();
@@ -69,11 +69,11 @@ namespace Pulsar::WorldSync {
     // L.7 set bit 0x10 (= kQuickLoad) in BGSSaveLoadManager::queuedTasks.
     // Engine's queue processor will load the most-recent save on next game tick.
     bool TriggerQuickLoad();
-    // Set bit 0x8 (= kQuickSave) — same as TriggerHostQuicksave but from any
+    // Set bit 0x8 (= kQuickSave) - same as TriggerHostQuicksave but from any
     // role (host or client). Used in the post-bridge save-load reset cycle.
     bool TriggerQuickSave();
 
-    // Direct dispatcher call (REL::ID 98640) — saves with custom name.
+    // Direct dispatcher call (REL::ID 98640) - saves with custom name.
     // mode=1 → save with type. Use only when game is in fully stable state.
     bool TriggerHostCustomSaveDirect(const char* name);
 
@@ -86,25 +86,25 @@ namespace Pulsar::WorldSync {
     // BSTGlobalEvent<class_TakeoffMenu_ExitShip> source + sets DAT_145edbe75=1).
     //
     // Used post save-load on client to clear the host-save's "I am piloting"
-    // engine state — chair-unseat alone leaves the spaceship pilot binding
+    // engine state - chair-unseat alone leaves the spaceship pilot binding
     // intact and locks the client in ship-control mode (per RE 12:00).
     // Caller-side: only meaningful when client is currently inside a ship
     // (player->GetSpaceship() != null) and just finished a save-bridge load.
     bool TriggerExitShip();
 
-    // L.7 Path A.4 — engine's full pilot-binding release via
+    // L.7 Path A.4 - engine's full pilot-binding release via
     // FUN_141aeb6f0 (RVA 0xAEB190). Calls FUN_142119780 to fetch the
     // pilot binding context, then FUN_14211cbf0 to do the full 673-byte
     // release which fires BGSActionData and unbinds the ship-control
     // input map (the layer that keeps the client steering the ship even
     // when not seated). MUST be called BEFORE clearing actor+0x37c bit
-    // 4 — the wrapper gates on that bit. Verified via Ghidra
+    // 4 - the wrapper gates on that bit. Verified via Ghidra
     // _PilotReleaseFn_decomp.txt.
     bool TriggerEnginePilotRelease();
 
-    // L.7 V11 — call the engine's QuitToMainMenu native (RVA 0x14200F4A0) to
+    // L.7 V11 - call the engine's QuitToMainMenu native (RVA 0x14200F4A0) to
     // force the engine into main-menu state. Used on the client before a
-    // mid-game save-load to bypass the engine 2nd-mid-game-save-load bug —
+    // mid-game save-load to bypass the engine 2nd-mid-game-save-load bug -
     // a load from main-menu state is the "always works" path.
     bool TriggerEngineQuitToMainMenu();
 
@@ -118,7 +118,7 @@ namespace Pulsar::WorldSync {
     // parentCell (= same persistent ship-interior cell), restore the
     // pre-load pos instead of teleporting onto the host.
     //
-    // Extensibility — when dual-ship lands (host and client each own a
+    // Extensibility - when dual-ship lands (host and client each own a
     // different ship), DetermineRestoreStrategy will gain a kOwnShipMoveTo
     // branch: pre-load cell is the non-pilot's OWN ship interior, post-
     // load cell is the host's ship → MoveTo own ship cell, then SetPosition

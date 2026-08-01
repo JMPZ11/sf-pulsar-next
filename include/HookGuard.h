@@ -6,7 +6,7 @@ namespace Pulsar::HookGuard {
 
     // Global "hooks safe to run" flag. When false, every PULSAR hook should
     // forward to the original engine function and bail out without doing any
-    // PULSAR-side work — preventing UAF on stale Actor*/REFR* pointers during
+    // PULSAR-side work - preventing UAF on stale Actor*/REFR* pointers during
     // engine save-load and cell-streaming chaos.
     //
     // Set to false on PKT_SAVE_TRANSFER receive (client) or before any other

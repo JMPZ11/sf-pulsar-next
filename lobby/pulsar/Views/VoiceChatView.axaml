@@ -37,7 +37,7 @@
                               ItemsSource="{Binding InputDevices}"
                               SelectedItem="{Binding InputDevice}"
                               PlaceholderText="Default microphone" />
-                    <TextBlock Text="Live input (speak — the bar should move)" />
+                    <TextBlock Text="Live input (speak - the bar should move)" />
                     <ProgressBar Minimum="0" Maximum="100" Value="{Binding MicLevel}" Height="10" />
                     <TextBlock Text="Mic volume" />
                     <Slider Minimum="0" Maximum="2" Value="{Binding InputVolume}" />

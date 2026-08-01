@@ -1,4 +1,4 @@
-# PULSAR Lobby Tool v2 — Design Spec
+# PULSAR Lobby Tool v2 - Design Spec
 
 **Datum:** 2026-06-16
 **Ziel:** Das Lobby-Tool (`PulsarLobby.exe`) idiotensicher + sicher machen:
@@ -32,7 +32,7 @@ Companion/Modul-Logs (Dev-seitig) bleiben wie sind.
   `RegisterAccount(name)`; Reducer-Event-Status auswerten → `pulsar_ack.json`
   `{ok:true}` bzw. `{ok:false,error:"name taken"}`. (cmdId-Matching wie bei host/join.)
 - **GUI:** Feld „Player name" + Button **„Claim name"**. Erfolg → grün
-  „✓ You are 'Banso'"; belegt → rot „Name taken — choose another". Name wird
+  „✓ You are 'Banso'"; belegt → rot „Name taken - choose another". Name wird
   lokal gemerkt (auto-fill). **Host/Join bleiben gesperrt bis Name geclaimed.**
 
 ## 3. Server-Feld + Auto-Relay + History
@@ -65,7 +65,7 @@ Companion/Modul-Logs (Dev-seitig) bleiben wie sind.
 - **GUI-Browser:** Spalte „Host (IP)" **entfällt** komplett. Auswahl per Lobby-Name;
   Verbindung läuft über die Session. Niemand (auch kein STDB-Schnüffler) sieht eine
   Host-IP.
-- Direkt/LAN-Modus (Relay leer) teilt weiterhin die private LAN-IP — opt-in, geringes Risiko.
+- Direkt/LAN-Modus (Relay leer) teilt weiterhin die private LAN-IP - opt-in, geringes Risiko.
 
 ## 5. QoL / Idiotensicher
 - **Nichts neu tippen:** Name, Server/Relay-History, Starfield-Pfad, Auto-Launch persistent.
@@ -76,7 +76,7 @@ Companion/Modul-Logs (Dev-seitig) bleiben wie sind.
 - **Friendly errors:** Eingaben validieren (Server-Format); Connect-/Reducer-Fehler als
   Klartext statt Exceptions.
 - **Status-Zeile:** „Connected · You are 'Banso'" (farbig). Leere Liste:
-  „No open lobbies — host one!".
+  „No open lobbies - host one!".
 
 ## Protokoll-Ergänzung (Companion serve)
 - `{"action":"register","cmdId":"…","name":"…"}` → ack `{cmdId,ok,error?}`.
@@ -89,13 +89,13 @@ Companion/Modul-Logs (Dev-seitig) bleiben wie sind.
 
 ## Sicherheit
 - Host-IP nie öffentlich (relay-Modus). Name an Maschinen-Identität (DPAPI-Token)
-  gebunden — kein echtes Konto (OIDC = Tier-2). Relay-Auth/Rate-Limit weiterhin Tier-2.
+  gebunden - kein echtes Konto (OIDC = Tier-2). Relay-Auth/Rate-Limit weiterhin Tier-2.
 
 ## Tests
 - **Modul:** zwei Identitäten claimen denselben Namen → 2. wird abgelehnt (sql/CLI prüfen).
 - **Companion:** `register`-cmd → ack ok; nochmal mit fremdem Namen → ack taken.
   host im relay-Modus → Lobby hat `HostAddr=""` (sql), `lobbies.json` ohne IP.
-- **GUI:** baut; manuell — Claim-Flow, History-Persistenz, gesperrte Buttons, keine IP-Spalte.
+- **GUI:** baut; manuell - Claim-Flow, History-Persistenz, gesperrte Buttons, keine IP-Spalte.
 - **Integration:** voller 2-Spieler-Flow weiter grün (Relay live).
 
 ## Out of Scope (später)

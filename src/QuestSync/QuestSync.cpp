@@ -22,7 +22,7 @@ using namespace std::string_view_literals;
 namespace Pulsar::QuestSync {
 namespace {
 
-    // L.8 Phase 1 — native TESQuest stage-set worker. Verified 2026-05-09 via
+    // L.8 Phase 1 - native TESQuest stage-set worker. Verified 2026-05-09 via
     // Ghidra wrapper-chain decompile (FUN_1420CF3A0 Papyrus → FUN_1420D54D0
     // inner → FUN_140D0E1F0 core). Clean signature, no Papyrus VM dependency.
     // The worker:
@@ -39,14 +39,14 @@ namespace {
 
     static SetStageWorker_t g_origSetStage = nullptr;
 
-    // L.8 Phase 2 — TESQuest::Start engine core. RE'd 2026-05-09 (Ghidra
+    // L.8 Phase 2 - TESQuest::Start engine core. RE'd 2026-05-09 (Ghidra
     // sub-agent): only call site of the StartStopEvent Notify wrapper
     // FUN_140B984F0 in the entire binary. Sets +0x114 |= 0x80 (priming),
     // expands aliases/objectives, clears bit 7, sets *outOk=1, fires
     // BSTEventSource<TESQuestStartStopEvent>::Notify(formID, started=1).
     // Signature: param_1 = QuestStartCtx* (caller frame, not portable),
     // param_2 = TESQuest** (deref to get the quest), param_3 = byte* outOk.
-    // We hook only for TX broadcast — RX does NOT replay this because
+    // We hook only for TX broadcast - RX does NOT replay this because
     // QuestStartCtx is caller-frame state we can't reconstruct on the peer.
     // Phase 1 stage sync triggers quest-start naturally on the peer when
     // the initial-stage scripts run (Bethesda's standard pattern).
@@ -54,7 +54,7 @@ namespace {
     static constexpr std::uintptr_t kRVA_StartWorker = 0xEEF850;
     static StartWorker_t g_origStart = nullptr;
 
-    // L.8 Phase 2 — TESQuest::Stop engine core. RE'd 2026-05-09 (Ghidra
+    // L.8 Phase 2 - TESQuest::Stop engine core. RE'd 2026-05-09 (Ghidra
     // sub-agent): clean (TESQuest*, char) signature. Walks aliases,
     // clears +0x114 bit 0 (running flag), calls vt[0xb8](this, 2), fires
     // stage event via FUN_140CF2DF0 Notify, then if param_2 != 0 calls
@@ -68,7 +68,7 @@ namespace {
     // worker, which still fires TESQuestStageEvent locally (and thus our hook
     // re-fires recursively because the hook IS the worker). The flag tells
     // the broadcast path to skip emission so we don't loop {RX → worker →
-    // hook → broadcast → peer → RX → ...}. Per-thread atomic — Network and
+    // hook → broadcast → peer → RX → ...}. Per-thread atomic - Network and
     // game-thread can both hit the worker.
     static thread_local bool tls_applyingRemoteStage = false;
     static thread_local bool tls_applyingRemoteStop  = false;
@@ -82,14 +82,14 @@ namespace {
     static std::unordered_map<std::uint32_t, std::uint8_t> s_lastStartStop;
 
     // Drop duplicate stage broadcasts. Useful because some quests call
-    // SetCurrentStageID on the SAME stage (the engine path is idempotent —
+    // SetCurrentStageID on the SAME stage (the engine path is idempotent -
     // worker returns true if scripts ran, and they may run multiple times
     // per stage e.g. across save/load). Keyed by quest formID, valued by
     // last-broadcast stageID. Reset() clears so reconnects don't suppress.
     static std::mutex                                s_lastSeenMutex;
     static std::unordered_map<std::uint32_t, std::uint16_t> s_lastSeenStage;
 
-    // Raw +0x28 read for TESForm.formID — verified universal offset on
+    // Raw +0x28 read for TESForm.formID - verified universal offset on
     // 1.16.236 (memory/reference_formid_offset.md). Avoids vt-call on a
     // potentially mid-mutation TESQuest from inside the hook body.
     static std::uint32_t RawFormID(const void* form) noexcept
@@ -99,7 +99,7 @@ namespace {
             static_cast<const std::uint8_t*>(form) + 0x28);
     }
 
-    // Forward declarations — bodies live near the bottom of this namespace
+    // Forward declarations - bodies live near the bottom of this namespace
     // (kept down there because they wrap raw worker calls in __try, and
     // C2712 forbids __try anywhere upstream of std::lock_guard scopes).
     static bool          SafeCallOrigSetStage(RE::TESQuest* quest, std::uint16_t stage) noexcept;
@@ -110,7 +110,7 @@ namespace {
 
     static void BroadcastStage(std::uint32_t questFormID, std::uint16_t stageID)
     {
-        // Skip if peer not connected — saves serialization cost and the
+        // Skip if peer not connected - saves serialization cost and the
         // s_lastSeen book-keeping is irrelevant when nobody listens.
         auto& net = Pulsar::Network::GetSingleton();
         if (!net.IsConnected()) return;
@@ -138,7 +138,7 @@ namespace {
             questFormID, stageID);
     }
 
-    // Hook body — runs in place of the engine's worker. Calls original
+    // Hook body - runs in place of the engine's worker. Calls original
     // first so the engine state advances exactly as it would have without
     // the hook, then broadcasts if (a) original succeeded and (b) we're
     // not currently applying a remote update.
@@ -148,7 +148,7 @@ namespace {
 
         if (!result) return result;
 
-        // EventTrace — every local quest-stage change, named, even when solo or
+        // EventTrace - every local quest-stage change, named, even when solo or
         // when this is a remote-applied set. The single richest signal for
         // quest-progress sync design.
         if (quest) {
@@ -168,7 +168,7 @@ namespace {
         return result;
     }
 
-    // Phase 2 — broadcast helper for Start/Stop. Dedupes via s_lastStartStop
+    // Phase 2 - broadcast helper for Start/Stop. Dedupes via s_lastStartStop
     // map so the same transition isn't broadcast twice.
     static void BroadcastStartStop(std::uint8_t pktType, std::uint32_t formID,
                                    std::uint16_t flag)
@@ -200,7 +200,7 @@ namespace {
             flag);
     }
 
-    // Phase 2 — TESQuest::Start hook. Calls orig, then broadcasts on TX
+    // Phase 2 - TESQuest::Start hook. Calls orig, then broadcasts on TX
     // path. Note: NO echo-suppression flag is used here because we never
     // replay this function on RX (caller-frame ctx is non-portable).
     static void __fastcall HookedStart(void* ctx, RE::TESQuest** questPtr, char* outOk)
@@ -219,7 +219,7 @@ namespace {
         BroadcastStartStop(Pulsar::Network::PKT_QUEST_START, formID, 0);
     }
 
-    // Phase 2 — TESQuest::Stop hook. Calls orig, then broadcasts unless
+    // Phase 2 - TESQuest::Stop hook. Calls orig, then broadcasts unless
     // we're currently applying a remote stop (echo suppression). param_2
     // is forwarded as the payload flag so the receiver can distinguish
     // hard-stop (1+) from quiet cleanup (0).
@@ -289,7 +289,7 @@ void Init()
 {
     if (s_initDone.exchange(true)) return;
 
-    // Resolve via raw RVA — no stable REL::ID for FUN_140D0E1F0 known.
+    // Resolve via raw RVA - no stable REL::ID for FUN_140D0E1F0 known.
     // Pattern matches LootSync M.2 V3 (AddObjInner @ raw 0xB4CBC0).
     std::uintptr_t moduleBase =
         REX::FModule::GetExecutingModule().GetBaseAddress();
@@ -319,7 +319,7 @@ void Init()
         reinterpret_cast<std::uintptr_t>(fn),
         kRVA_SetStageWorker);
 
-    // Phase 2 — Start hook. RVA 0xEEF850.
+    // Phase 2 - Start hook. RVA 0xEEF850.
     {
         void* startFn = reinterpret_cast<void*>(moduleBase + kRVA_StartWorker);
         MH_STATUS sst = MH_CreateHook(
@@ -346,7 +346,7 @@ void Init()
         }
     }
 
-    // Phase 2 — Stop hook. RVA 0xCF9970.
+    // Phase 2 - Stop hook. RVA 0xCF9970.
     {
         void* stopFn = reinterpret_cast<void*>(moduleBase + kRVA_StopWorker);
         MH_STATUS sst = MH_CreateHook(
@@ -410,7 +410,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
         auto* form = RE::TESForm::LookupByID(d.questFormID);
         if (!form) {
             PLOG_INFO(
-                "[PULSAR] QuestSync RX: quest 0x{:08X} not loaded — drop"sv,
+                "[PULSAR] QuestSync RX: quest 0x{:08X} not loaded - drop"sv,
                 d.questFormID);
             return;
         }
@@ -418,7 +418,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
         // could theoretically resolve to a different type).
         if (form->GetFormType() != RE::FormType::kQUST) {
             PLOG_WARN(
-                "[PULSAR] QuestSync RX: 0x{:08X} resolved as type {} not QUST — drop"sv,
+                "[PULSAR] QuestSync RX: 0x{:08X} resolved as type {} not QUST - drop"sv,
                 d.questFormID, static_cast<int>(form->GetFormType()));
             return;
         }
@@ -442,7 +442,7 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
         return;
     }
 
-    // PKT_QUEST_START — Phase 2. RX intentionally log-only: the engine
+    // PKT_QUEST_START - Phase 2. RX intentionally log-only: the engine
     // Start core (FUN_140EEFEE0) takes a caller-frame QuestStartCtx that
     // we can't reconstruct on the peer. Practical observation: most
     // quests start naturally on the receiver via Phase 1 stage sync (the
@@ -462,13 +462,13 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
         }
 
         PLOG_INFO(
-            "[PULSAR] QuestSync RX: quest=0x{:08X} START (peer started — "
+            "[PULSAR] QuestSync RX: quest=0x{:08X} START (peer started - "
             "relying on stage-cascade for local apply)"sv,
             d.questFormID);
         return;
     }
 
-    // PKT_QUEST_STOP — Phase 2. RX replays via TESQuest::Stop core
+    // PKT_QUEST_STOP - Phase 2. RX replays via TESQuest::Stop core
     // (FUN_140CFA0A0) with clean (TESQuest*, char) signature. Echo
     // suppression flag prevents the orig's StartStopEvent Notify from
     // re-broadcasting back to the peer.
@@ -489,13 +489,13 @@ void OnPacketReceived(const std::uint8_t* data, std::size_t length)
         auto* form = RE::TESForm::LookupByID(d.questFormID);
         if (!form) {
             PLOG_INFO(
-                "[PULSAR] QuestSync RX: stop quest 0x{:08X} not loaded — drop"sv,
+                "[PULSAR] QuestSync RX: stop quest 0x{:08X} not loaded - drop"sv,
                 d.questFormID);
             return;
         }
         if (form->GetFormType() != RE::FormType::kQUST) {
             PLOG_WARN(
-                "[PULSAR] QuestSync RX: 0x{:08X} resolved as type {} not QUST — drop"sv,
+                "[PULSAR] QuestSync RX: 0x{:08X} resolved as type {} not QUST - drop"sv,
                 d.questFormID, static_cast<int>(form->GetFormType()));
             return;
         }

@@ -23,7 +23,7 @@ using namespace std::string_view_literals;
 
 namespace Pulsar::Profile {
 
-    // Phase C0 — SEH-isolated perk walk. Mirrors DirectRestore::WalkPerks: the
+    // Phase C0 - SEH-isolated perk walk. Mirrors DirectRestore::WalkPerks: the
     // perk array can be mid-mutation right after a bridge, and __try cannot share
     // a function with C++ unwinding objects, so this fills a POD buffer that
     // CaptureProfile then copies into ProfilePerk records (with strings) outside
@@ -45,7 +45,7 @@ namespace Pulsar::Profile {
         }
     }
 
-    // Powers (gap #2) — SEH-isolated walk of the actor's added-spell array
+    // Powers (gap #2) - SEH-isolated walk of the actor's added-spell array
     // (begin=*(actor+0x2c8), end=*(actor+0x2d0), SpellItem* entries) filtered to
     // power-type spells. In Starfield the Starborn powers are SpellType **kSpell(0)**
     // (verified: a 24-power char's list had exactly 24 type-0 spells; type-4 kAbility
@@ -83,7 +83,7 @@ namespace Pulsar::Profile {
     // REL::Relocation inside a __try frame trips C2712 (its init-guard needs unwinding).
     static REL::Relocation<std::uintptr_t*> g_researchMgrGlobal{ REL::Offset(0x61E26A0) };
 
-    // Research (2026-06-19, gap #1) — walk the research-manager's std::map and
+    // Research (2026-06-19, gap #1) - walk the research-manager's std::map and
     // collect the formIDs of COMPLETED projects (state byte == 2). RE'd + in-game
     // verified: singleton global @ RVA 0x61E26A0; map @ mgr+0x18; MSVC _Tree node:
     // _Left@+0x00 _Parent@+0x08 _Right@+0x10 _Isnil@+0x19 key(formID)@+0x20
@@ -128,7 +128,7 @@ namespace Pulsar::Profile {
         return total;
     }
 
-    // Phase C0 — unspent skill points live at PlayerCharacter + 0xF60 (same offset
+    // Phase C0 - unspent skill points live at PlayerCharacter + 0xF60 (same offset
     // DirectRestore reads). SEH-isolated single read.
     static bool SafeReadSkillPoints(RE::PlayerCharacter* a_player,
                                     std::uint32_t& a_out) noexcept
@@ -142,7 +142,7 @@ namespace Pulsar::Profile {
         }
     }
 
-    // V3 (2026-06-19) — read the player's character level via the player's NPC
+    // V3 (2026-06-19) - read the player's character level via the player's NPC
     // (TESActorBaseData::GetLevel). SEH-isolated: GetNPC()/As<> + the engine call
     // can touch a mid-bridge-mutating actor. Returns 0 on failure. INSTRUMENTATION
     // STEP: we log this to verify it returns hall's real level before building
@@ -356,7 +356,7 @@ namespace Pulsar::Profile {
 
     static constexpr uint32_t kCreditsFormID = 0x0000000F;  // see DirectRestore.cpp:678
 
-    // Phase C3 (co-op gains) — the authoritative DB profile this dbAuth session
+    // Phase C3 (co-op gains) - the authoritative DB profile this dbAuth session
     // restored FROM. The gains-capture starts from THIS (frozen, faithful) and
     // applies only the session delta on top, so existing items/mods/perks/credits
     // never drift. Set by ApplyProfileData at a dbAuth join; consumed by
@@ -368,7 +368,7 @@ namespace Pulsar::Profile {
     ///LATEST clean (host-free, not-downed) capture this session = the both-down
     // recovery source. Updated on every clean capture (both bootstrap AND dbAuth) so a
     // both-down restores the client's CURRENT progress (items/level/XP/skills/powers), not the
-    // frozen join state — within-session gains survive the game-over reload (≤ capture cadence
+    // frozen join state - within-session gains survive the game-over reload (≤ capture cadence
     // loss). NOT updated during the both-down/reload poison window (host save loaded) so a
     // host-bridged capture can't overwrite the good snapshot. Game-thread only.
     static ProfileData g_lastCleanBaseline;
@@ -410,7 +410,7 @@ namespace Pulsar::Profile {
             // snapshot cancels host items only if they're present at snapshot time;
             // one that leaks back into live AFTER the snapshot would otherwise look
             // exactly like a looted gain (snapCount=0, delta>0 → added). Skip it
-            // entirely — leave merged at the client's DB baseline for this form.
+            // entirely - leave merged at the client's DB baseline for this form.
             if (a_foreign.count(L.formID)) continue;
             liveSeen[L.formID] = true;
             auto snapIt = a_snap.find(L.formID);
@@ -429,7 +429,7 @@ namespace Pulsar::Profile {
         }
         // Items present at snapshot but gone now → consumed/dropped this session.
         for (const auto& [fid, cnt] : a_snap) {
-            if (a_foreign.count(fid)) continue;              // #poison — never let a host form move the count
+            if (a_foreign.count(fid)) continue;              // #poison - never let a host form move the count
             if (liveSeen.count(fid)) continue;
             auto it = merged.find(fid);
             if (it != merged.end()) it->second.count -= static_cast<int32_t>(cnt);
@@ -446,13 +446,13 @@ namespace Pulsar::Profile {
     // DirectRestore seed at line ~420; it no longer applies items itself). The
     // mod RE-APPLY lives in DirectRestore.cpp behind ITS own
     // kApplyModsOnRestore, which is now ENABLED and drives the engine's native
-    // attach (LootSync::AttachItemModsNative — fixed 2026-06-18). The blob
+    // attach (LootSync::AttachItemModsNative - fixed 2026-06-18). The blob
     // round-trips the mod arrays for the seed. Kept here only to document the
     // history; this constant is not read anywhere.
     static constexpr bool kApplyModsOnRestore = false;
 
     // Credits APPLY is gated off too: AddObjectToContainer does NOT drive money
-    // (DirectRestore.cpp:678 — null-extra add zeroed credits). Credits are still
+    // (DirectRestore.cpp:678 - null-extra add zeroed credits). Credits are still
     // captured into the blob; re-enable once a proper money API is RE'd.
     static constexpr bool kApplyCreditsOnRestore = false;
 
@@ -518,14 +518,14 @@ namespace Pulsar::Profile {
             return RE::BSContainer::ForEachResult::kContinue;
         });
 
-        // O2 — exact pattern from DirectRestore.cpp:511-519.
+        // O2 - exact pattern from DirectRestore.cpp:511-519.
         if (auto* o2av = RE::TESForm::LookupByEditorID<RE::ActorValueInfo>(
                 RE::BSFixedString("Oxygen"))) {
             data.o2     = player->GetActorValue(*o2av);
             data.o2Max  = player->GetPermanentActorValue(*o2av);
             data.o2Base = player->GetBaseActorValue(*o2av);   // Phase C: the value DirectRestore restores
         }
-        // v3 (A Phase 1) — level-derived survivability BASE (no mods), mirrors
+        // v3 (A Phase 1) - level-derived survivability BASE (no mods), mirrors
         // DirectRestore's Health/CarryWeight capture so the profile is complete.
         if (auto* hp = RE::TESForm::LookupByEditorID<RE::ActorValueInfo>(
                 RE::BSFixedString("Health"))) {
@@ -536,7 +536,7 @@ namespace Pulsar::Profile {
             data.carryWeightBase = player->GetBaseActorValue(*cw);
         }
 
-        // Phase C0 — perks/skills (the real "progress") + unspent skill points, so
+        // Phase C0 - perks/skills (the real "progress") + unspent skill points, so
         // the DB profile is a COMPLETE restore source for Phase C. SEH-isolated walk
         // fills a POD buffer; T34 plugin encoding (reserved) happens here outside __try.
         {
@@ -554,7 +554,7 @@ namespace Pulsar::Profile {
             if (SafeReadSkillPoints(player, sp)) data.skillPoints = sp;
         }
 
-        // Powers (gap #2) — capture the player's power-type spells (Starborn/lesser/
+        // Powers (gap #2) - capture the player's power-type spells (Starborn/lesser/
         // voice powers). Deduped (the array can briefly hold transient duplicates).
         {
             std::vector<std::uint32_t> pw;
@@ -564,9 +564,9 @@ namespace Pulsar::Profile {
             }
         }
 
-        // Research (gap #1) — capture completed research projects (state==2). The
+        // Research (gap #1) - capture completed research projects (state==2). The
         // walk returns total map nodes visited; data.research holds the completed
-        // formIDs (deduped — the map is unique-keyed, but guard anyway).
+        // formIDs (deduped - the map is unique-keyed, but guard anyway).
         {
             std::vector<std::uint32_t> done;
             const int totalNodes = SafeWalkResearch(done);
@@ -576,13 +576,13 @@ namespace Pulsar::Profile {
             }
         }
 
-        // V3 — capture the player's character level (instrumentation step: logged
+        // V3 - capture the player's character level (instrumentation step: logged
         // so we can confirm GetNPC()->GetLevel() returns the real level before
         // building level persistence). Capture-only; the dbAuth delta-merge keeps
-        // the DB baseline level (co-op live level = host's, not applied — option A).
+        // the DB baseline level (co-op live level = host's, not applied - option A).
         data.playerLevel = SafeReadPlayerLevel(player);
 
-        // V3 — XP is the "Experience" ActorValue (verified via `player.modav
+        // V3 - XP is the "Experience" ActorValue (verified via `player.modav
         // experience`). Read like O2. Captured as a co-op delta (live − +10s
         // snapshot cancels the host body's XP).
         if (auto* xpav = RE::TESForm::LookupByEditorID<RE::ActorValueInfo>(
@@ -597,7 +597,7 @@ namespace Pulsar::Profile {
                   data.skillPoints, data.credits, data.o2, data.o2Max,
                   data.healthBase, data.carryWeightBase, equippedForms.size());
 
-        // Phase C3 — DB-AUTHORITATIVE gains delta-capture. Don't upload the raw
+        // Phase C3 - DB-AUTHORITATIVE gains delta-capture. Don't upload the raw
         // live capture (it drifts: restore artifacts on stackables, host credits).
         // Instead start from the frozen DB baseline and apply only the session
         // delta (live − post-restore snapshot): new looted items with faithful
@@ -612,13 +612,13 @@ namespace Pulsar::Profile {
             if (Pulsar::InventorySync::DirectRestore::GetGainsSnapshot(snap, snapCredits, snapLevel, snapXP)) {
                 ProfileData merged = g_dbBaseline;          // frozen faithful DB profile
                 const size_t baseN = merged.inventory.size();
-                // #poison-guard — exclude host-exclusive forms recorded across this
+                // #poison-guard - exclude host-exclusive forms recorded across this
                 // session's bridges, so a leaked host item never uploads as a gain.
                 std::unordered_set<uint32_t> foreignForms;
                 Pulsar::InventorySync::DirectRestore::GetForeignItemSet(foreignForms);
                 merged.inventory = DeltaMergeInventory(
                     g_dbBaseline.inventory, data.inventory, snap, foreignForms);
-                // #poison-trace (overnight 2026-06-24) — ALWAYS log upload provenance
+                // #poison-trace (overnight 2026-06-24) - ALWAYS log upload provenance
                 // with the host-item discrepancy so a poison attempt is visible in real
                 // time WITH a timestamp. foreignInLive = host-exclusive forms currently
                 // sitting in the client's LIVE inventory: any >0 is the exact moment a
@@ -635,14 +635,14 @@ namespace Pulsar::Profile {
                     }
                     if (foreignInLive > 0) {
                         PLOG_WARN("[PROFILE][load-trace] DISCREPANCY at upload: {} HOST "
-                                  "item(s) in live inventory (e.g. 0x{:08X}) — EXCLUDED "
+                                  "item(s) in live inventory (e.g. 0x{:08X}) - EXCLUDED "
                                   "from DB by foreign-guard [baseline={} live={} merged={} "
                                   "foreignSet={}] [#poison]"sv,
                                   foreignInLive, firstForeign, baseN,
                                   data.inventory.size(), merged.inventory.size(),
                                   foreignForms.size());
                     } else {
-                        PLOG_INFO("[PROFILE][load-trace] clean upload — no host items in "
+                        PLOG_INFO("[PROFILE][load-trace] clean upload - no host items in "
                                   "live [baseline={} live={} merged={} foreignSet={}]"sv,
                                   baseN, data.inventory.size(), merged.inventory.size(),
                                   foreignForms.size());
@@ -652,7 +652,7 @@ namespace Pulsar::Profile {
                     static_cast<int>(data.credits) - static_cast<int>(snapCredits);
                 const int mc = static_cast<int>(g_dbBaseline.credits) + creditDelta;
                 merged.credits = static_cast<uint32_t>(mc > 0 ? mc : 0);
-                // O2/AV sanity — keep the DB baseline's O2 UNLESS the live value is
+                // O2/AV sanity - keep the DB baseline's O2 UNLESS the live value is
                 // plausibly healthy (suit applied, not a mid-restore collapse ~5).
                 // Never persists a collapsed O2; a healthy live value recovers a
                 // previously-bad baseline.
@@ -660,18 +660,18 @@ namespace Pulsar::Profile {
                 if (data.o2Max  > kO2SaneMin) merged.o2Max  = data.o2Max;
                 if (data.o2     > kO2SaneMin) merged.o2     = data.o2;
                 if (data.o2Base > kO2SaneMin) merged.o2Base = data.o2Base;
-                // V2 — capture perk + skill-point GAINS. Perks/skillPts are restored
+                // V2 - capture perk + skill-point GAINS. Perks/skillPts are restored
                 // to the client's values (ApplyPerksReplace + skillPts seed), so the
                 // live capture = client's + co-op gains, and taking live is safe.
                 // ANTI-POISON FIX (2026-06-19): this ONLY holds when the DB baseline
-                // already had perks — then ApplyPerksReplace actually set them. If the
+                // already had perks - then ApplyPerksReplace actually set them. If the
                 // baseline is EMPTY (incomplete/partial DB profile), ApplyPerksReplace
                 // KEEPS the host's perks (its "snapshot EMPTY → don't strip" safety),
-                // so the live perks are the HOST'S — taking them would upload the host's
+                // so the live perks are the HOST'S - taking them would upload the host's
                 // perks into the client's DB (observed: a 0-perk profile absorbed the
                 // host's 27 perks). So require a non-empty baseline before taking live;
                 // a perk-less profile must be re-bootstrapped solo, not filled in co-op.
-                // #poison-guard (overnight 2026-06-24) — drop HOST-exclusive perks
+                // #poison-guard (overnight 2026-06-24) - drop HOST-exclusive perks
                 // before taking the live perk set, exactly like items/powers. The
                 // anti-poison fix above only covers the empty-baseline case; a host
                 // perk that lingers in live after ApplyPerksReplace (non-empty
@@ -699,8 +699,8 @@ namespace Pulsar::Profile {
                     merged.skillPoints = data.skillPoints;
                     tookPerks = true;
                 }
-                // V3 — level DELTA (capture-only, option A). In co-op the live level
-                // is the host body's (e.g. 4), same as the +10s snapshot — so
+                // V3 - level DELTA (capture-only, option A). In co-op the live level
+                // is the host body's (e.g. 4), same as the +10s snapshot - so
                 // (live − snap) = the level-ups hall earned THIS session (host value
                 // cancels, like credits). Add that to hall's baseline. Clamp >= 0 and
                 // never below baseline (level doesn't drop). NOTE: hall's baseline
@@ -711,11 +711,11 @@ namespace Pulsar::Profile {
                 const int newLvl = static_cast<int>(g_dbBaseline.playerLevel) +
                                    (lvlDelta > 0 ? lvlDelta : 0);
                 merged.playerLevel = static_cast<uint32_t>(newLvl);
-                // V3 — XP DELTA, same logic (Experience AV; co-op live = host body's
+                // V3 - XP DELTA, same logic (Experience AV; co-op live = host body's
                 // XP = snapshot → cancels; (live − snap) = hall's session XP gain).
                 const float xpDelta = data.xp - snapXP;
                 merged.xp = g_dbBaseline.xp + (xpDelta > 0.0f ? xpDelta : 0.0f);
-                // Powers (gap #2) — SET-DELTA. merged starts = baseline powers; add
+                // Powers (gap #2) - SET-DELTA. merged starts = baseline powers; add
                 // only powers gained THIS session (live − +10s snapshot). Powers in
                 // the snapshot (the loaded/foreign save's, re-applied baseline) cancel
                 // → foreign powers never poison the DB; new temple powers persist.
@@ -733,7 +733,7 @@ namespace Pulsar::Profile {
                         }
                     }
                 }
-                // Research (gap #1) — SET-DELTA, same logic as powers. merged starts =
+                // Research (gap #1) - SET-DELTA, same logic as powers. merged starts =
                 // baseline research; add only projects researched THIS session
                 // (live − +10s snapshot). Foreign/host save's research (in the snapshot)
                 // cancels → never poisons the DB; session research persists. Monotonic.
@@ -768,7 +768,7 @@ namespace Pulsar::Profile {
                           g_dbBaseline.research.size(), merged.research.size(), researchGain);
                 return merged;
             }
-            // dbAuth but the +10s snapshot isn't taken yet — NEVER full-capture in
+            // dbAuth but the +10s snapshot isn't taken yet - NEVER full-capture in
             // dbAuth (would drift). Return the frozen DB baseline unchanged
             // (idempotent); LobbyHandoff also gates the upload on snapshot validity.
             PLOG_INFO("[PROFILE] gains delta-capture: snapshot not ready -> frozen DB baseline"sv);
@@ -784,7 +784,7 @@ namespace Pulsar::Profile {
 
     // ─── v2 apply ───
 
-    // Re-equip helper — mirrors DirectRestore.cpp:86-101 (verified REL::IDs for 1.16.236).
+    // Re-equip helper - mirrors DirectRestore.cpp:86-101 (verified REL::IDs for 1.16.236).
     static bool ProfileEquipForm(RE::Actor* a_actor, RE::TESBoundObject* a_form)
     {
         if (!a_actor || !a_form) return false;
@@ -842,7 +842,7 @@ namespace Pulsar::Profile {
             return false;
         }
 
-        // 2026-06-18 — save-identity check. Is the loaded save the client's OWN
+        // 2026-06-18 - save-identity check. Is the loaded save the client's OWN
         // character, or a foreign/HOST save (e.g. the co-op auto-save the engine
         // makes on leaving = the host's bridged character)? Compare the loaded
         // character's Health base to the DB profile's healthBase. Mismatch →
@@ -872,7 +872,7 @@ namespace Pulsar::Profile {
         const bool prevReplay = Pulsar::WorldSync::Loot::SetReplayingFromPacket(true);
 
         int skipped = 0;
-        // A unification Phase 4 — collapse the two item-apply paths. ClientProfile
+        // A unification Phase 4 - collapse the two item-apply paths. ClientProfile
         // NO LONGER additively writes items to the live player. That path merged
         // the DB profile INTO the live save on join (AddObjectToContainer per item),
         // and the clean-capture then re-uploaded the union → the DB profile grew
@@ -881,7 +881,7 @@ namespace Pulsar::Profile {
         // engine-rolled random mods). Items are now owned SOLELY by DirectRestore:
         // the seed below feeds its cache, and the per-bridge replace-restore is the
         // single place items land on the live player. Here we ONLY translate the
-        // profile into that clean seed — no live mutation, so the fresh save stays
+        // profile into that clean seed - no live mutation, so the fresh save stays
         // exactly as loaded and the clean-capture uploads the TRUE inventory.
         std::vector<Pulsar::InventorySync::DirectRestore::SeedItem> seed;
         seed.reserve(a_data.inventory.size());
@@ -893,13 +893,13 @@ namespace Pulsar::Profile {
                           it.plugin, it.localID);
                 continue;
             }
-            // Phase B  — carry the item's M.2 mod array so the bridge
+            // Phase B  - carry the item's M.2 mod array so the bridge
             // restore can re-apply it (DB-restored items aren't naked base forms).
             seed.push_back({ bound, it.count, it.equipped, it.mods, it.modSentinel });
         }
 
-        // Credits — capture is reliable, but APPLY is gated off: AddObjectToContainer
-        // does NOT drive money (DirectRestore.cpp:678 — null-extra add zeroed credits).
+        // Credits - capture is reliable, but APPLY is gated off: AddObjectToContainer
+        // does NOT drive money (DirectRestore.cpp:678 - null-extra add zeroed credits).
         // Credits stay in the blob; re-enable once a proper money API is RE'd.
         if (kApplyCreditsOnRestore) {
             const int32_t have = CurrentCount(player, kCreditsFormID);
@@ -917,15 +917,15 @@ namespace Pulsar::Profile {
         // Save-authoritative: the survivability AVs come from DirectRestore's
         // LIVE pre-bridge capture of the client's own save, NOT the DB profile.
         // Applying them here injected a STALE/inflated DB value BEFORE that
-        // capture — the O2 case grew every session (525→530→…): ClientProfile
+        // capture - the O2 case grew every session (525→530→…): ClientProfile
         // set O2 to the DB's o2Max, the capture grabbed the inflated value, the
         // clean-capture re-uploaded it bigger, repeat (an O2 accumulating-poison
         // loop; client showed 530 O2 while the real save had ~125 like the host).
         // DirectRestore restores Health/CarryWeight/O2 BASE from the live capture;
         // this path is redundant + harmful, so it's gone. (Credits apply above
-        // stays gated off; the seed below stays — items fallback only.)
+        // stays gated off; the seed below stays - items fallback only.)
 
-        // Phase C — DB-AUTHORITATIVE restore. When the toggle is on AND the DB
+        // Phase C - DB-AUTHORITATIVE restore. When the toggle is on AND the DB
         // profile is non-empty, the DB is the restore source for THIS join: seed
         // the AV baselines + perks + skill points so RestoreClientState applies the
         // DB's progression (not the loaded save's), and flag DirectRestore so
@@ -946,11 +946,11 @@ namespace Pulsar::Profile {
                 perkPairs.push_back({ pk.formID, pk.rank });
             Pulsar::InventorySync::DirectRestore::SeedPerksFromProfile(
                 perkPairs, a_data.skillPoints);
-            // Powers (gap #2) — seed the DB's powers for additive re-apply.
+            // Powers (gap #2) - seed the DB's powers for additive re-apply.
             Pulsar::InventorySync::DirectRestore::SeedPowersFromProfile(a_data.powers);
-            // Research (gap #1) — seed the DB's completed projects for the unlock replay.
+            // Research (gap #1) - seed the DB's completed projects for the unlock replay.
             Pulsar::InventorySync::DirectRestore::SeedResearchFromProfile(a_data.research);
-            // Phase C3 — stash the authoritative DB profile as the gains-capture
+            // Phase C3 - stash the authoritative DB profile as the gains-capture
             // merge base (frozen, faithful). The capture adds only the session
             // delta on top of this.
             g_dbBaseline      = a_data;
@@ -963,7 +963,7 @@ namespace Pulsar::Profile {
             g_dbBaselineValid = false;   // bootstrap/legacy → full-capture path
         }
 
-        // A unification Phase 3 — seed the DirectRestore cache from THIS clean DB
+        // A unification Phase 3 - seed the DirectRestore cache from THIS clean DB
         // profile so the per-bridge restore sources host-free items (Bug A). Done
         // after apply so the live inventory + the seed agree at this point.
         Pulsar::InventorySync::DirectRestore::SeedCacheFromProfile(seed);
@@ -993,10 +993,10 @@ namespace Pulsar::Profile {
             src = &g_lastCleanBaseline; srcName = "latest clean snapshot";
         } else if (g_dbBaselineValid)          { src = &g_dbBaseline; srcName = "DB join-baseline"; }
         if (!src || src->inventory.empty()) {
-            PLOG_INFO("[PROFILE] ReapplyCachedDbProfile: no recovery baseline this session — skip"sv);
+            PLOG_INFO("[PROFILE] ReapplyCachedDbProfile: no recovery baseline this session - skip"sv);
             return false;
         }
-        PLOG_INFO("[PROFILE] ReapplyCachedDbProfile — re-seed + restore from {} after local reload "
+        PLOG_INFO("[PROFILE] ReapplyCachedDbProfile - re-seed + restore from {} after local reload "
                   "({} items, {} perks)"sv, srcName, src->inventory.size(), src->perks.size());
         ProfileData cached = *src;   // copy: ApplyProfileData reassigns g_dbBaseline
         ApplyProfileData(cached);    // re-seeds DirectRestore cache + dbAuth + save-identity
@@ -1014,7 +1014,7 @@ namespace Pulsar::Profile {
         }
     }
 
-    // Phase C0 — perks as a flat space-separated "formID rank formID rank ..."
+    // Phase C0 - perks as a flat space-separated "formID rank formID rank ..."
     // list (a single JSON string, so it never collides with the inventory array's
     // closing ']' that DecodeProfile keys on). Raw formID (base-game perks stable).
     static void AppendPerksCSV(std::string& out, const std::vector<ProfilePerk>& perks)
@@ -1040,7 +1040,7 @@ namespace Pulsar::Profile {
         };
         uint32_t fid = 0, rank = 0;
         while (nextU(fid)) {
-            if (!nextU(rank)) break;       // malformed trailing token — drop
+            if (!nextU(rank)) break;       // malformed trailing token - drop
             ProfilePerk pk;
             pk.formID = fid;
             pk.rank   = static_cast<int8_t>(static_cast<uint8_t>(rank));
@@ -1072,14 +1072,14 @@ namespace Pulsar::Profile {
             j += "  \"perks\": \"" + perksCsv + "\",\n";
         }
         {
-            // Powers (gap #2) — flat space-separated formID list (reuses the mods CSV
+            // Powers (gap #2) - flat space-separated formID list (reuses the mods CSV
             // writer; a single JSON string so it can't collide with the inventory array).
             std::string powersCsv;
             AppendModsCSV(powersCsv, a_data.powers);
             j += "  \"powers\": \"" + powersCsv + "\",\n";
         }
         {
-            // Research (gap #1) — completed-project formID list (same flat CSV form).
+            // Research (gap #1) - completed-project formID list (same flat CSV form).
             std::string researchCsv;
             AppendModsCSV(researchCsv, a_data.research);
             j += "  \"research\": \"" + researchCsv + "\",\n";
@@ -1142,7 +1142,7 @@ namespace Pulsar::Profile {
         extractFloat("o2Base", a_out.o2Base);
         extractFloat("xp", a_out.xp);   // V3
 
-        // Phase C0 — skill points + perks (perks is a flat string, parsed before the
+        // Phase C0 - skill points + perks (perks is a flat string, parsed before the
         // inventory array; ExtractString stops at the closing quote so it can't run
         // into the array).
         a_out.skillPoints = ExtractUInt(json, "skillPoints");
@@ -1196,7 +1196,7 @@ namespace Pulsar::Profile {
         it.mods        = { 111u, 222u, 333u };
         it.modSentinel = 7;
         a.inventory.push_back(it);
-        // Phase C0 — perks + skill points round-trip.
+        // Phase C0 - perks + skill points round-trip.
         a.skillPoints = 4;
         a.perks.push_back({ 0x0024AB10u, 3, "", 0 });
         a.perks.push_back({ 0x0024AB20u, 1, "", 0 });
@@ -1239,7 +1239,7 @@ namespace Pulsar::Profile {
     std::vector<uint8_t> SerializeProfile()
     {
         ProfileData d = CaptureProfile();
-        // O2-collapse guard — never persist a suit-less / mid-restore-churn
+        // O2-collapse guard - never persist a suit-less / mid-restore-churn
         // collapsed O2 (o2Max ~5). For a BOOTSTRAP (non-dbAuth, no baseline to fall
         // back to) skip the upload entirely; the periodic capture retries once O2
         // has settled (suit applied). This is what stops a collapsed o2Base=0 from
@@ -1247,7 +1247,7 @@ namespace Pulsar::Profile {
         // baseline O2 on collapse, in CaptureProfile.)
         if (!Pulsar::InventorySync::DirectRestore::IsDbAuthoritative() &&
             !d.inventory.empty() && d.o2Max < 30.0f) {
-            PLOG_WARN("[PROFILE] SerializeProfile: O2 collapsed (o2Max={:.1f}) — "
+            PLOG_WARN("[PROFILE] SerializeProfile: O2 collapsed (o2Max={:.1f}) - "
                       "skip bootstrap upload, retry when settled"sv, d.o2Max);
             return {};
         }
@@ -1262,7 +1262,7 @@ namespace Pulsar::Profile {
         // profile the gains-delta re-persists it forever.
         //
         // GUARD: never serialise a bootstrap profile once a bridge has happened
-        // this session — the DB may only be seeded from a clean, own, pre-bridge
+        // this session - the DB may only be seeded from a clean, own, pre-bridge
         // (solo) state. TRACE: log the full provenance of EVERY upload so a
         // future leak is attributable to the exact state that produced it.
         {
@@ -1283,7 +1283,7 @@ namespace Pulsar::Profile {
                       dbAuth_ ? "dbAuth" : "BOOTSTRAP", bridged_, ownSave_, restoreDone_,
                       d.inventory.size(), eqn, eq0, eq1, d.credits);
             if (!dbAuth_ && bridged_ && !d.inventory.empty()) {
-                PLOG_WARN("[PROFILE][POISON-GUARD] REFUSED upload — bootstrap(!dbAuth) AND bridged "
+                PLOG_WARN("[PROFILE][POISON-GUARD] REFUSED upload - bootstrap(!dbAuth) AND bridged "
                           "this session: live inventory is the HOST's bridged items, not the "
                           "client's own. Seed the DB from a clean SOLO load instead. (items={})"sv,
                           d.inventory.size());
@@ -1353,7 +1353,7 @@ namespace Pulsar::Profile {
     void RestoreProfileBlobTest()
     {
         if (g_snapshotBlob.empty()) {
-            PLOG_WARN("[PROFILE-TEST] F11 restore: no snapshot yet — press F10 first"sv);
+            PLOG_WARN("[PROFILE-TEST] F11 restore: no snapshot yet - press F10 first"sv);
             return;
         }
         PLOG_INFO("[PROFILE-TEST] F11 restoring snapshot: {} bytes"sv, g_snapshotBlob.size());

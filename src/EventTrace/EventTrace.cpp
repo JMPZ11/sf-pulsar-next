@@ -123,7 +123,7 @@ namespace {
     //
     // We use this INSTEAD of TESObjectLoadedEvent because CommonLibSF ships
     // TESObjectLoadedEvent::GetEventSource (and TESCellFullyLoadedEvent) as a
-    // REL::ID(0) placeholder — calling it is a fatal "Invalid ID: 0" that SEH
+    // REL::ID(0) placeholder - calling it is a fatal "Invalid ID: 0" that SEH
     // cannot catch. ActorCellChangeEvent has a REAL id (64106 -> RVA 0xB98F20,
     // verified in the 1.16.244 versionlib + Ghidra disasm: canonical singleton
     // getter), so the address library resolves it correctly and portably.
@@ -165,7 +165,7 @@ namespace {
     };
     static ActorCellChangeSink g_actorCellChangeSink;
 
-    // Activation — a ref activated another (player presses E on a door /
+    // Activation - a ref activated another (player presses E on a door /
     // terminal / NPC, an activator fires). Often the trigger for quest/object
     // scripts, so it is useful context for "script events".
     struct ActivationSink : public RE::BSTEventSink<RE::Activation::Event>
@@ -191,7 +191,7 @@ namespace {
             if (!srcFID && !tgtFID) return RE::BSEventNotifyControl::kContinue;
 
             // Player-cell filter: only activations involving the player's cell
-            // (e.g. a quest NPC opening a door next to the players) — exactly
+            // (e.g. a quest NPC opening a door next to the players) - exactly
             // the events we need to design door / activation sync.
             const std::uint32_t pc = SafePlayerCellID();
             if (pc == 0) return RE::BSEventNotifyControl::kContinue;
@@ -238,7 +238,7 @@ void Init()
     PLOG_INFO("[PULSAR] EventTrace: Init (traceEvents={})"sv,
               s_enabled.load() ? 1 : 0);
 
-    // Only event sources with a REAL (non-zero) CommonLibSF id — a REL::ID(0)
+    // Only event sources with a REAL (non-zero) CommonLibSF id - a REL::ID(0)
     // placeholder would be a fatal "Invalid ID: 0" at resolve time, which SEH
     // cannot catch. ActorCellChangeEvent=64106, Activation::Event=63133 (both
     // verified against the 1.16.244 versionlib).

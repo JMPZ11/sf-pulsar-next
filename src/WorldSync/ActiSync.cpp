@@ -68,7 +68,7 @@ namespace {
     static std::mutex                  s_pendingMutex;
     static std::vector<PendingActi>    s_pending;
 
-    // F.7 V2: ObjectReference.AddItem Papyrus native — RVA 0x2067EA0.
+    // F.7 V2: ObjectReference.AddItem Papyrus native - RVA 0x2067EA0.
     // Identified via Ghidra (string xref "AddItem" → registration block at
     // FUN_1420C2250 → param_1[10] = FUN_14206B040). Template:
     // NativeFunction3<TESObjectREFR, bool, FormOrInventoryObj, uint, bool>.
@@ -302,7 +302,7 @@ void DrainPending()
 
         // Prefer remote clone as activator (same as DoorSync); fall back to
         // local player when clone hasn't spawned yet. Activator must be
-        // non-null — Activate is gated on *param_2 != 0.
+        // non-null - Activate is gated on *param_2 != 0.
         auto* clone = Pulsar::RemotePlayer::GetRemotePlayerManager().GetRemoteActor();
         RE::TESObjectREFR* activator = clone
             ? reinterpret_cast<RE::TESObjectREFR*>(clone)
@@ -331,7 +331,7 @@ void DrainPending()
                     d.consumedResolved, d.consumedCount, addOk);
             } else {
                 PLOG_WARN(
-                    "[PULSAR] ActiSync: ghost-add failed — TESForm::LookupByID(0x{:08X}) null"sv,
+                    "[PULSAR] ActiSync: ghost-add failed - TESForm::LookupByID(0x{:08X}) null"sv,
                     d.consumedResolved);
             }
         }

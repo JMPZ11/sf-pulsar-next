@@ -50,20 +50,20 @@ namespace {
     static GetExtraByTypeFn g_getExtraByType = nullptr;
 
     // Papyrus ObjectReference.SetOpen native handler. RE'd 2026-04-25 via
-    // "SetOpen" string xref @ RVA 0x208E039 — the registration block has
+    // "SetOpen" string xref @ RVA 0x208E039 - the registration block has
     // lea r9 → 0x2080BC0 (handler), lea r8 → "ObjectReference", lea rdx
     // → "SetOpen". REL::ID(118464) @ RVA 0x2080BC0.
     //
     // Internally calls TESObjectREFR::Activate (REL::ID 63380) twice (one
     // for the open path, one for close). On a closed container with valid
     // 3D state the call ends up snapping the lid open via the same toggle
-    // path Activate uses — but WITHOUT scheduling the engine's async
+    // path Activate uses - but WITHOUT scheduling the engine's async
     // auto-close that a normal clone-Activate-replay would trigger. That's
     // why SetOpen(true) gives sustained-open with smooth animation.
     //
     // VM args 1+2 are only touched on error paths (None-self, no-3D), so
     // calling with nullptr/0 from C++ is safe for the success path on a
-    // valid REFR with 3D loaded — same pattern as F.1.e PapyrusUnequip.
+    // valid REFR with 3D loaded - same pattern as F.1.e PapyrusUnequip.
     using PapyrusSetOpenFn = void (__fastcall*)(
         void* vmCtx, uint32_t vmStackId,
         RE::TESObjectREFR* self, bool open);
@@ -154,7 +154,7 @@ namespace {
         return ok;
     }
 
-    // ---- Sender state — per-REFR last-seen flags -------------------------
+    // ---- Sender state - per-REFR last-seen flags -------------------------
 
     static std::mutex                                       s_seenMutex;
     static std::unordered_map<RE::TESObjectREFR*, uint8_t>  s_seenFlags;
@@ -514,7 +514,7 @@ void DrainPending()
             && d.baseType == static_cast<uint8_t>(RE::FormType::kCONT)) {
             bool ok = SafeCallSetOpen(refr, true);
             PLOG_INFO(
-                "[PULSAR] LockSync: SetOpen(true) {} ref=0x{:08X} (CONT) — sustained-open"sv,
+                "[PULSAR] LockSync: SetOpen(true) {} ref=0x{:08X} (CONT) - sustained-open"sv,
                 ok ? "ok" : "FAILED",
                 RawFormID(refr));
         }

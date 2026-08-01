@@ -10,7 +10,7 @@ using System.Windows.Forms;
 
 namespace PulsarCompanionGui;
 
-// PULSAR Lobby — v2 front-end over the companion `serve` daemon (JSON protocol in
+// PULSAR Lobby - v2 front-end over the companion `serve` daemon (JSON protocol in
 // %LOCALAPPDATA%\PULSAR). One Server field auto-derives the relay; player names are
 // claimed (unique); no host IP is ever shown. Settings persist in lobbygui.json.
 internal sealed class MainForm : Form
@@ -352,7 +352,7 @@ internal sealed class MainForm : Form
     // ── poll ──────────────────────────────────────────────────────────────────
     private void Poll()
     {
-        // Auto-claim once the daemon is connected — your name is already yours
+        // Auto-claim once the daemon is connected - your name is already yours
         // (bound to your identity), so no manual claim is needed on each restart.
         if (_daemonReady && !_nameClaimed && !_autoClaimDone && _pendingKind != "register"
             && Connected && _name.Text.Trim().Length is >= 1 and <= 32)
@@ -386,7 +386,7 @@ internal sealed class MainForm : Form
                 if (id == sel) it.Selected = true;
                 _lobbies.Items.Add(it);
             }
-            if (_lobbies.Items.Count == 0) { var it = new ListViewItem("No open lobbies — host one!"); it.ForeColor = Color.Gray; _lobbies.Items.Add(it); }
+            if (_lobbies.Items.Count == 0) { var it = new ListViewItem("No open lobbies - host one!"); it.ForeColor = Color.Gray; _lobbies.Items.Add(it); }
         }
         catch (Exception ex) { Log("lobbies parse error: " + ex.Message); }
         _lobbies.EndUpdate();
@@ -411,7 +411,7 @@ internal sealed class MainForm : Form
             {
                 _nameClaimed = ok;
                 if (ok) Log("Name claimed.");
-                else { Log("Claim rejected: " + err); MessageBox.Show(this, "Name taken — choose another.", "PULSAR Lobby"); }
+                else { Log("Claim rejected: " + err); MessageBox.Show(this, "Name taken - choose another.", "PULSAR Lobby"); }
                 SetState();
             }
             else if (kind == "close")

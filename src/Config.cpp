@@ -36,7 +36,7 @@ namespace Pulsar
             catch (...) { return -1; }
         }
 
-        // Symbolic forms — case-insensitive
+        // Symbolic forms - case-insensitive
         std::string up = in;
         std::transform(up.begin(), up.end(), up.begin(), ::toupper);
 
@@ -145,7 +145,7 @@ namespace Pulsar
                     cfg.hotkeyAutoFollow = vk;
                     PLOG_INFO("[PULSAR] Config: HotkeyAutoFollow = {} (VK 0x{:02X})"sv, value, vk);
                 } else {
-                    PLOG_WARN("[PULSAR] Config: HotkeyAutoFollow value '{}' unparseable — keeping default 0x{:02X}"sv,
+                    PLOG_WARN("[PULSAR] Config: HotkeyAutoFollow value '{}' unparseable - keeping default 0x{:02X}"sv,
                               value, cfg.hotkeyAutoFollow);
                 }
             }
@@ -155,7 +155,7 @@ namespace Pulsar
                     cfg.hotkeyManualBridge = vk;
                     PLOG_INFO("[PULSAR] Config: HotkeyManualBridge = {} (VK 0x{:02X})"sv, value, vk);
                 } else {
-                    PLOG_WARN("[PULSAR] Config: HotkeyManualBridge value '{}' unparseable — keeping default 0x{:02X}"sv,
+                    PLOG_WARN("[PULSAR] Config: HotkeyManualBridge value '{}' unparseable - keeping default 0x{:02X}"sv,
                               value, cfg.hotkeyManualBridge);
                 }
             }
@@ -165,7 +165,7 @@ namespace Pulsar
                     cfg.hotkeySaveRoundTrip = vk;
                     PLOG_INFO("[PULSAR] Config: HotkeySaveRoundTrip = {} (VK 0x{:02X})"sv, value, vk);
                 } else {
-                    PLOG_WARN("[PULSAR] Config: HotkeySaveRoundTrip value '{}' unparseable — keeping default 0x{:02X}"sv,
+                    PLOG_WARN("[PULSAR] Config: HotkeySaveRoundTrip value '{}' unparseable - keeping default 0x{:02X}"sv,
                               value, cfg.hotkeySaveRoundTrip);
                 }
             }
@@ -175,7 +175,7 @@ namespace Pulsar
                     cfg.hotkeySaveDiff = vk;
                     PLOG_INFO("[PULSAR] Config: HotkeySaveDiff = {} (VK 0x{:02X})"sv, value, vk);
                 } else {
-                    PLOG_WARN("[PULSAR] Config: HotkeySaveDiff value '{}' unparseable — keeping default 0x{:02X}"sv,
+                    PLOG_WARN("[PULSAR] Config: HotkeySaveDiff value '{}' unparseable - keeping default 0x{:02X}"sv,
                               value, cfg.hotkeySaveDiff);
                 }
             }
@@ -185,7 +185,7 @@ namespace Pulsar
                     cfg.hotkeySaveCharacter = vk;
                     PLOG_INFO("[PULSAR] Config: HotkeySaveCharacter = {} (VK 0x{:02X})"sv, value, vk);
                 } else {
-                    PLOG_WARN("[PULSAR] Config: HotkeySaveCharacter '{}' unparseable — keeping 0x{:02X}"sv,
+                    PLOG_WARN("[PULSAR] Config: HotkeySaveCharacter '{}' unparseable - keeping 0x{:02X}"sv,
                               value, cfg.hotkeySaveCharacter);
                 }
             }
@@ -195,7 +195,7 @@ namespace Pulsar
                     cfg.hotkeyRestoreCharacter = vk;
                     PLOG_INFO("[PULSAR] Config: HotkeyRestoreCharacter = {} (VK 0x{:02X})"sv, value, vk);
                 } else {
-                    PLOG_WARN("[PULSAR] Config: HotkeyRestoreCharacter '{}' unparseable — keeping 0x{:02X}"sv,
+                    PLOG_WARN("[PULSAR] Config: HotkeyRestoreCharacter '{}' unparseable - keeping 0x{:02X}"sv,
                               value, cfg.hotkeyRestoreCharacter);
                 }
             }

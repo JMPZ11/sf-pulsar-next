@@ -1,4 +1,4 @@
-// L.6 V3 Phase 1 — Ship-Dock-Sync diagnostic probe.
+// L.6 V3 Phase 1 - Ship-Dock-Sync diagnostic probe.
 //
 // Read-only sink on Spaceship::DockEvent that reads the event payload bytes
 // SpaceSync's generic sink ignores. Logs:
@@ -15,7 +15,7 @@
 // BGSDockingActivity ctor 0x1408F0250, vtable 0x144AF57C0 (REL::ID 392606),
 //     init [rbx+0x80] = 0x100
 // SpaceshipDockingFinishedHandler vtable 0x144CC52C0 (REL::ID 453891)
-// Dispatcher 0x14213A130 (REL::ID 120238) — covers Docking, Undocking,
+// Dispatcher 0x14213A130 (REL::ID 120238) - covers Docking, Undocking,
 //     Landing, LandingFailsafe via single shared dispatcher
 
 #include "PCH.h"
@@ -96,8 +96,8 @@ namespace {
     }
 
     constexpr std::uintptr_t kRVA_AddOrGetExtraTeleport = 0xBA0020;
-    constexpr std::uintptr_t kRVA_RejectFilter           = 0xB58720;  // FUN_140B58E40 — REJECT filter (1=skip, 0=eligible)
-    constexpr std::uintptr_t kRVA_EnableForDock          = 0xB36C40;  // FUN_140B37390 — engine's "enable hatch for docking" + cell-walk
+    constexpr std::uintptr_t kRVA_RejectFilter           = 0xB58720;  // FUN_140B58E40 - REJECT filter (1=skip, 0=eligible)
+    constexpr std::uintptr_t kRVA_EnableForDock          = 0xB36C40;  // FUN_140B37390 - engine's "enable hatch for docking" + cell-walk
     constexpr std::uintptr_t kRVA_GetTakeOffSrc          = 0x2160390; // matches SpaceSync constant
     // Phase 3g (2026-05-02): direct engine MoveTo. earlier RE work RE'd this as
     // the simple 2-arg MoveTo entry that the activate dispatcher uses
@@ -138,7 +138,7 @@ namespace {
     static std::mutex                            g_appliedStationHatchSetMutex;
     static std::unordered_set<std::uint32_t>     g_appliedStationHatchSet;
 
-    // Phase 3i v17: applied-cockpit-hatch tracking — mirror of station set,
+    // Phase 3i v17: applied-cockpit-hatch tracking - mirror of station set,
     // for the cockpit side. Used by TryHandleCockpitSideHatchActivate to
     // identify "is this E-press on a cockpit hatch we set up for forward
     // dock?" so we can selectively block when waiting for forward save-bridge.
@@ -161,7 +161,7 @@ namespace {
 
     // Phase 3i v17.2/v17.3: deferred bridge trigger. Cell-change events fire
     // DURING engine load (cell ID swaps before loadMenu CLOSED). Triggering
-    // save immediately captures partially-loaded state — host's player
+    // save immediately captures partially-loaded state - host's player
     // position is still old (cockpit) instead of new (station). Even after
     // loadMenu CLOSED, the engine may take ~2s to commit player.location.
     // v17.3: defer fire until (a) cell settled, (b) player has moved a real
@@ -180,21 +180,21 @@ namespace {
     constexpr float         kBridgePosCommitDist2 = 25.0f;  // 5 units squared
 
     // Phase 3i v14.2: persistent ship FormID from PKT_DOCK_FINISHED. Player.GetSpaceship()
-    // in station cell returns dock-port REFR (CLibSF binding mis-resolved) — useless
+    // in station cell returns dock-port REFR (CLibSF binding mis-resolved) - useless
     // for MoveTo target. Use host's broadcast which is the actual ship REFR FormID.
     static std::atomic<std::uint32_t> g_lastDockedShipFormID{ 0 };
 
     // Phase 3i v15: HOST-side return-from-station detection for procedural-cell
     // ships. When host walks back from station cell to a procedural FF cockpit
     // cell, trigger BeginHostQuicksaveTransfer so client load-syncs into the
-    // cockpit. Vanilla cells skip — engine native return works for those.
+    // cockpit. Vanilla cells skip - engine native return works for those.
     // Dedup matches L.2 V1 Plan B (30s).
     static std::atomic<std::uint32_t> g_hostLastSeenCell{ 0 };
     static std::atomic<bool>          g_hostJustVisitedDockStation{ false };
     static std::atomic<std::uint64_t> g_lastDockReturnResyncMs{ 0 };
     constexpr std::uint64_t kDockReturnResyncDedupMs = 30000;
 
-    // Phase 3i (2026-05-02): pilot-side flag — set when local DockEvent
+    // Phase 3i (2026-05-02): pilot-side flag - set when local DockEvent
     // (1,0) fires (we are the pilot for current dock cycle). Triggers the
     // station-XT capture on cockpit→station crossing.
     static std::atomic<bool> g_localPilotForCurrentDock{ false };
@@ -208,7 +208,7 @@ namespace {
     // Phase 3i: pilot-side single-shot guard for station-XT broadcast.
     static std::atomic<bool> g_stationXTBroadcastSent{ false };
 
-    // Phase 3i v6: client-side hint — host broadcasts the base FormID of the
+    // Phase 3i v6: client-side hint - host broadcasts the base FormID of the
     // chosen dock hatch. Client uses this to find the matching kDOOR locally
     // (different runtime instance, same base since vanilla ship form).
     static std::atomic<std::uint32_t> g_remoteDockHatchBase{ 0 };
@@ -232,7 +232,7 @@ namespace {
 
     // Phase 3f v5: defer Papyrus MoveTo to game-thread Tick. Calling
     // BSScript::PackVariable + vm->DispatchStaticCall from inside the
-    // engine's activate handler context triggers REL::ID(0) FATAL — likely
+    // engine's activate handler context triggers REL::ID(0) FATAL - likely
     // the VM is mid-state. Defer to Tick (clean game-thread context) where
     // TransitSync's identical dispatch path works.
     static std::atomic<bool>          g_pendingReturnArmed{ false };
@@ -249,7 +249,7 @@ namespace {
     constexpr std::uint32_t           kReturnMaxRetries = 60;     // ~6s @ 100ms cadence
     constexpr std::uint64_t           kReturnRetryDelayMs = 100;
 
-    // ExtraTeleport inner struct (REFR_TELEPORT, 0x28 bytes) — verified RE,
+    // ExtraTeleport inner struct (REFR_TELEPORT, 0x28 bytes) - verified RE,
     // see tools/extra_teleport_re.txt and TransitSync.cpp:108.
     struct alignas(8) RefrTeleport {
         std::uint64_t destDoorRef;       // +0x00 NiPointer<TESObjectREFR>
@@ -336,7 +336,7 @@ namespace {
     }
 
     // Dump the docking-component (referenced from REFR+0x88) state. This is
-    // the per-ship state holder allocated by BGSDockingActivity ctor — its
+    // the per-ship state holder allocated by BGSDockingActivity ctor - its
     // [+0x80] word starts at 0x100 and transitions through the dock sequence.
     static void LogShipComponentState(const char* a_label,
                                        const RE::TESObjectREFR* a_ship)
@@ -425,7 +425,7 @@ namespace {
     static PendingExtraTeleport g_pendingXT;
     constexpr std::uint64_t kXTApplyDeferMs = 200;
 
-    // Phase 3b v7: client-side persistence — once we apply XT, periodically
+    // Phase 3b v7: client-side persistence - once we apply XT, periodically
     // re-set the bits + log gate state. If engine clears bits between ticks,
     // we re-set them. If gate flips from 1→0 we see when + why.
     static std::atomic<bool>          g_xtPersistArmed{ false };
@@ -498,7 +498,7 @@ namespace {
         return DispatchEngineMoveTo(a_ship, a_dock);
     }
 
-    // Phase 3a — receiver-side pending apply state. Set by OnPacketReceived
+    // Phase 3a - receiver-side pending apply state. Set by OnPacketReceived
     // (network thread), drained by Tick (game thread). Stores the FormIDs
     // we need to look up + an apply-due timestamp so we can defer the actual
     // MoveTo by a short window for engine-state to settle.
@@ -514,7 +514,7 @@ namespace {
     static std::atomic<std::uint64_t> g_lastApplyTick{ 0 };
     constexpr std::uint64_t kApplyDedupMs = 5000;
 
-    // Phase 2/3 broadcast — fires from the LOCAL pilot's DockEvent sink when
+    // Phase 2/3 broadcast - fires from the LOCAL pilot's DockEvent sink when
     // the engine commits to docking. Receiver applies. Bidirectional: whoever
     // is the active pilot fires DockEvent locally; the other side receives.
     // Engine fires DockEvent only on the side running the dock state machine,
@@ -530,7 +530,7 @@ namespace {
         const std::uint64_t now = ::GetTickCount64();
         const std::uint64_t prev = g_lastBroadcastMs.load(std::memory_order_acquire);
         if (now - prev < kBroadcastDedupMs) {
-            PLOG_INFO("[PULSAR] L.6 V3 DockSync broadcast SKIP — dedup window"sv);
+            PLOG_INFO("[PULSAR] L.6 V3 DockSync broadcast SKIP - dedup window"sv);
             return;
         }
         g_lastBroadcastMs.store(now, std::memory_order_release);
@@ -632,22 +632,22 @@ namespace {
         }
     }
 
-    // Phase 3i v15 (2026-05-03) — disambiguating station-hatch picker.
+    // Phase 3i v15 (2026-05-03) - disambiguating station-hatch picker.
     // Replaces raw nearest-door matching that mis-picked regular station doors
     // physically close to the dock hatch (user-reported: client clicked a
     // neighbor door, got dock-back XT applied to it, teleported into ship
     // instead of through the door normally).
     //
     // Priority (first non-null wins):
-    //   (1) Broadcast hatchBaseFormID match (RECEIVER path) — pilot broadcasts
+    //   (1) Broadcast hatchBaseFormID match (RECEIVER path) - pilot broadcasts
     //       the station-hatch BASE FormID via PKT_DOCK_STATION_XT; on stations
     //       where that base is unique this is a guaranteed match. If multiple
     //       refs share the base (modular stations w/ multiple ship-hatches),
     //       pick the one closest to the player.
-    //   (2) DoorHasShipArrivalData — vanilla extra (kShipArrivalData=0xD9) the
+    //   (2) DoorHasShipArrivalData - vanilla extra (kShipArrivalData=0xD9) the
     //       engine attaches to actual ship-hatch kDOORs. Works on PILOT path
     //       before broadcast is sent. Closest match preferred if multiple.
-    //   (3) Nearest kDOOR within radius — last-resort fallback, logged as WARN
+    //   (3) Nearest kDOOR within radius - last-resort fallback, logged as WARN
     //       so we can spot mis-picks in user logs.
     //
     // Radius widened from 25u to 100u (10000u²) since with disambiguation the
@@ -742,7 +742,7 @@ namespace {
         if (nearestKDoor) {
             PLOG_WARN(
                 "[PULSAR] L.6 V3 DockSync station-hatch pick: NEAREST-FALLBACK "
-                "ref=0x{:08X} d2={:.1f} — no broadcast match and no "
+                "ref=0x{:08X} d2={:.1f} - no broadcast match and no "
                 "kShipArrivalData; may pick wrong door in dense layouts"sv,
                 nearestKDoor->formID, nearestKDoorDist2);
             return nearestKDoor;
@@ -754,10 +754,10 @@ namespace {
     // Phase 3i v3 changed: cockpit cells may have multiple kDOORs (Razorleaf
     // has interior doors + the ship hatch). Engine populates ExtraTeleport
     // ONLY on the actual ship hatch via SetUpDockExtraTeleport. So we filter
-    // by "kDOOR with populated XT" — guaranteed to be the hatch on host.
+    // by "kDOOR with populated XT" - guaranteed to be the hatch on host.
     // For receiver side (where engine doesn't populate), we ALSO accept any
     // kDOOR (the receiver-side finder is gated differently anyway).
-    // Phase 3i v14.1 helpers — touch unordered_set without __try in caller.
+    // Phase 3i v14.1 helpers - touch unordered_set without __try in caller.
     static void AddAppliedCockpitHatch(std::uint32_t a_fmt)
     {
         std::lock_guard lk(g_appliedCockpitHatchSetMutex);
@@ -832,7 +832,7 @@ namespace {
     // Phase 3i v6: snapshot pre-dock populated kDOOR base-FormIDs. Called at
     // DockEvent (1,0). Pre-existing populated XT = LANDING hatches (engine
     // populates these at cell-load). The dock hatch's XT gets populated
-    // LATER during dock state-machine — that's the one we want.
+    // LATER during dock state-machine - that's the one we want.
     static void SnapshotPreDockPopulatedHatches(RE::TESObjectCELL* a_cell)
     {
         const auto slot = ReadCellRefArray(a_cell);
@@ -938,7 +938,7 @@ namespace {
 
     // Phase 3i v7: walk cockpit cell, suppress all populated-XT kDOORs whose
     // base FormID does NOT match the dock-hatch base. Called on client after
-    // applying dock XT — prevents accidental activate of landing hatch.
+    // applying dock XT - prevents accidental activate of landing hatch.
     static void SuppressNonDockHatchesInCell(
         RE::TESObjectCELL* a_cell, std::uint32_t a_dockBase)
     {
@@ -1220,11 +1220,11 @@ namespace {
             }
             // Phase 3i v8: TWO-PASS to avoid premature returns. Per-iteration
             // returns let earlier-priority paths "win" only if a later-priority
-            // ref hasn't been seen yet — but iteration order is arbitrary.
+            // ref hasn't been seen yet - but iteration order is arbitrary.
             // Track best-by-priority across iteration, decide at end.
-            //   (1) remoteBase match (CLIENT receiver — strict)
-            //   (2) freshXT — populated AND snapshot taken AND not in snapshot
-            //       (HOST pilot — gated on snapshot-taken so this path doesn't
+            //   (1) remoteBase match (CLIENT receiver - strict)
+            //   (2) freshXT - populated AND snapshot taken AND not in snapshot
+            //       (HOST pilot - gated on snapshot-taken so this path doesn't
             //       trigger on client where snapshot is empty)
             //   (3) kShipArrivalData (universal ship-hatch marker)
             //   (4) populated XT (post-dock fallback)
@@ -1259,7 +1259,7 @@ namespace {
         return fallback;
     }
 
-    // Phase 3b host capture — read the 28-byte ExtraTeleport inner block off
+    // Phase 3b host capture - read the 28-byte ExtraTeleport inner block off
     // a populated hatch REFR. Returns true if struct was successfully read
     // AND the inner pos appears valid (not all-zero, suggesting engine has
     // populated it post-cutscene).
@@ -1330,7 +1330,7 @@ namespace {
         if (!fn) return false;
 
         // Resolve the dest door REFR via FormID lookup. If station cell isn't
-        // loaded on client, this returns null — that's OK per earlier RE work
+        // loaded on client, this returns null - that's OK per earlier RE work
         // recipe; we set destDoorRef=null and rely on pos/rot for the engine
         // teleport, plus PULSAR's existing TransitSync handles the cell-load.
         RE::TESObjectREFR* destRefPtr = nullptr;
@@ -1345,7 +1345,7 @@ namespace {
 
         // Phase 3b v4 (2026-05-02): bypass AddOrGetExtraTeleport's confusing
         // return type (earlier RE work decompile suggested "returns inner" but
-        // actually returns OUTER on early-path and INNER on alloc-path —
+        // actually returns OUTER on early-path and INNER on alloc-path -
         // inconsistent). Strategy: call it (allocates if needed, idempotent),
         // discard return value, then re-fetch outer via GetByType from the
         // extraList. Outer is guaranteed to exist + have non-null inner-ptr
@@ -1404,14 +1404,14 @@ namespace {
             inner->destRotZ    = a_pkt.destRotZ;
             inner->destFlag    = a_pkt.destFlag;
 
-            // Set REFR.flags16 |= 0x40 — what SetUpDockExtraTeleport does post-pair.
+            // Set REFR.flags16 |= 0x40 - what SetUpDockExtraTeleport does post-pair.
             auto* p16 = reinterpret_cast<std::uint16_t*>(
                 reinterpret_cast<std::uint8_t*>(a_hatch) + 0x2C);
             *p16 |= 0x40;
 
             // Phase 3c (2026-05-02): earlier RE work RE corrected the polarity.
             // FUN_140B58E40 is a REJECT filter (1=skip, 0=eligible). Earlier
-            // versions set the "skip" bits — engine politely ignored the hatch.
+            // versions set the "skip" bits - engine politely ignored the hatch.
             //
             // What engine's own SetUpDockExtraTeleport (RVA 0x14213B9C0) does:
             //   AND  word [+0x2C], 0xBFFF  ; CLEAR bit 14 (was set, must clear)
@@ -1421,7 +1421,7 @@ namespace {
             //   call FUN_140B37390(refr, 1); enable-for-dock + cell-walk
             //
             // The previously-set bits +0x18 |= 0x200, +0x20 |= 0x100, +0x2C
-            // |= 0x4000 ARE what the gate filters out — they suppress the
+            // |= 0x4000 ARE what the gate filters out - they suppress the
             // prompt. We CLEAR them now and SET only what engine sets.
             auto* pUnk18 = reinterpret_cast<std::uint64_t*>(
                 reinterpret_cast<std::uint8_t*>(a_hatch) + 0x18);
@@ -1435,8 +1435,8 @@ namespace {
             *p16        &= 0xBFFF;        // CLEAR bit 14 of formChangeFlags
 
             // Set engine's "configured by docking" markers.
-            *pFormFlags |= 0x200;         // formFlags bit 9 — activation profile route
-            *p16        |= 0x0040;        // formChangeFlags bit 6 — XT configured (already done above; idempotent)
+            *pFormFlags |= 0x200;         // formFlags bit 9 - activation profile route
+            *p16        |= 0x0040;        // formChangeFlags bit 6 - XT configured (already done above; idempotent)
         } __except (EXCEPTION_EXECUTE_HANDLER) {
             PLOG_WARN("[PULSAR] L.6 V3 DockSync ApplyHatch: bit-write SEH"sv);
             return false;
@@ -1550,7 +1550,7 @@ namespace {
             loadedDataPtr, data3DPtr);
     }
 
-    // Standalone host-side pose log tick — runs in parallel to hatch-poll
+    // Standalone host-side pose log tick - runs in parallel to hatch-poll
     // and continues after broadcast fires (we want to see pose for full 60s).
     static void TickPoseLog()
     {
@@ -1568,7 +1568,7 @@ namespace {
         LogPoseCandidates();
     }
 
-    // Phase 3b host poll — called from Tick during the 60s post-broadcast
+    // Phase 3b host poll - called from Tick during the 60s post-broadcast
     // window. Walks player cell for the cockpit hatch, captures + broadcasts
     // when ExtraTeleport becomes populated. Single-shot per dock event.
     static std::atomic<std::uint64_t> g_hatchLastDiagMs{ 0 };
@@ -1600,7 +1600,7 @@ namespace {
         auto* cell = player->parentCell;
         if (!cell) return;
 
-        // 1Hz diagnostic — log what we observe each second so we can see
+        // 1Hz diagnostic - log what we observe each second so we can see
         // hatch acquisition + ExtraTeleport population timing.
         const std::uint64_t lastDiag = g_hatchLastDiagMs.load(std::memory_order_acquire);
         const bool wantDiag = (now - lastDiag) >= kHatchDiagIntervalMs;
@@ -1665,7 +1665,7 @@ namespace {
         // We need at MINIMUM the inner data to be allocated AND non-zero
         // destPos (the actual teleport target). destDoorRef is preferred but
         // engine may set it via NiPointer-handle indirection that doesn't
-        // resolve through our raw deref — accept its absence too.
+        // resolve through our raw deref - accept its absence too.
         const bool posValid = (dpx != 0.0f) || (dpy != 0.0f) || (dpz != 0.0f);
         if (!hasInner || !posValid) return;
 
@@ -1758,7 +1758,7 @@ namespace {
             auto* p18 = reinterpret_cast<std::uint64_t*>(pb + 0x18);
             auto* p20 = reinterpret_cast<std::uint32_t*>(pb + 0x20);
             auto* p2C = reinterpret_cast<std::uint16_t*>(pb + 0x2C);
-            // Clear skip bits (do this every tick — engine ship-update may re-set them).
+            // Clear skip bits (do this every tick - engine ship-update may re-set them).
             *p18 &= ~0x200ull;
             *p20 &= ~0x100u;
             *p2C &= 0xBFFF;
@@ -1851,7 +1851,7 @@ namespace {
     }
 
     // Phase 3f: apply Phase 3c-style bypass to a station-side hatch REFR.
-    // Same as ApplyHatchExtraTeleport but for the OTHER side of the dock —
+    // Same as ApplyHatchExtraTeleport but for the OTHER side of the dock -
     // the kDOOR in station-interior that takes the player back to the ship.
     // We allocate inner XT (gate non-null check passes) and write destDoorRef
     // pointing to our cockpit hatch (so engine teleport returns to ship).
@@ -1966,7 +1966,7 @@ namespace {
         return true;
     }
 
-    // Phase 3i: pilot-side capture of station-side hatch XT bytes — runs
+    // Phase 3i: pilot-side capture of station-side hatch XT bytes - runs
     // when pilot crosses cockpit→station, finds local station-side hatch
     // (engine-populated by SetUpDockExtraTeleport), broadcasts bytes to
     // peers so they can apply ship-specific values instead of hardcoded.
@@ -1999,13 +1999,13 @@ namespace {
             payload.destFlag = inner->destFlag;
         } __except (EXCEPTION_EXECUTE_HANDLER) { return; }
 
-        // Sanity check — only broadcast if values look engine-populated
+        // Sanity check - only broadcast if values look engine-populated
         // (not float-MAX garbage). Reject if any pos component is huge.
         const float kMaxValid = 1.0e6f;
         if (std::fabs(payload.destPosX) > kMaxValid ||
             std::fabs(payload.destPosY) > kMaxValid ||
             std::fabs(payload.destPosZ) > kMaxValid) {
-            PLOG_INFO("[PULSAR] L.6 V3 DockSync station-XT capture: SKIP — engine-populated values look uninitialized (huge pos)"sv);
+            PLOG_INFO("[PULSAR] L.6 V3 DockSync station-XT capture: SKIP - engine-populated values look uninitialized (huge pos)"sv);
             return;
         }
 
@@ -2039,7 +2039,7 @@ namespace {
     // Phase 3f: detect player cell-change cockpit→station and apply bypass
     // to the station-side hatch. Single-shot until next dock event. Apply
     // is deferred 2.5s after detection AND until Cell3DAttach reports the
-    // cell is quiet — Phase 3f v1 crashed when running during cell-streaming.
+    // cell is quiet - Phase 3f v1 crashed when running during cell-streaming.
     static void TickStationSideHatchSetup()
     {
         const bool isReceiver = g_dockAppliedLocally.load(std::memory_order_acquire);
@@ -2047,12 +2047,12 @@ namespace {
         if (!isReceiver && !isPilot) return;
         // For pilot we just want to capture once. For receiver we apply once.
         if (isReceiver && g_stationSideApplied.load(std::memory_order_acquire)) {
-            // Receiver already applied — nothing to do unless we're also pilot
+            // Receiver already applied - nothing to do unless we're also pilot
             // (which shouldn't happen; mutually exclusive).
             if (!isPilot) return;
         }
         if (isPilot && g_stationXTBroadcastSent.load(std::memory_order_acquire)) {
-            // Pilot already broadcast — nothing to do unless we're also receiver.
+            // Pilot already broadcast - nothing to do unless we're also receiver.
             if (!isReceiver) return;
         }
 
@@ -2103,7 +2103,7 @@ namespace {
         // Phase 3i v15: disambiguate station hatch vs nearby interior doors.
         // Receiver uses pilot-broadcast hatchBaseFormID; pilot uses
         // kShipArrivalData; nearest-door is last-resort fallback.
-        // Radius widened from 25u to 100u (10000u²) — safe with disambiguation,
+        // Radius widened from 25u to 100u (10000u²) - safe with disambiguation,
         // robust against the 2.5s defer letting the player walk farther.
         float ppx = 0, ppy = 0, ppz = 0;
         __try {
@@ -2163,7 +2163,7 @@ namespace {
                 }
                 PLOG_INFO(
                     "[PULSAR] L.6 V3 DockSync ⚡ STATION-SIDE APPLY hatch=0x{:08X} "
-                    "destCockpit=0x{:08X} — return-to-ship enabled"sv,
+                    "destCockpit=0x{:08X} - return-to-ship enabled"sv,
                     stationHatch->formID, cockpitHatchFmt);
                 NASLOG("L.6 V3 DockSync STATION-SIDE APPLY hatch=0x%08X",
                        stationHatch->formID);
@@ -2173,7 +2173,7 @@ namespace {
         }
     }
 
-    // Phase 3b client apply — drains pending packet, walks cell, applies XT.
+    // Phase 3b client apply - drains pending packet, walks cell, applies XT.
     static void TickHatchTeleportApply()
     {
         if (!g_pendingXT.armed.load(std::memory_order_acquire)) return;
@@ -2199,7 +2199,7 @@ namespace {
         if (cell->formID != payload.cockpitCellFormID) {
             PLOG_INFO(
                 "[PULSAR] L.6 V3 DockSync XT apply: cell mismatch local=0x{:08X} "
-                "remote=0x{:08X} — applying to local cell anyway"sv,
+                "remote=0x{:08X} - applying to local cell anyway"sv,
                 cell->formID, payload.cockpitCellFormID);
         }
 
@@ -2216,7 +2216,7 @@ namespace {
             LogHatchTrace("CLIENT.cockpit-post-apply", hatch);
             PLOG_INFO(
                 "[PULSAR] L.6 V3 DockSync ⚡ XT APPLY hatch=0x{:08X} dest=0x{:08X} "
-                "pos=({:.1f},{:.1f},{:.1f}) — ready for activate"sv,
+                "pos=({:.1f},{:.1f},{:.1f}) - ready for activate"sv,
                 hatch->formID, payload.destDoorFormID,
                 payload.destPosX, payload.destPosY, payload.destPosZ);
             NASLOG("L.6 V3 DockSync XT APPLY hatch=0x%08X dest=0x%08X",
@@ -2228,7 +2228,7 @@ namespace {
             // client can't accidentally walk through a non-dock hatch while
             // host is docked. Inner-XT pointers are saved + restored on undock.
             SuppressNonDockHatchesInCell(cell, payload.hatchBaseFormID);
-            // Phase 3e: mark that we have applied dock state — used as gate
+            // Phase 3e: mark that we have applied dock state - used as gate
             // for sending PKT_DOCK_UNDOCKED on local TakeOff and as gate for
             // accepting cleanup (idempotent).
             g_dockAppliedLocally.store(true, std::memory_order_release);
@@ -2244,7 +2244,7 @@ namespace {
             g_localCockpitHatchFormID.store(hatch->formID,
                                              std::memory_order_release);
             g_stationSideApplied.store(false, std::memory_order_release);
-            // Phase 3b v7: arm persistence — periodically re-set bits +
+            // Phase 3b v7: arm persistence - periodically re-set bits +
             // log gate state for next 2min so we can see if/when bits clear.
             const std::uint64_t now2 = ::GetTickCount64();
             g_xtPersistUntilMs.store(now2 + kXTPersistDurationMs,
@@ -2257,7 +2257,7 @@ namespace {
         }
     }
 
-    // Custom DockEvent sink — registers in addition to SpaceSync's sink (both
+    // Custom DockEvent sink - registers in addition to SpaceSync's sink (both
     // fire on every event, no conflict). This one reads the payload bytes.
     class DockEventSink : public RE::BSTEventSink<RE::Spaceship::DockEvent> {
     public:
@@ -2299,9 +2299,9 @@ namespace {
 
             // Highlight the fully-docked moment per earlier RE work (site 0x14213E0D6
             // fires (1,1)). Empirical observation 2026-05-02: (1,1) does NOT
-            // fire for normal player-initiated docks — only (0,0) and (1,0) do.
+            // fire for normal player-initiated docks - only (0,0) and (1,0) do.
             if (startedFlag == 1 && finishedFlag == 1) {
-                PLOG_INFO("[PULSAR] L.6 V3 DockSync ⚡ FULLY-DOCKED detected — "
+                PLOG_INFO("[PULSAR] L.6 V3 DockSync ⚡ FULLY-DOCKED detected - "
                           "(started=1, finished=1)"sv);
                 NASLOG("L.6 V3 DockSync FULLY-DOCKED");
             }
@@ -2349,7 +2349,7 @@ namespace {
                 // the 28-byte struct so client can replicate without cross-
                 // cell MoveTo. Single-shot per dock event.
                 auto& net2 = Pulsar::Network::GetSingleton();
-                if (net2.IsConnected()) {  // Phase 3e: bidirectional — any pilot side arms poll
+                if (net2.IsConnected()) {  // Phase 3e: bidirectional - any pilot side arms poll
                     const std::uint64_t now2 = ::GetTickCount64();
                     g_hatchTeleportSent.store(false, std::memory_order_release);
                     g_hatchPollUntilMs.store(now2 + kHatchPollDurationMs,
@@ -2358,7 +2358,7 @@ namespace {
                     PLOG_INFO(
                         "[PULSAR] L.6 V3 DockSync hatch-XT poll ARMED ({}ms window @ {}ms interval)"sv,
                         kHatchPollDurationMs, kHatchPollIntervalMs);
-                    // Phase 3i: mark this peer as pilot for current dock —
+                    // Phase 3i: mark this peer as pilot for current dock -
                     // triggers station-XT capture+broadcast on cockpit→station.
                     g_localPilotForCurrentDock.store(true, std::memory_order_release);
                     g_stationXTBroadcastSent.store(false, std::memory_order_release);
@@ -2369,7 +2369,7 @@ namespace {
                         g_localCockpitCellFormID.store(player->parentCell->formID,
                                                         std::memory_order_release);
                         // Phase 3i v6: snapshot pre-dock populated kDOOR bases.
-                        // Discriminator for FindLocalHatchInCell — newly
+                        // Discriminator for FindLocalHatchInCell - newly
                         // populated kDOOR (= dock hatch) is what we pick.
                         SnapshotPreDockPopulatedHatches(player->parentCell);
                     }
@@ -2391,7 +2391,7 @@ namespace {
             } __except (EXCEPTION_EXECUTE_HANDLER) {}
 
             // Also dump the shipA from payload (in case it differs from
-            // PlayerCharacter::GetSpaceship — could be the dock-partner side).
+            // PlayerCharacter::GetSpaceship - could be the dock-partner side).
             __try {
                 const std::uint8_t* base = reinterpret_cast<const std::uint8_t*>(evt);
                 const RE::TESObjectREFR* shipA =
@@ -2412,7 +2412,7 @@ namespace {
 
     static DockEventSink g_dockSink;
 
-    // Phase 3e: TakeOffEvent sink — fires when local engine runs the takeoff
+    // Phase 3e: TakeOffEvent sink - fires when local engine runs the takeoff
     // state machine. Both ground takeoff (planet → space) AND station undock
     // fire this. We broadcast PKT_DOCK_UNDOCKED unconditionally; the receiver
     // checks if it has applied dock-state and cleans up. Idempotent.
@@ -2425,7 +2425,7 @@ namespace {
             RE::BSTEventSource<RE::Spaceship::TakeOffEvent>* /*src*/) override
         {
             const int n = fireCount.fetch_add(1) + 1;
-            PLOG_INFO("[PULSAR] L.6 V3 DockSync TakeOff sink #{} — broadcasting undock"sv, n);
+            PLOG_INFO("[PULSAR] L.6 V3 DockSync TakeOff sink #{} - broadcasting undock"sv, n);
 
             auto& net = Pulsar::Network::GetSingleton();
             if (!net.IsConnected()) return RE::BSEventNotifyControl::kContinue;
@@ -2460,7 +2460,7 @@ namespace {
 
     static TakeOffEventSink g_takeOffSink;
 
-    // Phase 3e — clear our applied dock state on the local cockpit hatch.
+    // Phase 3e - clear our applied dock state on the local cockpit hatch.
     // Inverse of ApplyHatchExtraTeleport: clear configured bits, call
     // EnableForDock(0) to disable kPersistent + clear inner XT pointer.
     static bool ClearHatchDockState(RE::TESObjectREFR* a_hatch)
@@ -2474,8 +2474,8 @@ namespace {
             auto* p2C = reinterpret_cast<std::uint16_t*>(pb + 0x2C);
 
             // Inverse of Phase 3c: clear the "configured by docking" bits.
-            *pFormFlags &= ~0x200u;       // formFlags bit 9 — clear "set up by dock"
-            *p2C        &= ~static_cast<std::uint16_t>(0x40);  // formChangeFlags bit 6 — clear XT-configured
+            *pFormFlags &= ~0x200u;       // formFlags bit 9 - clear "set up by dock"
+            *p2C        &= ~static_cast<std::uint16_t>(0x40);  // formChangeFlags bit 6 - clear XT-configured
             // Also keep the previously-cleared skip bits cleared.
             *pUnk18     &= ~0x200ull;
             *pFormFlags &= ~0x100u;
@@ -2502,7 +2502,7 @@ namespace {
             PLOG_WARN("[PULSAR] L.6 V3 DockSync ClearHatch: xt-clear SEH"sv);
         }
 
-        // Engine "disable for dock" — mirrors EnableForDock(refr, 1) at apply.
+        // Engine "disable for dock" - mirrors EnableForDock(refr, 1) at apply.
         __try {
             using EnableForDockFn = void (__fastcall*)(RE::TESObjectREFR*, char);
             auto enableFn = reinterpret_cast<EnableForDockFn>(
@@ -2541,7 +2541,7 @@ namespace {
             PLOG_WARN("[PULSAR] L.6 V3 DockSync: DockEvent source null"sv);
         }
 
-        // TakeOffEvent sink (Phase 3e — undock detection).
+        // TakeOffEvent sink (Phase 3e - undock detection).
         auto getToFn = reinterpret_cast<GetDockSrcFn>(
             REL::Offset{ kRVA_GetTakeOffSrc }.address());
 
@@ -2554,7 +2554,7 @@ namespace {
             reinterpret_cast<std::uintptr_t>(getToFn),
             reinterpret_cast<std::uintptr_t>(toRaw));
 
-        // TEMPORARILY DISABLED 2026-05-02 — investigating ship-sync regression.
+        // TEMPORARILY DISABLED 2026-05-02 - investigating ship-sync regression.
         // The TakeOff sink may be interfering with FlightSync L.3 V3 vt[8]
         // hook on bhkSpaceship somehow. Re-enable once root cause known.
         if (false && toRaw) {
@@ -2581,7 +2581,7 @@ void Init()
 }
 
 // Phase 3i v17: forward-bridge gate. Block client's cockpit-hatch activate
-// while we're waiting for host's forward save-bridge to arrive — otherwise
+// while we're waiting for host's forward save-bridge to arrive - otherwise
 // client teleports to LOCAL procedural ship instance (not host's), sees a
 // different ship at the dock, etc. Once save loads, in-memory state resets
 // and the wait flag is cleared, so subsequent activate goes through normally.
@@ -2604,7 +2604,7 @@ bool TryHandleCockpitSideHatchActivate(RE::TESObjectREFR* a_self)
     if (now - expectedAt > kForwardBridgeTimeoutMs) {
         g_clientWaitingForForwardBridge.store(false, std::memory_order_release);
         PLOG_WARN(
-            "[PULSAR] L.6 V3 DockSync forward-bridge: timeout after {}ms — "
+            "[PULSAR] L.6 V3 DockSync forward-bridge: timeout after {}ms - "
             "unblocking cockpit-hatch activate (save did not arrive)"sv,
             now - expectedAt);
         return false;
@@ -2617,7 +2617,7 @@ bool TryHandleCockpitSideHatchActivate(RE::TESObjectREFR* a_self)
         g_lastBlockLogMs.store(now, std::memory_order_release);
         PLOG_INFO(
             "[PULSAR] L.6 V3 DockSync forward-bridge: blocking cockpit-hatch activate "
-            "(hatch=0x{:08X}) until host save arrives — waited {}ms so far"sv,
+            "(hatch=0x{:08X}) until host save arrives - waited {}ms so far"sv,
             selfID, now - expectedAt);
     }
     return true;  // suppress engine activate
@@ -2647,11 +2647,11 @@ bool TryHandleStationSideHatchActivate(RE::TESObjectREFR* a_self)
     if (cockpitIsVanilla) {
         PLOG_INFO(
             "[PULSAR] L.6 V3 DockSync station-side activate: vanilla cockpit "
-            "0x{:08X} — letting engine teleport natively"sv, cockpitCell);
+            "0x{:08X} - letting engine teleport natively"sv, cockpitCell);
         return false;  // engine native handles vanilla
     }
 
-    // Procedural cell — KNOWN HARD LIMIT. Empirically tested v12-v14.3:
+    // Procedural cell - KNOWN HARD LIMIT. Empirically tested v12-v14.3:
     // MoveTo to clone fails (NPCSync renders clone in player cell, not host's)
     // MoveTo to broadcast ship REFR fails (procedural FormID is host-local)
     // MoveTo to local cockpit hatch FormID fails (cell evicted, engine
@@ -2665,7 +2665,7 @@ bool TryHandleStationSideHatchActivate(RE::TESObjectREFR* a_self)
     // station visit, or (c) BSGalaxy::DockingChildState ComponentDB
     // pre-registration (complex factory RE). All deferred.
     //
-    // Fall through silently — engine activate may do nothing or land player
+    // Fall through silently - engine activate may do nothing or land player
     // in wrong cell, but at least no spam from our intercept loop.
     static std::atomic<std::uint64_t> g_lastProcLogMs{ 0 };
     const std::uint64_t now = ::GetTickCount64();
@@ -2674,7 +2674,7 @@ bool TryHandleStationSideHatchActivate(RE::TESObjectREFR* a_self)
         g_lastProcLogMs.store(now, std::memory_order_release);
         PLOG_INFO(
             "[PULSAR] L.6 V3 DockSync station-side activate: procedural cockpit "
-            "0x{:08X} — no return path available (architectural limit)"sv,
+            "0x{:08X} - no return path available (architectural limit)"sv,
             cockpitCell);
     }
     return false;
@@ -2682,7 +2682,7 @@ bool TryHandleStationSideHatchActivate(RE::TESObjectREFR* a_self)
 
 void OnLocalSaveLoaded()
 {
-    // Phase 3i v17: clear forward-bridge wait flag — save-load means we now
+    // Phase 3i v17: clear forward-bridge wait flag - save-load means we now
     // have host's exact state, so further hatch activations should run native.
     if (g_clientWaitingForForwardBridge.exchange(false, std::memory_order_acq_rel)) {
         PLOG_INFO(
@@ -2699,7 +2699,7 @@ void OnRemoteTakeOff()
     // we have an apply on file.
     if (!g_dockAppliedLocally.load(std::memory_order_acquire)) return;
 
-    PLOG_INFO("[PULSAR] L.6 V3 DockSync: peer TakeOff received — cleaning local hatch state"sv);
+    PLOG_INFO("[PULSAR] L.6 V3 DockSync: peer TakeOff received - cleaning local hatch state"sv);
     NASLOG("L.6 V3 DockSync: peer TakeOff -> cleanup");
 
     auto* player = RE::PlayerCharacter::GetSingleton();
@@ -2723,7 +2723,7 @@ void OnRemoteTakeOff()
     g_localPilotForCurrentDock.store(false, std::memory_order_release);
     g_stationXTBroadcastSent.store(false, std::memory_order_release);
     g_haveReceivedStationXT.store(false, std::memory_order_release);
-    // Phase 3i v6: invalidate pre-dock snapshot — stale after undock.
+    // Phase 3i v6: invalidate pre-dock snapshot - stale after undock.
     ClearPreDockSnapshot();
     g_remoteDockHatchBase.store(0, std::memory_order_release);
     // Phase 3i v7: restore landing-hatch inner-XT pointers we zeroed on apply.
@@ -2737,24 +2737,24 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
 
     auto& net = Pulsar::Network::GetSingleton();
 
-    // PKT_DOCK_FORWARD_BRIDGE_EXPECTED (0x8E) — Phase 3i v17/v18. Host signals
+    // PKT_DOCK_FORWARD_BRIDGE_EXPECTED (0x8E) - Phase 3i v17/v18. Host signals
     // "save-bridge incoming, suppress your auto-teleport". Originally also
-    // blocked cockpit-hatch activate during forward-bridge — v18 removed
+    // blocked cockpit-hatch activate during forward-bridge - v18 removed
     // forward-bridge so cockpit gate is dormant. Suppression of ResetTeleport
     // is still needed for return-bridge.
     if (pktType == Pulsar::Network::PKT_DOCK_FORWARD_BRIDGE_EXPECTED) {
-        // Suppress ResetTeleport on next save-load — auto-teleport-to-host
+        // Suppress ResetTeleport on next save-load - auto-teleport-to-host
         // pushes client into NULL cell when host's pos is in a procedural FF
         // cell that can't cell-stream standalone.
         net.SuppressNextResetTeleport();
         PLOG_INFO(
-            "[PULSAR] L.6 V3 DockSync ⇐ BRIDGE-EXPECTED — suppressing auto-teleport, "
+            "[PULSAR] L.6 V3 DockSync ⇐ BRIDGE-EXPECTED - suppressing auto-teleport, "
             "waiting for host save"sv);
         NASLOG("L.6 V3 DockSync BRIDGE-EXPECTED received");
         return;
     }
 
-    // PKT_DOCK_STATION_XT (0x8D) — Phase 3i pilot broadcasts station-XT bytes.
+    // PKT_DOCK_STATION_XT (0x8D) - Phase 3i pilot broadcasts station-XT bytes.
     if (pktType == Pulsar::Network::PKT_DOCK_STATION_XT) {
         Pulsar::Network::PacketReader reader(a_data, a_length);
         if (!reader.IsValid()) return;
@@ -2776,7 +2776,7 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
         }
         g_haveReceivedStationXT.store(true, std::memory_order_release);
 
-        // Phase 3i v9: race-fix — if station-side bypass was already applied
+        // Phase 3i v9: race-fix - if station-side bypass was already applied
         // with FALLBACK-FRONTIER (broadcast arrived too late), reset the
         // applied flag so TickStationSideHatchSetup re-applies on next tick
         // using the now-received pilot bytes. The station-side cell-crossing
@@ -2788,13 +2788,13 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
             g_stationSideApplyDueMs.store(::GetTickCount64(),
                                             std::memory_order_release);
             PLOG_INFO(
-                "[PULSAR] L.6 V3 DockSync station-XT received post-apply — "
+                "[PULSAR] L.6 V3 DockSync station-XT received post-apply - "
                 "re-arming station-side bypass to use pilot-broadcast bytes"sv);
         }
         return;
     }
 
-    // PKT_DOCK_UNDOCKED (0x8C) — Phase 3e undock cleanup.
+    // PKT_DOCK_UNDOCKED (0x8C) - Phase 3e undock cleanup.
     if (pktType == Pulsar::Network::PKT_DOCK_UNDOCKED) {
         Pulsar::Network::PacketReader reader(a_data, a_length);
         if (!reader.IsValid()) {
@@ -2811,7 +2811,7 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
             payload.shipFormID, payload.hatchBaseFormID);
         NASLOG("L.6 V3 DockSync UNDOCK RECV ship=0x%08X", payload.shipFormID);
 
-        // Idempotent — only act if we have applied dock state.
+        // Idempotent - only act if we have applied dock state.
         if (!g_dockAppliedLocally.load(std::memory_order_acquire)) {
             PLOG_INFO("[PULSAR] L.6 V3 DockSync UNDOCK: nothing to clean (no apply on file)"sv);
             return;
@@ -2824,7 +2824,7 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
 
         RE::TESObjectREFR* hatch = FindLocalHatchInCell(cell);
         if (!hatch) {
-            PLOG_INFO("[PULSAR] L.6 V3 DockSync UNDOCK: no hatch in current cell — clearing flag only"sv);
+            PLOG_INFO("[PULSAR] L.6 V3 DockSync UNDOCK: no hatch in current cell - clearing flag only"sv);
             g_dockAppliedLocally.store(false, std::memory_order_release);
             g_xtPersistArmed.store(false, std::memory_order_release);
             return;
@@ -2846,7 +2846,7 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
         return;
     }
 
-    // PKT_DOCK_EXTRATELEPORT (0x8B) — Phase 3b primary apply path.
+    // PKT_DOCK_EXTRATELEPORT (0x8B) - Phase 3b primary apply path.
     if (pktType == Pulsar::Network::PKT_DOCK_EXTRATELEPORT) {
         Pulsar::Network::PacketReader reader(a_data, a_length);
         if (!reader.IsValid()) {
@@ -2861,7 +2861,7 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
         PLOG_INFO(
             "[PULSAR] L.6 V3 DockSync ⇐ XT RECV hatchBase=0x{:08X} cell=0x{:08X} "
             "dest=0x{:08X} pos=({:.1f},{:.1f},{:.1f}) rot=({:.2f},{:.2f},{:.2f}) "
-            "flags=0x{:X} destFlag=0x{:02X} — Phase 3b apply armed"sv,
+            "flags=0x{:X} destFlag=0x{:02X} - Phase 3b apply armed"sv,
             payload.hatchBaseFormID, payload.cockpitCellFormID,
             payload.destDoorFormID,
             payload.destPosX, payload.destPosY, payload.destPosZ,
@@ -2874,14 +2874,14 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
         // broadcast doesn't receive its own packet (ENet doesn't reflect to
         // sender), so no role-check needed. If we ARE currently the pilot
         // somehow (engine state mismatch), our local hatch likely already
-        // has working ExtraTeleport — the apply is idempotent (existing
+        // has working ExtraTeleport - the apply is idempotent (existing
         // bits stay set, no harm).
-        // Phase 3i: hatchBaseFormID sanity is now diagnostic-only — non-Frontier
+        // Phase 3i: hatchBaseFormID sanity is now diagnostic-only - non-Frontier
         // ships use different base forms. Finder is ship-agnostic.
         if (payload.hatchBaseFormID != kHatchBaseFormID) {
             PLOG_INFO(
                 "[PULSAR] L.6 V3 DockSync XT RECV: non-Frontier hatch base 0x{:08X} "
-                "(Frontier=0x9CF4) — proceeding with ship-agnostic finder"sv,
+                "(Frontier=0x9CF4) - proceeding with ship-agnostic finder"sv,
                 payload.hatchBaseFormID);
         }
         if (false) {
@@ -2903,7 +2903,7 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
         return;
     }
 
-    // PKT_DOCK_FINISHED (0x8A) — informational; Phase 3a v3 currently SKIPs
+    // PKT_DOCK_FINISHED (0x8A) - informational; Phase 3a v3 currently SKIPs
     // apply because dock REFR is a stub on client (station cell not loaded).
     // Kept for diagnostics + future strategies. Phase 3b's XT path bypasses
     // this completely.
@@ -2921,7 +2921,7 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
 
     PLOG_INFO(
         "[PULSAR] L.6 V3 DockSync ⇐ RECV stage={} ship=0x{:08X} "
-        "dock=0x{:08X} pos=({:.0f},{:.0f},{:.0f}) — Phase 3a/3b dual-armed"sv,
+        "dock=0x{:08X} pos=({:.0f},{:.0f},{:.0f}) - Phase 3a/3b dual-armed"sv,
         payload.stage, payload.shipFormID, payload.dockRefrFormID,
         payload.posX, payload.posY, payload.posZ);
     NASLOG(
@@ -2931,9 +2931,9 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
 
     // Bidirectional: PKT_DOCK_FINISHED is informational logging mostly
     // (Phase 3a apply currently SKIPs because dock REFR data3D is FAKE on
-    // non-pilot side — same on both peers). Keep the receive logging path.
+    // non-pilot side - same on both peers). Keep the receive logging path.
     if (payload.shipFormID == 0 || payload.dockRefrFormID == 0) {
-        PLOG_WARN("[PULSAR] L.6 V3 DockSync RECV: missing FormIDs — skip apply"sv);
+        PLOG_WARN("[PULSAR] L.6 V3 DockSync RECV: missing FormIDs - skip apply"sv);
         return;
     }
 
@@ -2947,7 +2947,7 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
     g_pendingApply.armed.store(true, std::memory_order_release);
 }
 
-// Phase 3i v16.1 (2026-05-03) — HOST-side return-to-procedural-cockpit save-bridge.
+// Phase 3i v16.1 (2026-05-03) - HOST-side return-to-procedural-cockpit save-bridge.
 // v16.0 used g_localCockpitCellFormID to identify "cockpit cell"; that variable
 // gets corrupted by the cockpit-post-apply receiver path on host (it stores
 // player.parentCell unconditionally, so when host is in station and receives
@@ -2959,7 +2959,7 @@ void OnPacketReceived(const std::uint8_t* a_data, std::size_t a_length)
 //
 // Engine re-instances procedural cells on re-entry, so the cell ID may DIFFER
 // between the original cockpit FF cell and the post-station re-entry FF cell.
-// We accept this — strict same-ID match would miss the legitimate return.
+// We accept this - strict same-ID match would miss the legitimate return.
 //
 // State machine (per-tick):
 //   STATE 0: idle (most ticks, no transition)
@@ -3003,11 +3003,11 @@ static void TickHostReturnSaveResync()
         // Side effect: client's FF cells got loaded from host's save, then on
         // return-bridge the SECOND save-load couldn't cleanly reload procedural
         // cells → client landed in NULL cell (game menu). User-validated rule:
-        // "back to v16.1 — only return-bridge, forward goes through naturally
+        // "back to v16.1 - only return-bridge, forward goes through naturally
         // (visible-ship-mismatch is acceptable trade-off)".
         PLOG_INFO(
             "[PULSAR] L.6 V3 DockSync HOST left FF cell 0x{:08X} → vanilla 0x{:08X} "
-            "(armPos=({:.1f},{:.1f},{:.1f})) — armed return-bridge (forward intentionally "
+            "(armPos=({:.1f},{:.1f},{:.1f})) - armed return-bridge (forward intentionally "
             "skipped per v18 design)"sv,
             prevCell, curCell, armX, armY, armZ);
         return;
@@ -3030,7 +3030,7 @@ static void TickHostReturnSaveResync()
 
         PLOG_INFO(
             "[PULSAR] L.6 V3 DockSync HOST returned to FF cockpit 0x{:08X} from vanilla "
-            "0x{:08X} (armPos=({:.1f},{:.1f},{:.1f})) — ARMED return-bridge (deferred)"sv,
+            "0x{:08X} (armPos=({:.1f},{:.1f},{:.1f})) - ARMED return-bridge (deferred)"sv,
             curCell, prevCell, armX, armY, armZ);
     }
 }
@@ -3078,14 +3078,14 @@ static void TickPendingBridgeFire()
     if (curCell != armedCur) {
         PLOG_INFO(
             "[PULSAR] L.6 V3 DockSync bridge-defer: player cell changed from armed "
-            "0x{:08X} to 0x{:08X} — aborting"sv, armedCur, curCell);
+            "0x{:08X} to 0x{:08X} - aborting"sv, armedCur, curCell);
         g_pendingBridge.store(static_cast<std::uint8_t>(PendingBridge::kNone),
                               std::memory_order_release);
         return;
     }
 
     // Phase 3i v17.3: position-commit check. Engine commits player.location
-    // ASYNC after cell load — even after loadMenu CLOSED + IsQuiet, position
+    // ASYNC after cell load - even after loadMenu CLOSED + IsQuiet, position
     // can still be the OLD cell's coords for ~1-2 seconds. Wait until player
     // has moved a real distance from arm-time pos, OR max-grace expired.
     float curX = 0, curY = 0, curZ = 0;
@@ -3117,7 +3117,7 @@ static void TickPendingBridgeFire()
     if (!posCommitted) {
         PLOG_WARN(
             "[PULSAR] L.6 V3 DockSync bridge-defer: max-grace {}ms reached without "
-            "pos commit (dist²={:.1f}) — firing anyway"sv, kBridgeSettleMaxMs, dist2);
+            "pos commit (dist²={:.1f}) - firing anyway"sv, kBridgeSettleMaxMs, dist2);
     } else {
         PLOG_INFO(
             "[PULSAR] L.6 V3 DockSync bridge-defer: pos committed "
@@ -3141,7 +3141,7 @@ static void TickPendingBridgeFire()
         }
         g_lastForwardBridgeFireMs.store(now, std::memory_order_release);
 
-        // Broadcast EXPECTED first — client will gate cockpit-hatch activate.
+        // Broadcast EXPECTED first - client will gate cockpit-hatch activate.
         std::uint8_t buf[16]{};
         Pulsar::Network::PacketWriter w(
             Pulsar::Network::PKT_DOCK_FORWARD_BRIDGE_EXPECTED, buf, sizeof(buf));
@@ -3173,7 +3173,7 @@ static void TickPendingBridgeFire()
         // suppresses ResetTeleport. Without this, the auto-teleport-to-host
         // fires after save load and pushes client into NULL cell (= game menu)
         // because host's FF cockpit cell can't be cell-streamed standalone.
-        // Reuse the FORWARD_BRIDGE_EXPECTED packet — semantically the client-
+        // Reuse the FORWARD_BRIDGE_EXPECTED packet - semantically the client-
         // side handling is identical (suppress + gate cockpit hatch which is
         // a no-op on return because client isn't in cockpit).
         std::uint8_t buf[16]{};
@@ -3196,7 +3196,7 @@ static void TickPendingBridgeFire()
 void Tick()
 {
     // Phase 3i v5: unconditional door-dump (throttled to once per cell-FormID
-    // change) so we get data on BOTH peers — host and client — regardless of
+    // change) so we get data on BOTH peers - host and client - regardless of
     // dock-state. Lets us identify dock-vs-landing-hatch discriminator.
     if (auto* p = RE::PlayerCharacter::GetSingleton()) {
         if (auto* c = p->parentCell) DumpAllDoorsInCell(c);
@@ -3208,7 +3208,7 @@ void Tick()
     // is still in vanilla station with no FF state, so save-load applies cleanly.
     // v17.2: cell-change detection + arm pending bridge.
     TickHostReturnSaveResync();
-    // Phase 3i v17.2: deferred fire — wait for cell to settle before snapshot.
+    // Phase 3i v17.2: deferred fire - wait for cell to settle before snapshot.
     TickPendingBridgeFire();
     // Phase 3b host-side: poll for hatch ExtraTeleport population.
     TickHatchTeleportCapture();
@@ -3230,7 +3230,7 @@ void Tick()
 
             RE::TESObjectREFR* target = nullptr;
             if (useClone) {
-                // Clones are NOT in TESForm global table — use the manager.
+                // Clones are NOT in TESForm global table - use the manager.
                 auto* a = Pulsar::RemotePlayer::GetRemotePlayerManager().GetRemoteActor();
                 target = static_cast<RE::TESObjectREFR*>(a);
             } else {
@@ -3265,13 +3265,13 @@ void Tick()
                         if ((retries % 5) == 0) {
                             PLOG_INFO(
                                 "[PULSAR] L.6 V3 DockSync return-to-ship: clone not settled "
-                                "(retry {}/{} — clone still in player cell)"sv,
+                                "(retry {}/{} - clone still in player cell)"sv,
                                 retries + 1, kReturnMaxRetries);
                         }
                         return;
                     }
                     PLOG_WARN(
-                        "[PULSAR] L.6 V3 DockSync return-to-ship: timeout waiting for clone settle — attempting MoveTo anyway"sv);
+                        "[PULSAR] L.6 V3 DockSync return-to-ship: timeout waiting for clone settle - attempting MoveTo anyway"sv);
                 }
 
                 const bool ok = DispatchPlayerMoveToRef(target);
@@ -3306,12 +3306,12 @@ void Tick()
     const std::uint64_t due = g_pendingApply.dueTick.load(std::memory_order_acquire);
     if (now < due) return;
 
-    // De-dupe — engine may fire the same dock event twice within seconds, we
+    // De-dupe - engine may fire the same dock event twice within seconds, we
     // only want to MoveTo once per dock action.
     const std::uint64_t lastApply = g_lastApplyTick.load(std::memory_order_acquire);
     if ((now - lastApply) < kApplyDedupMs) {
         g_pendingApply.armed.store(false, std::memory_order_release);
-        PLOG_INFO("[PULSAR] L.6 V3 DockSync apply SKIP — dedup window"sv);
+        PLOG_INFO("[PULSAR] L.6 V3 DockSync apply SKIP - dedup window"sv);
         return;
     }
 
@@ -3377,11 +3377,11 @@ void Tick()
     // dereferences the dest REFR's 3D state which is null → crash. Same
     // pattern as feedback_animation_lessons.md kCloneSettleMs=10000 lesson.
     //
-    // Phase 3a v2 — readiness gate: only MoveTo if dest REFR has loadedData
+    // Phase 3a v2 - readiness gate: only MoveTo if dest REFR has loadedData
     // (REFR+0xC8 in CLib +8 layout) AND data3D (loadedData+0x68) both
     // non-null. If not loaded, log + skip (no apply). User can re-test
     // without crash; engine will sync dest cell when player walks closer
-    // or via cell-stream task — at that point a second MoveTo attempt could
+    // or via cell-stream task - at that point a second MoveTo attempt could
     // succeed. For now: skip + diagnostic log so we know how often the
     // gate fires.
     const std::uintptr_t shipBytes = reinterpret_cast<std::uintptr_t>(ship);
@@ -3415,7 +3415,7 @@ void Tick()
         dockFormID,
         (unsigned long long)dockLoadedData, (unsigned long long)dockData3D);
 
-    // Phase 3a v3 (2026-05-02): v2's `!= 0` check was a false-positive — the
+    // Phase 3a v3 (2026-05-02): v2's `!= 0` check was a false-positive - the
     // dock REFR's loadedData+0x68 returned `0x3F80000000000001` which is the
     // IEEE-754 bit pattern for float `1.0`, not a heap pointer. The dock
     // REFR's loadedData has a different internal layout when its 3D isn't
@@ -3429,23 +3429,23 @@ void Tick()
 
     if (!isValidPtr(shipData3D) || !isValidPtr(dockData3D)) {
         PLOG_WARN(
-            "[PULSAR] L.6 V3 DockSync apply: SKIP — REFR data3D invalid "
+            "[PULSAR] L.6 V3 DockSync apply: SKIP - REFR data3D invalid "
             "(ship3d=0x{:X} {}; dock3d=0x{:X} {}). Will retry on next packet."sv,
             shipData3D, isValidPtr(shipData3D) ? "ok" : "FAKE",
             dockData3D, isValidPtr(dockData3D) ? "ok" : "FAKE");
-        NASLOG("L.6 V3 DockSync APPLY SKIP — data3D invalid (ship=%llx dock=%llx)",
+        NASLOG("L.6 V3 DockSync APPLY SKIP - data3D invalid (ship=%llx dock=%llx)",
                (unsigned long long)shipData3D, (unsigned long long)dockData3D);
-        // Don't update g_lastApplyTick — the next packet will retry.
+        // Don't update g_lastApplyTick - the next packet will retry.
         return;
     }
 
-    // Both REFRs have data3D — safe to dispatch the Papyrus MoveTo. Engine
+    // Both REFRs have data3D - safe to dispatch the Papyrus MoveTo. Engine
     // calls akShip.MoveTo(akDock, 0,0,0, abMatchRotation=true, abCopyCell=true)
     // via DoMoveRefresh shim. SHIP MoveTo is allowed by user (2026-05-02);
     // PLAYER MoveTo is forbidden.
     const bool ok = DispatchShipMoveTo(ship, dock);
     if (ok) {
-        PLOG_INFO("[PULSAR] L.6 V3 DockSync apply: dispatch returned true — engine queued MoveTo"sv);
+        PLOG_INFO("[PULSAR] L.6 V3 DockSync apply: dispatch returned true - engine queued MoveTo"sv);
         NASLOG("L.6 V3 DockSync APPLY: MoveTo dispatched");
         g_lastApplyTick.store(now, std::memory_order_release);
     } else {

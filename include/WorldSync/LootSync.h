@@ -19,13 +19,13 @@ namespace Pulsar::WorldSync::Loot {
 
     // Key/keycard mirror. TickKeySync (game-thread, ~2s) scans the local
     // player's inventory for KEY (kKEYM) items and broadcasts any new one via
-    // PKT_KEY_MIRROR so the peer also gets it — nobody gets stuck at a loading-
+    // PKT_KEY_MIRROR so the peer also gets it - nobody gets stuck at a loading-
     // screen door that needs the key. OnKeyMirrorReceived adds the key to the
     // local player if missing. Idempotent (both sides track seen keys → no echo).
     void TickKeySync();
     void OnKeyMirrorReceived(const std::uint8_t* data, std::size_t length);
 
-    // Drain pending pickups — must run on the game thread (called from
+    // Drain pending pickups - must run on the game thread (called from
     // Main.cpp's 16ms ProcessPendingTasks tick or similar).
     void DrainPendingPickups();
 
@@ -40,17 +40,17 @@ namespace Pulsar::WorldSync::Loot {
     // thread tick. Internally rate-limited to 500ms.
     void TickContainerPolling();
 
-    // Shared replay primitive — set the in-flight "this is a replay, don't
+    // Shared replay primitive - set the in-flight "this is a replay, don't
     // re-broadcast" guard, then call the engine's original Activate via the
     // MinHook trampoline owned by LootSync. Used by sibling sync modules
     // (DoorSync, future) so they don't need to duplicate the trampoline
     // pointer or the t_replayingFromPacket guard.
     //
-    // `args` is ActivateArgs* (32-byte struct) — kept void* in the public
+    // `args` is ActivateArgs* (32-byte struct) - kept void* in the public
     // header to avoid leaking the internal struct definition.
     void CallOrigActivateAsReplay(RE::TESObjectREFR* refr, void* args);
 
-    // L.7 Plan B — suppress M.2 inventory broadcast hook (and the V24
+    // L.7 Plan B - suppress M.2 inventory broadcast hook (and the V24
     // mod-snapshot / V25 grow-skip paths) for the duration of a synthetic
     // engine call. Caller pattern (RAII or manual restore):
     //
@@ -58,7 +58,7 @@ namespace Pulsar::WorldSync::Loot {
     //   ... do AddObjectToContainer calls that must not re-broadcast ...
     //   Pulsar::WorldSync::Loot::SetReplayingFromPacket(prev);
     //
-    // Thread-local — only suppresses on the calling thread. Returns the
+    // Thread-local - only suppresses on the calling thread. Returns the
     // previous value so the caller can restore exactly.
     bool SetReplayingFromPacket(bool value);
     bool IsReplayingFromPacket();
@@ -72,10 +72,10 @@ namespace Pulsar::WorldSync::Loot {
                        const std::vector<std::uint32_t>& a_mods, std::uint16_t a_sentinel);
 
     // (2026-06-18): NATIVE engine mod-attach for an inventory item. Unlike
-    // ApplyItemMods (M.2 overwrite primitive — only rewrites EXISTING array
+    // ApplyItemMods (M.2 overwrite primitive - only rewrites EXISTING array
     // slots, can't allocate/grow, ignores slot compatibility → naked base forms
     // + wrong mods), this drives the engine's own per-entry attach core
-    // (FUN_14063de80, RVA 0x63D270 — the crafting/AttachMod path): it
+    // (FUN_14063de80, RVA 0x63D270 - the crafting/AttachMod path): it
     // allocates the kObjectInstance if absent, GROWS the mod array, and adds
     // each mod into its CORRECT slot from the mod template. Used by the
     // DB-restore path so restored gear (incl. the suit's O2 mod) comes back

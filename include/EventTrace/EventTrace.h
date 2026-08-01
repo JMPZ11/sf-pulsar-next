@@ -3,17 +3,17 @@
 #include <cstdint>
 #include <string>
 
-// EventTrace — diagnostic, dev-only telemetry channel for co-op SYNC DESIGN.
+// EventTrace - diagnostic, dev-only telemetry channel for co-op SYNC DESIGN.
 //
 // Purpose: during a live 2-player session we want a single, human-readable,
-// HOST/CLIENT-tagged timeline of the engine events that drive co-op state —
-// quest progress, quest/dialogue scripts, NPC spawns, and NPC dialogue lines —
+// HOST/CLIENT-tagged timeline of the engine events that drive co-op state -
+// quest progress, quest/dialogue scripts, NPC spawns, and NPC dialogue lines -
 // so we can diff the two machines' logs and design correct sync.
 //
 // Output goes to BOTH PULSAR.log (REX/spdlog, lands LOCALLY on each player's
 // machine, the right place for a host-vs-client diff) and the NAS log (dev
 // machine only). Everything routes through PLOG/NASLOG, so it is compiled OUT
-// entirely in the hardened Release build (see include/Log.h) — zero footprint
+// entirely in the hardened Release build (see include/Log.h) - zero footprint
 // in the shipped binary.
 //
 // Grep the resulting log for "[TRACE]" to pull the whole timeline.
@@ -37,7 +37,7 @@ namespace Pulsar::EventTrace {
     //
     // Use NameOf in functions WITHOUT __try; use the buffer form NameOfBuf in
     // any function that contains a __try block (a std::string temporary in such
-    // a function is a C2712 compile error — a char[] is fine).
+    // a function is a C2712 compile error - a char[] is fine).
     std::string NameOf(std::uint32_t formID);
     void        NameOfBuf(std::uint32_t formID, char* out, std::size_t cap);
 
