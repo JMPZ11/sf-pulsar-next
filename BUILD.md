@@ -172,7 +172,10 @@ Only the **Steam** build is supported, which is an SFSE limitation, not ours.
 `scripts/Source` holds `PulsarBridge.psc` and `PulsarFurnSync.psc`. Compile them
 with the Creation Kit's Papyrus compiler against Starfield's base scripts.
 
-The source of a third script, `PulsarRemoteControl.psc`, has been lost. Only the
+The source of a third script, `PulsarRemoteControl.psc`, was lost. Only the
 compiled `PulsarRemoteControl.pex` shipped in the archive still exists, and it
-is required for co-op because it spawns the remote player. Reconstructing it
-from `docs/PULSAR_Technical.md` and the C++ call sites is an open task.
+is required for co-op because it spawns the remote player. `scripts/Source` now
+also holds a reconstruction of that script, rebuilt from the `.pex` string and
+debug tables, the C++ call sites and `docs/PULSAR_Technical.md`. It has never
+been compiled or run. Do not compile it over the shipped `.pex` and assume
+nothing changed. See `data/README.md`.
