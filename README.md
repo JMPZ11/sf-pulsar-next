@@ -24,13 +24,22 @@ Co-op multiplayer for Starfield. Play through the game together with a friend.
 
 ## Status for players
 
-You can still download and play it. The release on this page works and the
-lobby is up.
+You can still download and play it. The release on this page works.
 
-What changed is that **bug reports no longer lead to fixes from me.** Filing an
-issue is still worth doing, because it leaves a record for whoever continues the
-project, but please do not wait on a reply. Most known problems are already
-listed further down and in [docs/OVERVIEW.md](docs/OVERVIEW.md).
+**Do not count on the official lobby staying online forever.** It runs at the
+time of writing, but it is one rented server paid for by one person who has
+stepped away from the project. If you are reading this much later, assume it
+may be gone.
+
+That is survivable by design. No lobby address is compiled into the tool: it
+reads one from a config file or an environment variable, and falls back to a
+local stack. Hosting your own lobby and your own relay is documented further
+down, and both are in this repository. The mod does not depend on me.
+
+**Bug reports no longer lead to fixes from me.** Filing an issue is still worth
+doing, because it leaves a record for whoever continues the project, but please
+do not wait on a reply. Most known problems are already listed further down and
+in [docs/OVERVIEW.md](docs/OVERVIEW.md).
 
 ## What you need
 
@@ -113,7 +122,7 @@ The full list, cosmetic issues included, is in [docs/OVERVIEW.md](docs/OVERVIEW.
 
 ## Host your own relay (optional, advanced)
 
-You do not need this to play. A relay just passes traffic between two players when a direct connection is hard, and the tool already picks a working one for you automatically.
+A relay just passes traffic between two players when a direct connection is hard. The tool picks one from the public list automatically, so you do not need your own while public relays are registered. If that list is ever empty, running one is how the mod keeps working.
 
 You might want your own as a private relay for your group, or to serve a region that does not have one yet. The relay source is in this repository under `lobby/relay`, with a Dockerfile. The standalone repository is at https://github.com/ramisotti13-eng/pulsar-relay
 
