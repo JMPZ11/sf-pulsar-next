@@ -1,24 +1,26 @@
 # PULSAR
 
-Co-op multiplayer for Starfield. Play through the game together with a friend.
+## I am not developing this any more, and it is open for anyone to take over
 
-> ## Looking for someone to take this over
->
-> **PULSAR is no longer being developed.** I ran out of time to continue, so
-> rather than let it go quiet and disappear, I have published everything.
->
-> The full source is in this repository under GPL-3.0: the SFSE plugin, the
-> tool, the companion daemon, the relay and the lobby backend. Nothing is held
-> back and there is no gatekeeping. Fork it, publish it, rename it, take it in a
-> different direction. You do not need to ask me.
->
-> It works, and real people have played it. It also has bugs that break co-op in
-> specific situations, and nobody is fixing them right now. Both of those are
-> true, and [docs/OVERVIEW.md](docs/OVERVIEW.md) tells you which is which before
-> you invest any time.
->
-> If you want to pick it up, start at [BUILD.md](BUILD.md) and
-> [docs/design/](docs/design/).
+I ran out of time to continue PULSAR. Rather than let it go quiet and
+disappear, I have published everything.
+
+The full source is in this repository under GPL-3.0: the SFSE plugin, the tool,
+the companion daemon, the relay and the lobby backend. Nothing is held back and
+there is no gatekeeping. Fork it, publish it, rename it, take it in a different
+direction. You do not need to ask me.
+
+It works, and real people have played it. It also has bugs that break co-op in
+specific situations, and nobody is fixing them right now. Both of those are
+true, and [docs/OVERVIEW.md](docs/OVERVIEW.md) tells you which is which before
+you invest any time.
+
+If you want to pick it up, start at [BUILD.md](BUILD.md) and
+[docs/design/](docs/design/).
+
+---
+
+Co-op multiplayer for Starfield. Play through the game together with a friend.
 
 ## Status for players
 
