@@ -1,4 +1,4 @@
-# PULSAR Lobby live monitor — stdlib only, no pip deps.
+# PULSAR Lobby live monitor - stdlib only, no pip deps.
 FROM python:3.12-slim
 WORKDIR /app
 COPY monitor.py .

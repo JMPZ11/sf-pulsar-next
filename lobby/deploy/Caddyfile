@@ -25,7 +25,7 @@
 }
 
 # Live monitoring dashboard on a separate sslip.io subdomain (own Let's Encrypt
-# cert, resolves to the same IP). Protected by basic-auth — change the user via
+# cert, resolves to the same IP). Protected by basic-auth - change the user via
 # `caddy hash-password` and update the hash below.
 monitor.{$DOMAIN} {
 	basic_auth {

@@ -15,7 +15,7 @@ index b2ed670..e1d7f0f 100644
 -			}
 -
 -			const auto mem = _allocator->Allocate(a_size, alignof(void*));
-+			// PULSAR: use regular heap — ScrapHeap::Allocate crashes in some contexts
++			// PULSAR: use regular heap - ScrapHeap::Allocate crashes in some contexts
 +			auto mem = RE::malloc(a_size);
  			if (!mem) {
  				REX::FAIL("failed to handle allocation request");
