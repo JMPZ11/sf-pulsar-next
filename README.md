@@ -26,15 +26,20 @@ Co-op multiplayer for Starfield. Play through the game together with a friend.
 
 You can still download and play it. The release on this page works.
 
-**Do not count on the official lobby staying online forever.** It runs at the
-time of writing, but it is one rented server paid for by one person who has
-stepped away from the project. If you are reading this much later, assume it
-may be gone.
+**The official lobby and relay stay up until the end of 2026.** They are paid
+for until then, so until that point everything works out of the box: host, share
+a code, play. After that, assume they are gone. If you are reading this in 2027
+or later, plan for it.
 
-That is survivable by design. No lobby address is compiled into the tool: it
-reads one from a config file or an environment variable, and falls back to a
-local stack. Hosting your own lobby and your own relay is documented further
-down, and both are in this repository. The mod does not depend on me.
+That deadline is survivable by design, and deliberately so. No lobby address is
+compiled into the tool: it reads one from a config file or an environment
+variable, and falls back to a local stack when neither is set. Hosting your own
+lobby and your own relay is documented further down, and the source for both is
+in this repository. Nothing about the mod depends on my server continuing to
+exist.
+
+If you are taking the project over, that end-of-2026 date is your runway for
+standing up your own instance without any gap for players.
 
 **Bug reports no longer lead to fixes from me.** Filing an issue is still worth
 doing, because it leaves a record for whoever continues the project, but please
@@ -122,7 +127,7 @@ The full list, cosmetic issues included, is in [docs/OVERVIEW.md](docs/OVERVIEW.
 
 ## Host your own relay (optional, advanced)
 
-A relay just passes traffic between two players when a direct connection is hard. The tool picks one from the public list automatically, so you do not need your own while public relays are registered. If that list is ever empty, running one is how the mod keeps working.
+A relay just passes traffic between two players when a direct connection is hard. The tool picks one from the public list automatically, so you do not need your own while public relays are registered. The official one is funded until the end of 2026; after that, a community relay is what keeps NAT-blocked players connecting.
 
 You might want your own as a private relay for your group, or to serve a region that does not have one yet. The relay source is in this repository under `lobby/relay`, with a Dockerfile. The standalone repository is at https://github.com/ramisotti13-eng/pulsar-relay
 
@@ -133,8 +138,11 @@ A relay only forwards traffic. It never loads your save or touches your characte
 The lobby backend is in this repository too, under `lobby/server` and
 `lobby/deploy`. No lobby address is compiled into the tool: it reads one from a
 config file or an environment variable, and otherwise falls back to a local
-stack. That is deliberate, so the project does not stop working if the official
-lobby ever goes offline. See [BUILD.md](BUILD.md).
+stack. That is deliberate, so the project does not stop working when the
+official lobby goes offline at the end of 2026. See [BUILD.md](BUILD.md).
+
+`lobby/deploy` contains a working Caddy and Docker Compose setup, so standing up
+a replacement is a deployment job rather than a development one.
 
 ## Source, license, contributing
 
