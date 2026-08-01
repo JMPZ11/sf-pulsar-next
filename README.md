@@ -135,7 +135,8 @@ Everything is here: the SFSE plugin (`src/`, `include/`), the tool
 
 * [docs/OVERVIEW.md](docs/OVERVIEW.md) covers the architecture and the honest state of things.
 * [BUILD.md](BUILD.md) is the build guide. You must apply the patches in `patches/` after cloning, or the plugin will not work.
-* [docs/design/](docs/design/) holds the design documents, including approaches that were tried and abandoned. For anyone picking this up they are the most valuable part of this repository.
+* [docs/design/](docs/design/) holds one design document per feature, written before it was built. They record why each thing ended up the way it did, including approaches that were rejected. That reasoning is what you cannot recover from reading the code. Note the warning there about stale line numbers.
+* [docs/PULSAR_Technical.md](docs/PULSAR_Technical.md) is the technical reference for the plugin itself.
 
 Licensed under GPL-3.0, see [LICENSE](LICENSE), with additional attribution
 terms in [LICENSE-ADDITIONAL](LICENSE-ADDITIONAL): keep the credit to the

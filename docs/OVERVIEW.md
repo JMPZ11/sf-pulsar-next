@@ -111,10 +111,14 @@ There is no gatekeeping here. Fork it, publish it, rename it, take it in a
 different direction. Nobody has to ask anyone.
 
 If you want somewhere to start, the space POI divergence and the profile
-re-apply bug are the two that most often ruin a session. The design documents in
-`docs/design/` are the most valuable thing in this repository: they record the
-reasoning and the dead ends, including approaches that were tried and abandoned,
-which will save you from repeating them.
+re-apply bug are the two that most often ruin a session.
+
+Before changing anything structural, read the relevant document in
+[`docs/design/`](design/). There is one per feature, written before the feature
+was built, and it records why the design ended up the way it did and which
+approaches were rejected. That reasoning is the part you cannot reconstruct from
+the code, and it will keep you from re-walking a dead end. The line numbers
+those documents cite have drifted, so search by symbol name instead.
 
 ## License
 
